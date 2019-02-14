@@ -1,34 +1,40 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net"
 )
 
-func init() {
-	// Initializes logger format
-	log.SetPrefix("LOG: ")
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+// Purpose: stores communication information
+type BlockProducer struct {
+	connections    map[net.Conn]bool
+	server         net.Listener
+	newConnection  chan net.Conn
+	deadConnection chan net.Conn
 }
 
-func CheckConnectivity() {
-	// Purpose: Checks to see if there is an internet connection established
-	// Parameters: None
-	// Returns: Void
+// Purpose: Checks to see if there is an internet connection established
+// Parameters: None
+// Returns: Void
+func CheckConnectivity() error {
 	conn, err := net.Dial("tcp", "www.google.com:80")
 	if err != nil {
-		panic("No internet connection detected.")
+		return errors.New("Connectivity check failed.")
 	}
 	conn.Close()
+	return nil
 }
 
-func main() {
-	defer func() {
-		r := recover()
-		if r != nil {
-			log.Fatalln("Connection check failed.")
+// Purpose: accepts incoming connections
+func (bp *BlockProducer) AcceptConnections() {
+	for {
+		conn, err := bp.server.Accept()
+		if err != nil {
+			fmt.Println("Client failed to connect.")
 		}
-	}()
-	CheckConnectivity()
-	log.Println("Connection check successful.")
+		log.Printf("%s connected.\n", conn.LocalAddr())
+		bp.newConnection <- conn
+	}
 }
