@@ -7,10 +7,8 @@ import (
 
 // Purpose: stores communication information
 type BlockProducer struct {
-	connections    map[net.Conn]bool
-	server         net.Listener
-	newConnection  chan net.Conn
-	deadConnection chan net.Conn
+	server        net.Listener
+	newConnection chan net.Conn
 }
 
 // Purpose: Checks to see if there is an internet connection established

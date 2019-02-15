@@ -17,10 +17,8 @@ func TestCheckConnectivity(t *testing.T) {
 func TestAcceptConnections(t *testing.T) {
 	ln, _ := net.Listen("tcp", "localhost:10000")
 	bp := BlockProducer{
-		connections:    map[net.Conn]bool{},
-		server:         ln,
-		newConnection:  make(chan net.Conn, 128),
-		deadConnection: make(chan net.Conn, 128),
+		server:        ln,
+		newConnection: make(chan net.Conn, 128),
 	}
 	go bp.AcceptConnections()
 	conn, err := net.Dial("tcp", ":10000")

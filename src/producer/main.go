@@ -37,10 +37,8 @@ func main() {
 
 	// Initialize BP struct with listener and empty map
 	bp := BlockProducer{
-		connections:    map[net.Conn]bool{},
-		server:         ln,
-		newConnection:  make(chan net.Conn, 128),
-		deadConnection: make(chan net.Conn, 128),
+		server:        ln,
+		newConnection: make(chan net.Conn, 128),
 	}
 
 	// Start listening for connections
