@@ -2,8 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"net"
 )
 
@@ -27,14 +25,13 @@ func CheckConnectivity() error {
 	return nil
 }
 
-// Purpose: accepts incoming connections
+// Purpose: Accepts incoming connections
 func (bp *BlockProducer) AcceptConnections() {
 	for {
 		conn, err := bp.server.Accept()
 		if err != nil {
-			fmt.Println("Client failed to connect.")
+			return
 		}
-		log.Printf("%s connected.\n", conn.LocalAddr())
 		bp.newConnection <- conn
 	}
 }

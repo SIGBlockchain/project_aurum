@@ -17,12 +17,22 @@ func TestCheckConnectivity(t *testing.T) {
 func TestAcceptConnections(t *testing.T) {
 	ln, _ := net.Listen("tcp", "localhost:10000")
 	bp := BlockProducer{
-		connections: map[net.Conn]bool{},
-		server:      ln,
+		connections:    map[net.Conn]bool{},
+		server:         ln,
+		newConnection:  make(chan net.Conn, 128),
+		deadConnection: make(chan net.Conn, 128),
 	}
 	go bp.AcceptConnections()
-	_, err := net.Dial("tcp", ":10000")
+	conn, err := net.Dial("tcp", ":10000")
 	if err != nil {
 		t.Errorf("Failed to connect to server")
 	}
+	contentsOfChannel := <-bp.newConnection
+	actual := contentsOfChannel.RemoteAddr().String()
+	expected := conn.LocalAddr().String()
+	if actual != expected {
+		t.Errorf("Failed to store connection")
+	}
+	conn.Close()
+	ln.Close()
 }
