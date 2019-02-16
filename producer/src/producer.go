@@ -12,8 +12,6 @@ type BlockProducer struct {
 }
 
 // Purpose: Checks to see if there is an internet connection established
-// Parameters: None
-// Returns: Void
 func CheckConnectivity() error {
 	conn, err := net.Dial("tcp", "www.google.com:80")
 	if err != nil {
