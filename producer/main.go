@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	"../producer/src"
+	producer "../producer/src"
 )
 
 // Initializes logger format
@@ -17,7 +17,7 @@ func init() {
 func main() {
 
 	// Check to see if there is an internet connection
-	err := src.CheckConnectivity()
+	err := producer.CheckConnectivity()
 	if err != nil {
 		log.Fatalln("Connectivity check failed.")
 	}
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// Initialize BP struct with listener and empty map
-	bp := src.BlockProducer{
+	bp := producer.BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
 	}
