@@ -32,7 +32,8 @@ func main() {
 	}
 
 	// Spin up server
-	ln, err := net.Listen("tcp", ":"+port)
+	// NOTE: If this doesn't work, try deleting `localhost`
+	ln, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
 		log.Fatalln("Failed to start server.")
 	}
