@@ -7,8 +7,8 @@ import (
 
 // Purpose: stores communication information
 type BlockProducer struct {
-	server        net.Listener
-	newConnection chan net.Conn
+	Server        net.Listener
+	NewConnection chan net.Conn
 }
 
 // Purpose: Checks to see if there is an internet connection established
@@ -24,10 +24,10 @@ func CheckConnectivity() error {
 // Purpose: Accepts incoming connections
 func (bp *BlockProducer) AcceptConnections() {
 	for {
-		conn, err := bp.server.Accept()
+		conn, err := bp.Server.Accept()
 		if err != nil {
 			return
 		}
-		bp.newConnection <- conn
+		bp.NewConnection <- conn
 	}
 }
