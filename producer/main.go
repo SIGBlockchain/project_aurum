@@ -49,9 +49,7 @@ func main() {
 	go bp.AcceptConnections()
 
 	// Main loop
-	for {
-
-	}
+	bp.WorkLoop()
 
 	// Close the server
 	bp.Server.Close()
