@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	producer "../producer/src"
+	producer "../producer"
 )
 
 // Initializes logger format
