@@ -31,30 +31,3 @@ func (bp *BlockProducer) AcceptConnections() {
 		bp.NewConnection <- conn
 	}
 }
-
-// Handles incoming Connections
-// Currently this is simply echoing messages back
-// In the future this will need to support messages of size > 1024
-// This can be done by reading in fragments
-func (bp *BlockProducer) Handle(conn net.Conn) {
-	buf := make([]byte, 1024)
-	_, err := conn.Read(buf)
-	if err != nil {
-		return
-	}
-	conn.Write(buf)
-	conn.Close()
-}
-
-// The main work loop
-// Handles communication, block production, and ledger maintenance
-func (bp *BlockProducer) WorkLoop() {
-	for {
-		select {
-		case conn := <-bp.NewConnection:
-			go bp.Handle(conn)
-		default:
-			// Do other stuff
-		}
-	}
-}
