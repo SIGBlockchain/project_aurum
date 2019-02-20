@@ -1,6 +1,1 @@
-package main
-
-import {
-        "net"
-        "testing"
-}
+package producer
