@@ -2,6 +2,9 @@ package main
 
 import (
 	"log"
+	"fmt"
+	"strings"
+	"os"
 
 	client "project_aurum/client/src/client"
 	)
@@ -19,4 +22,16 @@ func main() {
 		log.Fatalln("Connectivity check failed.")
 	}
 	log.Println("Connection check passed.")
+
+	var user_input string
+	for {
+		if client.GetUserInput(&user_input, os.Stdin) != nil {
+			break;
+		}
+
+		if strings.Compare(user_input, "q") == 0 {
+			fmt.Println("goodbye")
+			break;
+		}
+	}
 }
