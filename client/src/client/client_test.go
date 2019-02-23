@@ -16,11 +16,11 @@ func TestCheckConnection(t *testing.T) {
 // Test will simulate user input and ensure that the function will collect the correct string
 func TestGetUserInput(t *testing.T) {
 
-	var stdin bytes.Buffer
-	stdin.Write([]byte("TEST\n"))
+	var testread bytes.Buffer
+	testread.Write([]byte("TEST\n"))
 
 	var user_input string
-	if GetUserInput(&user_input, &stdin) != nil {
+	if GetUserInput(&user_input, &testread) != nil {
 		t.Errorf("User Input Check Failed.")		
 	}
 
