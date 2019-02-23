@@ -2,12 +2,11 @@ package main
 
 import (
 	"log"
-	"fmt"
-	"strings"
 	"os"
+	"strings"
 
-	client "project_aurum/client/src/client"
-	)
+	client "../client"
+)
 
 // Initializes logger format
 func init() {
@@ -23,15 +22,15 @@ func main() {
 	}
 	log.Println("Connection check passed.")
 
-	var user_input string
+	var userInput string
 	for {
-		if client.GetUserInput(&user_input, os.Stdin) != nil {
-			break;
+		if client.GetUserInput(&userInput, os.Stdin) != nil {
+			log.Fatalln("Error getting input.")
 		}
 
-		if strings.Compare(user_input, "q") == 0 {
-			fmt.Println("goodbye")
-			break;
+		if strings.Compare(userInput, "q") == 0 {
+			log.Println("Exiting program.\nGoodbye")
+			os.Exit(0)
 		}
 	}
 }
