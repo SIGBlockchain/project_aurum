@@ -47,13 +47,13 @@ func TestSerialize(t *testing.T) {
 	// check PreviousHash
 	blockPrevHash := serial[20:52]
 	if bytes.Equal(blockPrevHash, b.PreviousHash) != true {
-		t.Errorf("PreviousHashes do not match\n")
+		t.Errorf("PreviousHashes do not match")
 	}
 
 	//check MerkleRootHash
 	blockMerkleHash := serial[52:84]
 	if bytes.Equal(blockMerkleHash, b.MerkleRootHash) != true {
-		t.Errorf("MerkleRootHashes do not match\n")
+		t.Errorf("MerkleRootHashes do not match")
 	}
 
 }
