@@ -24,7 +24,7 @@ func TestSerialize(t *testing.T) {
 	// now use the serialize function
 	serial := b.Serialize()
 
-	// indiceies are fixed since we know what the max sizes are going to be
+	// indicies are fixed since we know what the max sizes are going to be
 
 	// check Version
 	blockVersion := binary.LittleEndian.Uint32(serial[0:4])
