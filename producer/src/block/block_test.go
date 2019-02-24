@@ -26,36 +26,36 @@ func TestSerialize(t *testing.T) {
 	// will keep track of current position in the slice
 	pos := 0
 
-	// check version
+	// check Version
 	blockVersion := binary.LittleEndian.Uint32(serial[0:4])
 	if blockVersion != b.Version {
-		t.Errorf("version does not match")
+		t.Errorf("Version does not match")
 	}
 
-	// check height
+	// check Height
 	blockHeight := binary.LittleEndian.Uint64(serial[4:12])
 	if blockHeight != b.Height {
-		t.Errorf("height does not match")
+		t.Errorf("Height does not match")
 	}
 
 	//check Timestamp
 	blockTimestamp := binary.LittleEndian.Uint64(serial[12:20])
 	if int64(blockTimestamp) != b.Timestamp {
-		t.Errorf("time stamps do not match")
+		t.Errorf("Timestamps do not match")
 	}
 	pos = 20
 
-	// check previousHash
+	// check PreviousHash
 	blockPrevHash := serial[pos : pos+len(b.PreviousHash)]
 	if bytes.Equal(blockPrevHash, b.PreviousHash) != true {
-		t.Errorf("Previous hashes do not match\n")
+		t.Errorf("PreviousHashes do not match\n")
 	}
 	pos = pos + len(b.PreviousHash)
 
-	//check merkleRootHash
+	//check MerkleRootHash
 	blockMerkleHash := serial[pos : pos+len(b.MerkleRootHash)]
 	if bytes.Equal(blockMerkleHash, b.MerkleRootHash) != true {
-		t.Errorf("Merkle hashes do not match\n")
+		t.Errorf("MerkleRootHashes do not match\n")
 	}
 
 }
