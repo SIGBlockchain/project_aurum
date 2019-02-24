@@ -16,15 +16,15 @@ func TestSerialize(t *testing.T) {
 	b := Block{
 		Version:        3,
 		Height:         300,
-		PreviousHash:   []byte{'g', 'u', 'a', 'v', 'a'},
-		MerkleRootHash: []byte{'g', 'r', 'a', 'p', 'e'},
+		PreviousHash:   []byte{'g', 'u', 'a', 'v', 'a', 'p', 'i', 'n', 'e', 'a', 'p', 'p', 'l', 'e', 'm', 'a', 'n', 'g', 'o', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c'},
+		MerkleRootHash: []byte{'g', 'r', 'a', 'p', 'e', 'w', 'a', 't', 'e', 'r', 'm', 'e', 'l', 'o', 'n', 'c', 'o', 'c', 'o', 'n', 'u', 't', 'l', 'e', 'm', 'o', 'n', 's', 'a', 'b', 'c', 'd'},
 		Timestamp:      nowTime,
 		Data:           [][]byte{}, // need to add
 	}
 	// now use the serialize function
 	serial := b.Serialize()
-	// will keep track of current position in the slice
-	pos := 0
+
+	// indiceies are fixed since we know what the max sizes are going to be
 
 	// check Version
 	blockVersion := binary.LittleEndian.Uint32(serial[0:4])
@@ -43,17 +43,15 @@ func TestSerialize(t *testing.T) {
 	if int64(blockTimestamp) != b.Timestamp {
 		t.Errorf("Timestamps do not match")
 	}
-	pos = 20
 
 	// check PreviousHash
-	blockPrevHash := serial[pos : pos+len(b.PreviousHash)]
+	blockPrevHash := serial[20:52]
 	if bytes.Equal(blockPrevHash, b.PreviousHash) != true {
 		t.Errorf("PreviousHashes do not match\n")
 	}
-	pos = pos + len(b.PreviousHash)
 
 	//check MerkleRootHash
-	blockMerkleHash := serial[pos : pos+len(b.MerkleRootHash)]
+	blockMerkleHash := serial[52:84]
 	if bytes.Equal(blockMerkleHash, b.MerkleRootHash) != true {
 		t.Errorf("MerkleRootHashes do not match\n")
 	}
