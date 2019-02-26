@@ -64,8 +64,10 @@ func TestHashSHA256 (t *testing.T) {
 	data := []byte{'s', 'a', 'm'}
 	result := HashSHA256(data)
 	// checks if data was hashed by comparing data types
-	if (reflect.TypeOf(result) != reflect.TypeOf(data)) ||
-		(len(result) != 32) {
+	if reflect.TypeOf(result) != reflect.TypeOf(data) {
+		t.Errorf("Error")
+	}
+	if len(result) != 32 {
 		t.Errorf("Error")
 	}
 }
