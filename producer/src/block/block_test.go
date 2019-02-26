@@ -63,8 +63,9 @@ func TestSerialize(t *testing.T) {
 func TestHashSHA256 (t *testing.T) {
 	data := []byte{'s', 'a', 'm'}
 	result := HashSHA256(data)
+	byte32_variable := [32]byte{'d', 'a', 'n'}
 	// checks if data was hashed by comparing data types
-	if reflect.TypeOf(result) != reflect.TypeOf(data) {
+	if reflect.TypeOf(result).Kind() != reflect.TypeOf(byte32_variable).Kind() {
 		t.Errorf("Error. Data types do not match.")
 	}
 	if len(result) != 32 {
