@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"           // for comparing []bytes
 	"encoding/binary" // for encoding/decoding
+	"reflect"         // to get data type
 	"testing"         // testing
 	"time"            // to get time stamp
 )
@@ -56,4 +57,18 @@ func TestSerialize(t *testing.T) {
 		t.Errorf("MerkleRootHashes do not match")
 	}
 
+}
+
+// tests HashSHA256 function
+func TestHashSHA256(t *testing.T) {
+	data := []byte{'s', 'a', 'm'}
+	result := HashSHA256(data)
+	var byte32_variable [32]byte
+	// checks if data was hashed by comparing data types
+	if reflect.TypeOf(result).Kind() != reflect.TypeOf(byte32_variable).Kind() {
+		t.Errorf("Error. Data types do not match.")
+	}
+	if len(result) != 32 {
+		t.Errorf("Error. Data is not 32 bytes long.")
+	}
 }
