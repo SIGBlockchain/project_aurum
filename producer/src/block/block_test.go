@@ -3,9 +3,9 @@ package block
 import (
 	"bytes"           // for comparing []bytes
 	"encoding/binary" // for encoding/decoding
+	"reflect"         // to get data type
 	"testing"         // testing
 	"time"            // to get time stamp
-	"reflect"		  // to get data type
 )
 
 func TestSerialize(t *testing.T) {
@@ -60,10 +60,10 @@ func TestSerialize(t *testing.T) {
 }
 
 // tests HashSHA256 function
-func TestHashSHA256 (t *testing.T) {
+func TestHashSHA256(t *testing.T) {
 	data := []byte{'s', 'a', 'm'}
 	result := HashSHA256(data)
-	byte32_variable := [32]byte{'d', 'a', 'n'}
+	var byte32_variable [32]byte
 	// checks if data was hashed by comparing data types
 	if reflect.TypeOf(result).Kind() != reflect.TypeOf(byte32_variable).Kind() {
 		t.Errorf("Error. Data types do not match.")
