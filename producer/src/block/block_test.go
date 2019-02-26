@@ -5,6 +5,7 @@ import (
 	"encoding/binary" // for encoding/decoding
 	"testing"         // testing
 	"time"            // to get time stamp
+	"reflect"		  // to get data type
 )
 
 func TestSerialize(t *testing.T) {
@@ -56,4 +57,15 @@ func TestSerialize(t *testing.T) {
 		t.Errorf("MerkleRootHashes do not match")
 	}
 
+}
+
+// tests HashSHA256 function
+func TestHashSHA256 (t *testing.T) {
+	data := []byte{'s', 'a', 'm'}
+	result := HashSHA256(data)
+	// checks if data was hashed by comparing data types
+	if (reflect.TypeOf(result) != reflect.TypeOf(data)) ||
+		(len(result) != 32) {
+		t.Errorf("Error")
+	}
 }
