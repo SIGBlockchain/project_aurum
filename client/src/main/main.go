@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"strings"
 
 	client "../client"
 )
@@ -15,6 +14,7 @@ func init() {
 }
 
 func main() {
+	client.ClearScreen()
 	// Check to see if there is an internet connection
 	err := client.CheckConnection()
 	if err != nil {
@@ -28,9 +28,17 @@ func main() {
 			log.Fatalln("Error getting input.")
 		}
 
-		if strings.Compare(userInput, "q") == 0 {
+		if userInput == "q" {
 			log.Println("Exiting program.\nGoodbye")
 			os.Exit(0)
+		} else if userInput == "clear" {
+			client.ClearScreen()
+		} else if userInput == "help" {
+			client.PrintHelp()
+		} else if userInput == "moreinfo" {
+			if client.GoToWebpage() != nil {
+				log.Println("Attempt to open github page failed.")
+			}
 		}
 	}
 }
