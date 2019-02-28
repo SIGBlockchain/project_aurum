@@ -88,12 +88,14 @@ func PrintHelp() {
 * Purpose: Sends user to project github page                                                      *
 * Returns: An Error message if failed, nil otherwise                                              *
 =================================================================================================*/
-func GoToWebpage() error{
-	// On non-windows systems, the open command opens a URL with default browser
-	cmd := exec.Command("xdg-open", "https://github.com/SIGBlockchain/project_aurum")
+func GoToWebpage() error {
+	var cmd *exec.Cmd
 	// If the operating system is actually windows, change this to start
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("start", "https://github.com/SIGBlockchain/project_aurum")
+		cmd = exec.Command("cmd", "/c", "start", "https://github.com/SIGBlockchain/project_aurum")
+	} else {
+		// On non-windows systems, the open command opens a URL with default browser
+		cmd = exec.Command("xdg-open", "https://github.com/SIGBlockchain/project_aurum")
 	}
 	// Sets the output of this command to the command line, and executes
 	cmd.Stdout = os.Stdout
