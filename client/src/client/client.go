@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"github.com/pkg/browser"
 )
 
 /*=====================================================================
@@ -90,7 +89,14 @@ func PrintHelp() {
 * Returns: An Error message if failed, nil otherwise                                              *
 =================================================================================================*/
 func GoToWebpage() error{
-	// Attempts to go to the webpage, stores any errors in err
-	err := browser.OpenURL("https://github.com/SIGBlockchain/project_aurum")
+	// On non-windows systems, the open command opens a URL with default browser
+	cmd := exec.Command("xdg-open", "https://github.com/SIGBlockchain/project_aurum")
+	// If the operating system is actually windows, change this to start
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("start", "https://github.com/SIGBlockchain/project_aurum")
+	}
+	// Sets the output of this command to the command line, and executes
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
 	return err
 }
