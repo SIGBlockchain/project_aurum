@@ -92,7 +92,7 @@ func GoToWebpage() error {
 	var cmd *exec.Cmd
 	// If the operating system is actually windows, change this to start
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "start", "https://github.com/SIGBlockchain/project_aurum")
+		cmd = exec.Command("cmd", "/C", "start", "", "\"https://github.com/SIGBlockchain/project_aurum\"")
 	} else {
 		// On non-windows systems, the open command opens a URL with default browser
 		cmd = exec.Command("xdg-open", "https://github.com/SIGBlockchain/project_aurum")
