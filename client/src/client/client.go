@@ -1,8 +1,12 @@
 package client
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"io"
 	"net"
+	"strings"
 )
 
 /*=====================================================================
@@ -23,3 +27,18 @@ func CheckConnection() error {
 	return nil
 }
 
+/*=================================================================================================
+* Purpose: Collects user input from command line, returns as a string                             *
+* Returns: A string, holding the user input                                                       *
+=================================================================================================*/
+func GetUserInput(text *string, reader io.Reader) error {
+	// Creates a reader object, using bufio library
+	fmt.Print("[aurum client] >> ")
+	// Stores user input until \n, stores into text
+	var err error
+	newReader := bufio.NewReader(reader)
+	*text, err = newReader.ReadString('\n')
+	// Ensures no newline characters in input
+	*text = strings.Replace(*text, "\n", "", -1)
+	return err
+}
