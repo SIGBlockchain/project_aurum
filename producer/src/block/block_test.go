@@ -84,9 +84,7 @@ func TestGetMerkleRootHashEmptyInput(t *testing.T) {
 
 func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
 	input := [][]byte{[]byte("transaction")}
-	doubleHash := HashSHA256(HashSHA256(input[0]))
-	concat := append(doubleHash, doubleHash...)
-	expected := HashSHA256(HashSHA256(concat))
+	expected := HashSHA256(HashSHA256(input[0]))
 	actual := GetMerkleRootHash(input)
 
 	if (!bytes.Equal(expected, actual)){
