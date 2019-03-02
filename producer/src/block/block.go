@@ -62,11 +62,14 @@ func getMerkleRoot(l *list.List) []byte {
 		l.PushBack(l.Back().Value.([]byte))
 	}
 	listLen := l.Len()
+	buff := make([]byte, 64) //each hash is 32 bytes
 	for i := 0; i < listLen/2; i++ {
 		//"pop" off 2 vales
 		v1 := l.Remove(l.Front()).([]byte)
 		v2 := l.Remove(l.Front()).([]byte)
-		l.PushBack(HashSHA256(HashSHA256(append(v1, v2...))))
+		copy(buff[0:32], v1)
+		copy(buff[32:64], v2)
+		l.PushBack(HashSHA256(HashSHA256(buff)))
 	}
 	return getMerkleRoot(l)
 }
