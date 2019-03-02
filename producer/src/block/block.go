@@ -40,40 +40,33 @@ func HashSHA256(data []byte) []byte {
 	return result[:]
 }
 
-
 func GetMerkleRootHash(input [][]byte) []byte {
 	if len(input) == 0 {
 		return []byte{} //return an empty slice
 	}
-
 	//first add all the slices to a list
 	l := list.New()
 	for _, s := range input {
 		//while pushing elements to the list, double hash them
 		l.PushBack(HashSHA256(HashSHA256(s)))
 	}
-	
 	return getMerkleRoot(l)
 }
 
-//recursive helper fucntion
+// recursive helper fucntion
 func getMerkleRoot(l *list.List) []byte {
 	if l.Len() == 1 {
 		return l.Front().Value.([]byte)
 	}
-
-	if l.Len()%2 == 1 { //list is of odd length
+	if l.Len()%2 != 0 { //list is of odd length
 		l.PushBack(l.Back().Value.([]byte))
 	}
-
 	listLen := l.Len()
-	for i := 0; i < listLen / 2; i++ {
+	for i := 0; i < listLen/2; i++ {
 		//"pop" off 2 vales
 		v1 := l.Remove(l.Front()).([]byte)
 		v2 := l.Remove(l.Front()).([]byte)
-		concat := append(v1, v2...)
-		l.PushBack(HashSHA256(HashSHA256(concat)))
+		l.PushBack(HashSHA256(HashSHA256(append(v1, v2...))))
 	}
 	return getMerkleRoot(l)
 }
-
