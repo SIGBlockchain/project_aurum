@@ -62,7 +62,7 @@ func getMerkleRoot(l *list.List) []byte {
 		return l.Front().Value.([]byte)
 	}
 
-	if l.Len()%2 == 1 { //list is of odd length
+	if l.Len()%2 != 0 { //list is of odd length
 		l.PushBack(l.Back().Value.([]byte))
 	}
 
