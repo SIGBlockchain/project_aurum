@@ -52,9 +52,7 @@ func GetMerkleRootHash(input [][]byte) []byte {
 		//while pushing elements to the list, double hash them
 		l.PushBack(HashSHA256(HashSHA256(s)))
 	}
-	if l.Len()%2 == 1 { //list is of odd length
-		l.PushBack(l.Back().Value.([]byte))
-	}
+	
 	return getMerkleRoot(l)
 }
 
@@ -62,6 +60,10 @@ func GetMerkleRootHash(input [][]byte) []byte {
 func getMerkleRoot(l *list.List) []byte {
 	if l.Len() == 1 {
 		return l.Front().Value.([]byte)
+	}
+
+	if l.Len()%2 == 1 { //list is of odd length
+		l.PushBack(l.Back().Value.([]byte))
 	}
 
 	listLen := l.Len()
