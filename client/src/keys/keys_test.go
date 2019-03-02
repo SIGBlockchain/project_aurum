@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"os"
 	"testing"
 )
 
@@ -18,6 +19,10 @@ func TestKeys(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to store keys.")
 	}
+
+	// Delete testFile
+	os.Remove(testFile)
+
 	/*
 		// actual key
 		actualPrivKey, err := GetKey(testFile)
