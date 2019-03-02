@@ -32,11 +32,12 @@ func (b *Block) Serialize() []byte {
 }
 
 // function hashes data
-func HashSHA256(data []byte) [32]byte {
-	return sha256.Sum256(data)
+func HashSHA256(data []byte) []byte {
+	result := sha256.Sum256(data)
+	return result[:]
 }
 
-func GetMerkleRootHash(input [][]byte) [32]byte {
+func GetMerkleRootHash(input [][]byte) []byte {
 	//first add all the slices to a list
 	l := list.New()
 	for _, s := range input {
@@ -46,9 +47,9 @@ func GetMerkleRootHash(input [][]byte) [32]byte {
 }
 
 //recursive helper fucntion
-func getMerkleRoot(l *list.List) [32]byte {
+func getMerkleRoot(l *list.List) []byte {
 	if l.Len() == 1 {
-		return l.Back().Value.([32]byte)
+		return l.Back().Value.([]byte)
 	}
 
 	if l.Len()%2 == 1 { //list is of odd length
@@ -61,7 +62,9 @@ func getMerkleRoot(l *list.List) [32]byte {
 		v1 := l.Remove(l.Back()).([]byte)
 		v2 := l.Remove(l.Back()).([]byte)
 		concat := append(v1, v2...)
-		l.PushFront(concat)
+		first := HashSHA256(concat)
+		second := HashSHA256(first)
+		l.PushFront(second)
 	}
 	return getMerkleRoot(l)
 }
