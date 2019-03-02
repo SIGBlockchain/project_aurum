@@ -13,7 +13,6 @@ type Block struct {
 	Data           [][]byte
 }
 
-// function only serializes the block header for now
 func (b *Block) Serialize() []byte {
 	// allocates space for the known variables
 	serializedBlock := make([]byte, 20)
