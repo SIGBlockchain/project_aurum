@@ -36,7 +36,7 @@ func TestKeys(t *testing.T) {
     }
 
     // Compares the Big Ints inside of the Public Key field
-    if actualPublicKey.X.Cmp(expectedPublicKey.X) != 0 && actualPublicKey.Y.Cmp(expectedPublicKey.Y) != 0 {
+    if actualPublicKey.X.Cmp(expectedPublicKey.X) != 0 || actualPublicKey.Y.Cmp(expectedPublicKey.Y) != 0 {
         t.Errorf("Public Key from file does not match expected Public Key.")
     }
 
