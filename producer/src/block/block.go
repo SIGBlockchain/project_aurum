@@ -1,7 +1,8 @@
 package block
 
 import (
-	"encoding/binary"
+	"encoding/binary" // for converting to uints to byte slices
+	"crypto/sha256" // for hashing
 )
 
 type Block struct {
@@ -30,4 +31,9 @@ func (b *Block) Serialize() []byte {
 		serializedBlock = append(serializedBlock, b.Data[i]...)
 	}
 	return serializedBlock
+}
+
+// function hashes data
+func HashSHA256 (data []byte) ([32]byte) {
+	return sha256.Sum256(data)
 }
