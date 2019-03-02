@@ -20,17 +20,15 @@ func TestKeys(t *testing.T) {
 		t.Errorf("Failed to store keys.")
 	}
 
+    // actual key
+    actualPrivKey, err := GetKey(testFile)
+    if err != nil {
+        t.Errorf("Failed to retrieve keys")
+    } 
+    if actualPrivKey == expectedPrivKey {
+        t.Errorf("Contents of file does not match the expected Private Key.")
+    }
+
 	// Delete testFile
 	os.Remove(testFile)
-
-	/*
-		// actual key
-		actualPrivKey, err := GetKey(testFile)
-		if err != nil {
-			t.Errorf("Failed to retrieve keys")
-		}
-
-		if expectedPrivKey != actualPrivKey {
-			t.Errorf("Contents of file does not match the ")
-		}*/
 }
