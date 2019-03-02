@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	producer "../producer/src"
+	producer "../producer"
 )
 
 // Initializes logger format
@@ -32,7 +32,8 @@ func main() {
 	}
 
 	// Spin up server
-	ln, err := net.Listen("tcp", ":"+port)
+	// NOTE: If this doesn't work, try deleting `localhost`
+	ln, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
 		log.Fatalln("Failed to start server.")
 	}
@@ -48,9 +49,7 @@ func main() {
 	go bp.AcceptConnections()
 
 	// Main loop
-	for {
-
-	}
+	bp.WorkLoop()
 
 	// Close the server
 	bp.Server.Close()
