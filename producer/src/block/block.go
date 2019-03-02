@@ -14,8 +14,7 @@ type Block struct {
 	Data           [][]byte
 }
 
-// function only serializes the block header for now
-// need to add in the Data
+// Produces a block based on the struct provided
 func (b *Block) Serialize() []byte {
 	// allocates space for the known variables
 	serializedBlock := make([]byte, 20)
@@ -27,7 +26,11 @@ func (b *Block) Serialize() []byte {
 
 	// now append the remaining information and return the complete block header byte slice
 	serializedBlock = append(serializedBlock, b.PreviousHash...)
-	return append(serializedBlock, b.MerkleRootHash...)
+	serializedBlock = append(serializedBlock, b.MerkleRootHash...)
+	for i := 0; i < len(b.Data); i++ {
+		serializedBlock = append(serializedBlock, b.Data[i]...)
+	}
+	return serializedBlock
 }
 
 // function hashes data
