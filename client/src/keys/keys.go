@@ -17,7 +17,7 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 
 	// checks if the opening was successful
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// encodes the private key
@@ -43,11 +43,12 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 
 	// checks if the writing was successful
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	//e := errors.New("Unable to write the private key into the file") // change to meaningful text
 
-	return err
+	return nil
 }
 
 /*
