@@ -22,7 +22,7 @@ func TestSerialize(t *testing.T) {
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
-  
+
 	// now use the serialize function
 	serial := b.Serialize()
 	// indicies are fixed since we know what the max sizes are going to be
@@ -56,7 +56,7 @@ func TestSerialize(t *testing.T) {
 	if bytes.Equal(blockMerkleHash, b.MerkleRootHash) != true {
 		t.Errorf("MerkleRootHashes do not match")
 	}
-  
+
 	// check Data
 	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
 	blockData := serial[84:90]
@@ -76,7 +76,7 @@ func TestSerialize(t *testing.T) {
 func TestHashSHA256(t *testing.T) {
 	data := []byte{'s', 'a', 'm'}
 	result := HashSHA256(data)
-	var byte32_variable [32]byte
+	var byte32_variable []byte
 	// checks if data was hashed by comparing data types
 	if reflect.TypeOf(result).Kind() != reflect.TypeOf(byte32_variable).Kind() {
 		t.Errorf("Error. Data types do not match.")
