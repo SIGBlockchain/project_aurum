@@ -1,8 +1,9 @@
 package block
 
 import (
+	"container/list"
+	"crypto/sha256"   // for hashing
 	"encoding/binary" // for converting to uints to byte slices
-	"crypto/sha256" // for hashing
 )
 
 type Block struct {
@@ -31,6 +32,36 @@ func (b *Block) Serialize() []byte {
 }
 
 // function hashes data
-func HashSHA256 (data []byte) ([32]byte) {
+func HashSHA256(data []byte) [32]byte {
 	return sha256.Sum256(data)
+}
+
+func GetMerkleRootHash(input [][]byte) [32]byte {
+	//first add all the slices to a list
+	l := list.New()
+	for _, s := range input {
+		l.PushBack(s)
+	}
+	return getMerkleRoot(l)
+}
+
+//recursive helper fucntion
+func getMerkleRoot(l *list.List) [32]byte {
+	if l.Len() == 1 {
+		return l.Back().Value.([32]byte)
+	}
+
+	if l.Len()%2 == 1 { //list is of odd length
+		l.PushFront(l.Front)
+	}
+
+	listLen := l.Len()
+	for i := 0; i < listLen; i++ {
+		//"pop" off 2 vales
+		v1 := l.Remove(l.Back()).([]byte)
+		v2 := l.Remove(l.Back()).([]byte)
+		concat := append(v1, v2...)
+		l.PushFront(concat)
+	}
+	return getMerkleRoot(l)
 }
