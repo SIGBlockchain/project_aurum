@@ -40,6 +40,7 @@ func HashSHA256(data []byte) []byte {
 	return result[:]
 }
 
+// Returns the merkle root hash of the list of inputs
 func GetMerkleRootHash(input [][]byte) []byte {
 	if len(input) == 0 {
 		return []byte{} //return an empty slice
@@ -53,7 +54,7 @@ func GetMerkleRootHash(input [][]byte) []byte {
 	return getMerkleRoot(l)
 }
 
-// recursive helper fucntion
+// recursive helper function
 func getMerkleRoot(l *list.List) []byte {
 	if l.Len() == 1 {
 		return l.Front().Value.([]byte)
