@@ -13,6 +13,7 @@ type Block struct {
 	Data           [][]byte
 }
 
+// Produces a block based on the struct provided
 func (b *Block) Serialize() []byte {
 	// allocates space for the known variables
 	serializedBlock := make([]byte, 20)
