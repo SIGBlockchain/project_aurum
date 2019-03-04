@@ -82,8 +82,7 @@ func HashBlock(b Block) []byte {
 	return []byte{}
 }
 
-// Given a block in byte string form,
-// return a block in struct form
+// Given a block in byte string form, return a block in struct form
 func Deserialize(block []byte) Block {
 	// TODO
 	return Block{}
