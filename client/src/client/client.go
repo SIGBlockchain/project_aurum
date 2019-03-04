@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+    "github.com/skratchdot/open-golang/open"
 )
 
 /*=====================================================================
@@ -89,16 +90,14 @@ func PrintHelp() {
 * Returns: An Error message if failed, nil otherwise                                              *
 =================================================================================================*/
 func GoToWebpage() error {
-	var cmd *exec.Cmd
 	// If the operating system is actually windows, change this to start
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", "start", "\"\"", "\"https://github.com/SIGBlockchain/project_aurum\"")
+		var cmd *exec.Cmd = exec.Command("cmd", "/C", "start", "\"\"", "\"https://github.com/SIGBlockchain/project_aurum\"")
+	// Sets the output of this command to the command line, and executes
+        cmd.Stdout = os.Stdout
+        return cmd.Run()
 	} else {
 		// On non-windows systems, the open command opens a URL with default browser
-		cmd = exec.Command("xdg-open", "https://github.com/SIGBlockchain/project_aurum")
+        return open.Run("https://github.com/SIGBlockchain/project_aurum")
 	}
-	// Sets the output of this command to the command line, and executes
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	return err
 }
