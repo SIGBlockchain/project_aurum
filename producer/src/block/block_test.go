@@ -6,6 +6,8 @@ import (
 	"reflect"         // to get data type
 	"testing"         // testing
 	"time"            // to get time stamp
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestSerialize(t *testing.T) {
@@ -147,3 +149,20 @@ func TestGetMerkleRootHashQuadInput(t *testing.T) {
 		t.Errorf("%v != %v", expected, actual)
 	}
 }
+
+func TestDeserialize(t *testing.T) {
+	expected := Block{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   HashSHA256([]byte{'x'}),
+		MerkleRootHash: HashSHA256([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{HashSHA256([]byte{'r'})},
+	}
+	intermed := expected.Serialize()
+	actual := Deserialize(intermed)
+	if !cmp.Equal(expected, actual) {
+		t.Errorf("Blocks do not match")
+	}
+}
+

@@ -74,3 +74,16 @@ func getMerkleRoot(l *list.List) []byte {
 	}
 	return getMerkleRoot(l)
 }
+
+// Concatenate all the fields of the block **header**
+// Return the SHA-256 hash of that concatenation
+func HashBlock(b Block) []byte {
+	// TODO
+	return []byte{}
+}
+
+// Given a block in byte string form, return a block in struct form
+func Deserialize(block []byte) Block {
+	// TODO
+	return Block{}
+}
