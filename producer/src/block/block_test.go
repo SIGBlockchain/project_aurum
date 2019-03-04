@@ -19,8 +19,8 @@ func TestSerialize(t *testing.T) {
 	b := Block{
 		Version:        3,
 		Height:         300,
-		PreviousHash:   []byte{'g', 'u', 'a', 'v', 'a', 'p', 'i', 'n', 'e', 'a', 'p', 'p', 'l', 'e', 'm', 'a', 'n', 'g', 'o', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c'},
-		MerkleRootHash: []byte{'g', 'r', 'a', 'p', 'e', 'w', 'a', 't', 'e', 'r', 'm', 'e', 'l', 'o', 'n', 'c', 'o', 'c', 'o', 'n', 'u', 't', 'l', 'e', 'm', 'o', 'n', 's', 'a', 'b', 'c', 'd'},
+		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
@@ -165,3 +165,4 @@ func TestDeserialize(t *testing.T) {
 		t.Errorf("Blocks do not match")
 	}
 }
+
