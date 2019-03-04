@@ -17,8 +17,8 @@ func TestSerialize(t *testing.T) {
 	b := Block{
 		Version:        3,
 		Height:         300,
-		PreviousHash:   []byte{'g', 'u', 'a', 'v', 'a', 'p', 'i', 'n', 'e', 'a', 'p', 'p', 'l', 'e', 'm', 'a', 'n', 'g', 'o', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c'},
-		MerkleRootHash: []byte{'g', 'r', 'a', 'p', 'e', 'w', 'a', 't', 'e', 'r', 'm', 'e', 'l', 'o', 'n', 'c', 'o', 'c', 'o', 'n', 'u', 't', 'l', 'e', 'm', 'o', 'n', 's', 'a', 'b', 'c', 'd'},
+		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
@@ -100,7 +100,7 @@ func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
 	expected := HashSHA256(HashSHA256(input[0]))
 	actual := GetMerkleRootHash(input)
 
-	if (!bytes.Equal(expected, actual)){
+	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on single byte slice")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
@@ -109,39 +109,39 @@ func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
 
 func TestGetMerkleRootHashDoubleInput(t *testing.T) {
 	input := [][]byte{[]byte("transaction1"), []byte("transaction2")}
-	concat := append(HashSHA256(HashSHA256(input[0])) , HashSHA256(HashSHA256(input[1]))...)
+	concat := append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)
 	expected := HashSHA256(HashSHA256(concat))
 	actual := GetMerkleRootHash(input)
 
-	if (!bytes.Equal(expected, actual)){
+	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on two byte slices")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
 	}
 }
 
-func TestGetMerkleRootHashTripleInput(t *testing.T){
+func TestGetMerkleRootHashTripleInput(t *testing.T) {
 	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")}
-	concat1 :=  HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])) , HashSHA256(HashSHA256(input[1]))...)))
-	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])) , HashSHA256(HashSHA256(input[2]))...)))
+	concat1 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)))
+	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])), HashSHA256(HashSHA256(input[2]))...)))
 	expected := HashSHA256(HashSHA256(append(concat1, concat2...)))
 	actual := GetMerkleRootHash(input)
 
-	if (!bytes.Equal(expected, actual)){
+	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
 	}
 }
 
-func TestGetMerkleRootHashQuadInput(t *testing.T){
+func TestGetMerkleRootHashQuadInput(t *testing.T) {
 	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")}
-	concat1 :=  HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])) , HashSHA256(HashSHA256(input[1]))...)))
-	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])) , HashSHA256(HashSHA256(input[3]))...)))
+	concat1 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)))
+	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])), HashSHA256(HashSHA256(input[3]))...)))
 	expected := HashSHA256(HashSHA256(append(concat1, concat2...)))
 	actual := GetMerkleRootHash(input)
 
-	if (!bytes.Equal(expected, actual)){
+	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
