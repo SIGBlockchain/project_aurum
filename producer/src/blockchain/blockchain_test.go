@@ -1,9 +1,9 @@
 package blockchain
 
 import (
+	"bytes"
 	"database/sql"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -63,7 +63,7 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	if reflect.DeepEqual(expectedBlock.Serialize(), actualBlock) == false {
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
 		t.Errorf("Blocks do not match")
 		os.Remove(testFile)
 		os.Remove(testDB)
@@ -101,7 +101,7 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	if reflect.DeepEqual(expectedBlock.Serialize(), actualBlock) == false {
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
 		t.Errorf("Blocks do not match")
 		os.Remove(testFile)
 		os.Remove(testDB)
@@ -139,7 +139,7 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	if reflect.DeepEqual(expectedBlock.Serialize(), actualBlock) == false {
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
 		t.Errorf("Blocks do not match")
 		os.Remove(testFile)
 		os.Remove(testDB)
