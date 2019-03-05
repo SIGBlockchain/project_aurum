@@ -1,8 +1,11 @@
 package client
 
 import (
-	"testing"
 	"bytes"
+	"net"
+	"testing"
+
+	producer "../../../producer/src/producer"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -21,10 +24,63 @@ func TestGetUserInput(t *testing.T) {
 
 	var user_input string
 	if GetUserInput(&user_input, &testread) != nil {
-		t.Errorf("User Input Check Failed.")		
+		t.Errorf("User Input Check Failed.")
 	}
 
 	if user_input != "TEST" {
 		t.Errorf("User Input Check Failed.")
+	}
+}
+
+func TestSendToProducer(t *testing.T) {
+	sz := 1024
+	testbuf := make([]byte, sz)
+	for i, _ := range testbuf {
+		testbuf[i] = 1
+	}
+	addr := "localhost:8080"
+	ln, err := net.Listen("tcp", addr)
+	bp := producer.BlockProducer{
+		Server:        ln,
+		NewConnection: make(chan net.Conn, 128),
+	}
+	go bp.AcceptConnections()
+	if err != nil {
+		t.Errorf("Failed to set up listener")
+	}
+	n, err := SendToProducer(testbuf, addr)
+	if err != nil {
+		t.Errorf("Failed to send to producer")
+	}
+	if n != sz {
+		t.Errorf("Did not write all bytes to connection")
+	}
+}
+
+func TestSendToProducerWithLargeMessage(t *testing.T) {
+	sz := 4096
+	testbuf := make([]byte, sz)
+	for i, _ := range testbuf {
+		testbuf[i] = 1
+	}
+	addr := "localhost:8080"
+	ln, err := net.Listen("tcp", addr)
+	bp := producer.BlockProducer{
+		Server:        ln,
+		NewConnection: make(chan net.Conn, 128),
+	}
+	go bp.AcceptConnections()
+	if err != nil {
+		t.Errorf("Failed to set up listener")
+	}
+	if err != nil {
+		t.Errorf("Failed to set up listener")
+	}
+	n, err := SendToProducer(testbuf, addr)
+	if err != nil {
+		t.Errorf("Failed to send to producer")
+	}
+	if n != sz {
+		t.Errorf("Did not write all bytes to connection")
 	}
 }

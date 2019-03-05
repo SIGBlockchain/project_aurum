@@ -42,3 +42,13 @@ func GetUserInput(text *string, reader io.Reader) error {
 	*text = strings.Replace(*text, "\n", "", -1)
 	return err
 }
+
+// Establishes connection to addr with Dial
+// Return 0 and err if Dial fails
+// Get the length of buf
+// Write buf to the connection IN 1024 BYTE CHUNKS
+// if any conn write call fails, return how many bytes you wrote and an error
+// if everything works out fine, return how many bytes you wrote and a nil error
+func SendToProducer(buf []byte, addr string) (int, error) {
+	return 0, errors.New("Incomplete function")
+}
