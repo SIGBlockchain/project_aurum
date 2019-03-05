@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-    "github.com/skratchdot/open-golang/open"
 )
 
 /*=====================================================================
@@ -81,23 +80,13 @@ func ClearScreen() {
 func PrintHelp() {
 	fmt.Println("\tclear\t\tclears the screen of all previous output") // clear
 	fmt.Println("\thelp\t\tprints all avalible commands and description of each") // help
-	fmt.Println("\tmoreinfo\topens a browser and opens up project_aurum github page") // moreinfo
+	fmt.Println("\tmoreinfo\tprints link to project_aurum github page") // moreinfo
 	fmt.Println("\tq\t\tquits the program") // q
 }
 
 /*=================================================================================================
-* Purpose: Sends user to project github page                                                      *
-* Returns: An Error message if failed, nil otherwise                                              *
+* Purpose: Prints link to project github page                                                     *
 =================================================================================================*/
-func GoToWebpage() error {
-	// If the operating system is actually windows, change this to start
-	if runtime.GOOS == "windows" {
-		var cmd *exec.Cmd = exec.Command("cmd", "/C", "start", "\"\"", "\"https://github.com/SIGBlockchain/project_aurum\"")
-	// Sets the output of this command to the command line, and executes
-        cmd.Stdout = os.Stdout
-        return cmd.Run()
-	} else {
-		// On non-windows systems, the open command opens a URL with default browser
-        return open.Run("https://github.com/SIGBlockchain/project_aurum")
-	}
+func PrintGithubLink() {
+	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
 }

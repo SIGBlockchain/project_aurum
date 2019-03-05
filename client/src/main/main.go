@@ -36,9 +36,7 @@ func main() {
 		} else if userInput == "help" {
 			client.PrintHelp()
 		} else if userInput == "moreinfo" {
-			if client.GoToWebpage() != nil {
-				log.Println("Attempt to open github page failed.")
-			}
+			client.PrintGithubLink()
 		}
 	}
 }
