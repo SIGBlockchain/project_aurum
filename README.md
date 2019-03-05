@@ -1,4 +1,5 @@
 <img src = "media/aurum_logo_readme.jpg"  alt="drawing" width="200"/>
+
 Project Aurum
 =============
 Aurum is a UIC ACM proprietary blockchain project. The current planned use case is a token to be exchanged among students.
