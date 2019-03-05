@@ -1,4 +1,4 @@
-![alt text](https://user-images.githubusercontent.com/11654917/53290497-90675000-3772-11e9-9f4b-8ddd29b38871.png =250x250)
+![alt text](https://user-images.githubusercontent.com/11654917/53290497-90675000-3772-11e9-9f4b-8ddd29b38871.png)
 
 Project Aurum
 =============
