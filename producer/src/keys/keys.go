@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"os"
 	"io/ioutil"
+	"os"
 )
 
 func StoreKey(p *ecdsa.PrivateKey, filename string) error {
@@ -54,21 +54,22 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 	privateKey := new(ecdsa.PrivateKey)
 	// Reads json file into b_string, if any errors occur, abort
-	if b_string, err := ioutil.ReadFile(filename); err == nil {
-		// Create message variable to hold json data
-		type keyStruct struct {
-			Private string
-		}
-		var keys keyStruct
-		// Load json data from text file
-		err = json.Unmarshal(b_string, &keys)
-		// Decodes the private key
-		priv_string, err := hex.DecodeString(keys.Private)
-		block, _ := pem.Decode(priv_string)
-		x509Encoded := block.Bytes
-		privateKey, _ = x509.ParseECPrivateKey(x509Encoded)
-		// Returns private key
+	bString, err := ioutil.ReadFile(filename)
+	if err != nil {
 		return privateKey, err
 	}
-	return privateKey, nil
+	// Create message variable to hold json data
+	type keyStruct struct {
+		Private string
+	}
+	var keys keyStruct
+	// Load json data from text file
+	err = json.Unmarshal(bString, &keys)
+	// Decodes the private key
+	privString, err := hex.DecodeString(keys.Private)
+	block, _ := pem.Decode(privString)
+	x509Encoded := block.Bytes
+	privateKey, _ = x509.ParseECPrivateKey(x509Encoded)
+	// Returns private key
+	return privateKey, err
 }
