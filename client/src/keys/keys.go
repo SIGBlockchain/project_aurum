@@ -70,5 +70,5 @@ func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 		// Returns private key
 		return privateKey, err
 	}
-	return privateKey, nil
+	return privateKey, err
 }
