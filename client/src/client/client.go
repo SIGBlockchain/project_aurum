@@ -90,3 +90,19 @@ func PrintHelp() {
 func PrintGithubLink() {
 	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
 }
+
+/*=================================================================================================
+* Purpose: Reads command line arguments into a queue, returns an empty queue if there are 1 or 0  *
+* words in input                                                                                  *
+=================================================================================================*/
+func readCmdLineArgs(reader io.Reader) ([]string, error) {
+	return []string{}, nil
+}
+
+/*=================================================================================================
+* Purpose: Reads and processes command line arguments.                                            *
+* Returns: An error, nil if no arguments or only valid arguments. Not nil otherwise               *
+=================================================================================================*/
+func ProcessCmdLineArgs(reader io.Reader) error {
+	return nil
+}

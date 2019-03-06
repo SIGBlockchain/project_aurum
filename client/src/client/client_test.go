@@ -3,6 +3,7 @@ package client
 import (
 	"testing"
 	"bytes"
+	"reflect"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -58,8 +59,8 @@ func TestReadCmdLineArgs(t *testing.T) {
 	testread.Reset()
 	testread.Write([]byte("./client -test -arguments"))
 	slice_other, err_other := readCmdLineArgs(&testread)
-	expected_args := {"-test", "-arguments"}
-	if slice_other != expected_args {
+	expected_args := []string{"-test", "-arguments"}
+	if reflect.DeepEqual(expected_args, slice_other) {
 		t.Errorf("Normal input yielded incorrect arguments, Test Failed.")	
 	}
 	if err_other != nil {
