@@ -3,7 +3,7 @@ package blockchain
 import (
 	"errors"
 
-	block "../block"
+	block "project_aurum/producer/src/block"
 )
 
 // Phase 1:

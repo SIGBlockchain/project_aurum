@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	producer "../producer"
+	producer "project_aurum/producer/src/producer"
 )
 
 // Initializes logger format
