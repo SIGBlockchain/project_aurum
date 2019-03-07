@@ -11,6 +11,7 @@ To create a working blockchain and learn about the technology by developing one 
 
 <b>Built with</b>
 - [Golang](https://golang.org/)
+- [Docker](https://www.docker.com/)
 
 ## Features
 Aurum Phase One is a centralized blockchain that provides users with the ability to exchange tokens with each other. Future support for decentralizing Aurum will be implemented once the network grows to a sustainable level for decentralization.
@@ -19,8 +20,7 @@ Aurum Phase One is a centralized blockchain that provides users with the ability
 `under development`
 
 ## API Reference
-
-Depending on the size of the project, if it is small and simple enough the reference docs can be added to the README. For medium size to larger projects it is important to at least provide a link to where the API reference docs live.
+`under development`
 
 ## Tests
 Run `go test -v` at project root.
@@ -33,8 +33,8 @@ If you would like to contribute, please comment on an issue you'd like to take o
 
 ## Credits
 - First and foremost a big thank you to everyone who has worked with SIG Blockchain past and present. 
-- Thank you to the Association of Computing Machinery UIC Chapter, for providing the support that SIG Blockchain has needed to thrive.
-- Shoutout to (calvinmorett){https://github.com/calvinmorett] for providing us with the awesome Aurum logo.
+- Thank you to the [Association of Computing Machinery UIC Chapter](https://acm.cs.uic.edu/), for providing the support that SIG Blockchain has needed to thrive.
+- Shoutout to [calvinmorett](https://github.com/calvinmorett) for providing us with the awesome Aurum logo.
 
 ## License
 A short snippet describing the license (MIT, Apache etc)
