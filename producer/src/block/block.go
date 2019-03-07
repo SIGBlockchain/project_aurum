@@ -37,7 +37,7 @@ func (b *Block) Serialize() []byte { // Vineet
 	i := 86
 	for _, s := range b.Data {
 		//for every data entry, put the legth, and then the data
-		binary.LittleEndian.PutUint32(serializedBlock[i:i+4], uint32(len(s)))
+		binary.LittleEndian.PutUint16(serializedBlock[i:i+4], uint16(len(s)))
 		i += 4
 		copy(serializedBlock[i:i+len(s)], s)
 		i += len(s)
