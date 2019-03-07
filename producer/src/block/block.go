@@ -22,7 +22,7 @@ func (b *Block) Serialize() []byte { // Vineet
 	//NOTE: 32 bit ints are used to hold lengths; unsigned 16 bit int is used for the length of Data
 	bLen := 86 //size of all fixed size fields
 	for _, s := range b.Data {
-		bLen += 4 + len(s) //4 bytes for length plus the length of an element in Data
+		bLen += 2 + len(s) //2 bytes for length plus the length of an element in Data
 	}
 	serializedBlock := make([]byte, bLen)
 
@@ -37,8 +37,8 @@ func (b *Block) Serialize() []byte { // Vineet
 	i := 86
 	for _, s := range b.Data {
 		//for every data entry, put the legth, and then the data
-		binary.LittleEndian.PutUint16(serializedBlock[i:i+4], uint16(len(s)))
-		i += 4
+		binary.LittleEndian.PutUint16(serializedBlock[i:i+2], uint16(len(s)))
+		i += 2
 		copy(serializedBlock[i:i+len(s)], s)
 		i += len(s)
 	}
@@ -109,7 +109,7 @@ func Deserialize(block []byte) Block {
 
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
 		elementLen := int(block[index])
-		index += 4
+		index += 2
 		data[i] = block[index : index+elementLen]
 		index += elementLen
 	}

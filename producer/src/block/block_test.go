@@ -74,7 +74,7 @@ func TestSerialize(t *testing.T) {
 
 	for i := 0; i < dataLen; i++ {
 		elementLen := int(serial[index])
-		index += 4
+		index += 2
 		blockData[i] = serial[index : index+elementLen]
 		index += elementLen
 	}
