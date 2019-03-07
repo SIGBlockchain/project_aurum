@@ -172,7 +172,6 @@ func TestDeserialize(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{HashSHA256([]byte{'r'})},
 	}
-	expected.DataLen = uint16(len(expected.Data))
 	intermed := expected.Serialize()
 	actual := Deserialize(intermed)
 	if !cmp.Equal(expected, actual) {
