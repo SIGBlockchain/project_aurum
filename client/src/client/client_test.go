@@ -73,9 +73,6 @@ func TestSendToProducerWithLargeMessage(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to set up listener")
 	}
-	if err != nil {
-		t.Errorf("Failed to set up listener")
-	}
 	n, err := SendToProducer(testbuf, addr)
 	if err != nil {
 		t.Errorf("Failed to send to producer")
