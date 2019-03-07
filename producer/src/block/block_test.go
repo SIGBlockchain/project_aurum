@@ -3,9 +3,10 @@ package block
 import (
 	"bytes"           // for comparing []bytes
 	"encoding/binary" // for encoding/decoding
-	"reflect"         // to get data type
-	"testing"         // testing
-	"time"            // to get time stamp
+	"fmt"
+	"reflect" // to get data type
+	"testing" // testing
+	"time"    // to get time stamp
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -23,8 +24,10 @@ func TestSerialize(t *testing.T) {
 		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
+		DataLen:        0,
 	}
-
+	// set data length
+	b.DataLen = uint16(len(b.Data))
 	// now use the serialize function
 	serial := b.Serialize()
 	// indicies are fixed since we know what the max sizes are going to be
@@ -61,17 +64,28 @@ func TestSerialize(t *testing.T) {
 
 	// check Data
 	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
-	blockData := serial[84:90]
-	counter := 0
-	for i := 0; i < len(testslice); i++ {
-		for j := 0; j < len(testslice[i]); j++ {
-			if testslice[i][j] != blockData[counter] {
-				t.Errorf("Data do not match!")
-			}
-			counter++
+	dataLen := int(binary.LittleEndian.Uint16(serial[len(serial)-2:]))
+	blockData := make([][]byte, dataLen)
+	index := 84
+
+	for i := 0; i < dataLen; i++ {
+		elementLen := int(serial[index])
+		index += 4
+		blockData[i] = serial[index : index+elementLen]
+		index += elementLen
+	}
+
+	for i := 0; i < dataLen; i++ {
+		if bytes.Compare(testslice[i], blockData[i]) != 0 {
+			t.Errorf("Data does not match")
 		}
 	}
 
+	// check DataLen
+	blockDataLen := binary.LittleEndian.Uint16(serial[len(serial)-2:])
+	if blockDataLen != b.DataLen {
+		t.Errorf("DataLen does not match")
+	}
 }
 
 // tests HashSHA256 function
@@ -150,7 +164,7 @@ func TestGetMerkleRootHashQuadInput(t *testing.T) {
 	}
 }
 
-func TestDeserialize(t *testing.T) {
+func TestDeserialize(t *testing.T) { // Missing DataLen field
 	expected := Block{
 		Version:        1,
 		Height:         0,
@@ -161,8 +175,8 @@ func TestDeserialize(t *testing.T) {
 	}
 	intermed := expected.Serialize()
 	actual := Deserialize(intermed)
+	fmt.Println(actual)
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
 }
-
