@@ -14,9 +14,14 @@ func init() {
 }
 
 func main() {
+	err := client.ProcessCmdLineArgs(os.Args[1:])
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("Failed to process command line aguments.")
+	}
 	client.ClearScreen()
 	// Check to see if there is an internet connection
-	err := client.CheckConnection()
+	err = client.CheckConnection()
 	if err != nil {
 		log.Fatalln("Connectivity check failed.")
 	}
