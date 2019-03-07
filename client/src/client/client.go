@@ -92,27 +92,6 @@ func PrintGithubLink() {
 }
 
 /*=================================================================================================
-* Purpose: Reads command line arguments into a queue, returns an empty queue if there are 1 or 0  *
-* words in input                                                                                  *
-=================================================================================================*/
-func readCmdLineArgs(reader io.Reader) ([]string, error) {
-	// Reads text from reader
-	newReader := bufio.NewReader(reader)
-	text, err := newReader.ReadString('\n')
-	// If there was an error reading input, return empty set and error
-	if err != nil {
-		return []string{}, err	
-	}
-	// If the input is read as empty, return empty set and relevant error
-	if text == "" {
-		return []string{}, errors.New("ERROR: Attempted to read command line arguments from empty input.\n")
-	}
-	// Splits input
-	args := strings.Split(text, " ")
-	return args[1:], nil
-}
-
-/*=================================================================================================
 * Purpose: Reads and processes command line arguments.                                            *
 * Returns: An error, nil if no arguments or only valid arguments. Not nil otherwise               *
 =================================================================================================*/
