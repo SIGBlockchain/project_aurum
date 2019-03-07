@@ -129,27 +129,14 @@ func TestReadCmdLineArgs(t *testing.T) {
 
 // Test simulates user input, ensures correct processing of command line arguments
 func TestProcessCmdLineArgs(t *testing.T) {
-	var testread bytes.Buffer
-
-	// Empty Case
-	testread.Write([]byte(""))
-	err_empty := ProcessCmdLineArgs(&testread)
-	if err_empty == nil {
-		t.Errorf("Empty input yielded no errors, Test Failed.")
-	}
-
-	// Singleton, just executable call, Case
-	testread.Reset()
-	testread.Write([]byte("./client"))
-	err_single := ProcessCmdLineArgs(&testread)
-	if err_single != nil {
-		t.Errorf("Single input yielded an error, Test Failed.")
+	// Empty Case, just executable call
+	err_empty := ProcessCmdLineArgs([]string{})
+	if err_empty != nil {
+		t.Errorf("No arguments yielded an error, Test Failed.")
 	}
 
 	// Other Case
-	testread.Reset()
-	testread.Write([]byte("./client -test"))
-	err_other := ProcessCmdLineArgs(&testread)
+	err_other := ProcessCmdLineArgs([]string{"-test"})
 	if err_other == nil {
 		t.Errorf("Invalid input yielded no error, Test Failed.")
 	}

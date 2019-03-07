@@ -103,17 +103,22 @@ func PrintGithubLink() {
 }
 
 /*=================================================================================================
-* Purpose: Reads command line arguments into a queue, returns an empty queue if there are 1 or 0  *
-* words in input                                                                                  *
-=================================================================================================*/
-func readCmdLineArgs(reader io.Reader) ([]string, error) {
-	return []string{}, nil
-}
-
-/*=================================================================================================
 * Purpose: Reads and processes command line arguments.                                            *
 * Returns: An error, nil if no arguments or only valid arguments. Not nil otherwise               *
 =================================================================================================*/
-func ProcessCmdLineArgs(reader io.Reader) error {
+func ProcessCmdLineArgs(args []string) error {
+	// While argumen queue is nonempty, pop off flags until invalid flag encountered, or emtpy
+	for len(args) > 0 {
+		// Effectively pops queue
+		curr_arg := args[0]
+		args = args[1:]
+
+		// This switch statement contains all possible command line flags
+		switch curr_arg {
+		// If argument matches no cases, it is invalid and an error is output
+		default:
+			return errors.New("ERROR: Invalid argument " + curr_arg + " processed.\n")
+		}
+	}
 	return nil
 }
