@@ -24,7 +24,8 @@ func TestSerialize(t *testing.T) {
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
-
+	// set data length
+	b.DataLen = uint16(len(b.Data))
 	// now use the serialize function
 	serial := b.Serialize()
 	// indicies are fixed since we know what the max sizes are going to be
@@ -59,19 +60,30 @@ func TestSerialize(t *testing.T) {
 		t.Errorf("MerkleRootHashes do not match")
 	}
 
-	// check Data
-	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
-	blockData := serial[84:90]
-	counter := 0
-	for i := 0; i < len(testslice); i++ {
-		for j := 0; j < len(testslice[i]); j++ {
-			if testslice[i][j] != blockData[counter] {
-				t.Errorf("Data do not match!")
-			}
-			counter++
-		}
+	// check DataLen
+	blockDataLen := binary.LittleEndian.Uint16(serial[84:86])
+	if blockDataLen != b.DataLen {
+		t.Errorf("DataLen does not match")
 	}
 
+	// check Data
+	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
+	dataLen := int(blockDataLen)
+	blockData := make([][]byte, dataLen)
+	index := 86
+
+	for i := 0; i < dataLen; i++ {
+		elementLen := int(serial[index])
+		index += 2
+		blockData[i] = serial[index : index+elementLen]
+		index += elementLen
+	}
+
+	for i := 0; i < dataLen; i++ {
+		if bytes.Compare(testslice[i], blockData[i]) != 0 {
+			t.Errorf("Data does not match")
+		}
+	}
 }
 
 // tests HashSHA256 function
@@ -159,10 +171,10 @@ func TestDeserialize(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{HashSHA256([]byte{'r'})},
 	}
+	expected.DataLen = uint16(len(expected.Data))
 	intermed := expected.Serialize()
 	actual := Deserialize(intermed)
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
 }
-
