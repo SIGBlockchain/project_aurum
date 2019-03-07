@@ -23,7 +23,6 @@ func TestSerialize(t *testing.T) {
 		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 		Timestamp:      nowTime,
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
-		DataLen:        0,
 	}
 	// set data length
 	b.DataLen = uint16(len(b.Data))
@@ -61,11 +60,17 @@ func TestSerialize(t *testing.T) {
 		t.Errorf("MerkleRootHashes do not match")
 	}
 
+	// check DataLen
+	blockDataLen := binary.LittleEndian.Uint16(serial[84:86])
+	if blockDataLen != b.DataLen {
+		t.Errorf("DataLen does not match")
+	}
+
 	// check Data
 	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
-	dataLen := int(binary.LittleEndian.Uint16(serial[len(serial)-2:]))
+	dataLen := int(blockDataLen)
 	blockData := make([][]byte, dataLen)
-	index := 84
+	index := 86
 
 	for i := 0; i < dataLen; i++ {
 		elementLen := int(serial[index])
@@ -78,12 +83,6 @@ func TestSerialize(t *testing.T) {
 		if bytes.Compare(testslice[i], blockData[i]) != 0 {
 			t.Errorf("Data does not match")
 		}
-	}
-
-	// check DataLen
-	blockDataLen := binary.LittleEndian.Uint16(serial[len(serial)-2:])
-	if blockDataLen != b.DataLen {
-		t.Errorf("DataLen does not match")
 	}
 }
 
@@ -172,6 +171,7 @@ func TestDeserialize(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{HashSHA256([]byte{'r'})},
 	}
+	expected.DataLen = uint16(len(expected.Data))
 	intermed := expected.Serialize()
 	actual := Deserialize(intermed)
 	if !cmp.Equal(expected, actual) {

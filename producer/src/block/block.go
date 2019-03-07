@@ -12,15 +12,15 @@ type Block struct {
 	Timestamp      int64
 	PreviousHash   []byte
 	MerkleRootHash []byte
-	Data           [][]byte
 	DataLen        uint16
+	Data           [][]byte
 }
 
 // Produces a block based on the struct provided
 func (b *Block) Serialize() []byte { // Vineet
 	//calculate the total length beforehand, to prevent unneccessary appends
 	//NOTE: 32 bit ints are used to hold lengths; unsigned 16 bit int is used for the length of Data
-	bLen := 4 + 8 + 8 + 32 + 32 + 2 //size of all fixed size fields
+	bLen := 86 //size of all fixed size fields
 	for _, s := range b.Data {
 		bLen += 4 + len(s) //4 bytes for length plus the length of an element in Data
 	}
@@ -32,8 +32,9 @@ func (b *Block) Serialize() []byte { // Vineet
 	binary.LittleEndian.PutUint64(serializedBlock[12:20], uint64(b.Timestamp))
 	copy(serializedBlock[20:52], b.PreviousHash)
 	copy(serializedBlock[52:84], b.MerkleRootHash)
+	binary.LittleEndian.PutUint16(serializedBlock[84:86], b.DataLen)
 
-	i := 84
+	i := 86
 	for _, s := range b.Data {
 		//for every data entry, put the legth, and then the data
 		binary.LittleEndian.PutUint32(serializedBlock[i:i+4], uint32(len(s)))
@@ -41,9 +42,6 @@ func (b *Block) Serialize() []byte { // Vineet
 		copy(serializedBlock[i:i+len(s)], s)
 		i += len(s)
 	}
-
-	// convert datalen into a byte slice in little endian and add to slice
-	binary.LittleEndian.PutUint16(serializedBlock[len(serializedBlock)-2:], b.DataLen)
 	return serializedBlock
 }
 
@@ -91,7 +89,7 @@ func getMerkleRoot(l *list.List) []byte {
 // Concatenate all the fields of the block **header**
 // Return the SHA-256 hash of that concatenation
 func HashBlock(b Block) []byte {
-	blength := 4 + 8 + 8 + 32 + 32 // calculate the total length of the slice
+	const blength = 84 // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
 	// convert the known variables to byte slices in little endian and add to slice
@@ -105,9 +103,9 @@ func HashBlock(b Block) []byte {
 
 // Given a block in byte string form, return a block in struct form
 func Deserialize(block []byte) Block {
-	dataLen := binary.LittleEndian.Uint16(block[len(block)-2:])
+	dataLen := binary.LittleEndian.Uint16(block[84:86])
 	data := make([][]byte, dataLen)
-	index := 84
+	index := 86
 
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
 		elementLen := int(block[index])
@@ -123,8 +121,8 @@ func Deserialize(block []byte) Block {
 		Timestamp:      int64(binary.LittleEndian.Uint64(block[12:20])),
 		PreviousHash:   block[20:52],
 		MerkleRootHash: block[52:84],
-		Data:           data,
 		DataLen:        dataLen,
+		Data:           data,
 	}
 	return deserializeBlock
 }
