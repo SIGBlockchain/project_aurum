@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"reflect"
-
 	producer "../../../producer/src/producer"
 )
 
@@ -86,44 +84,6 @@ func TestSendToProducerWithLargeMessage(t *testing.T) {
 	}
 	if n != sz {
 		t.Errorf("Did not write all bytes to connection")
-	}
-}
-
-// Test simulates user input, ensures correct collection of command line arguments
-func TestReadCmdLineArgs(t *testing.T) {
-	var testread bytes.Buffer
-
-	// Empty Case
-	testread.Write([]byte(""))
-	slice_empty, err_empty := readCmdLineArgs(&testread)
-	if len(slice_empty) > 0 {
-		t.Errorf("Empty input yielded nonempty arguments, Test Failed.")
-	}
-	if err_empty == nil {
-		t.Errorf("Empty input yielded no errors, Test Failed.")
-	}
-
-	// Singleton, just executable call, Case
-	testread.Reset()
-	testread.Write([]byte("./client"))
-	slice_single, err_single := readCmdLineArgs(&testread)
-	if len(slice_single) > 0 {
-		t.Errorf("Single input yielded nonempty arguments, Test Failed.")
-	}
-	if err_single != nil {
-		t.Errorf("Single input yielded an error, Test Failed.")
-	}
-
-	// Other Case
-	testread.Reset()
-	testread.Write([]byte("./client -test -arguments"))
-	slice_other, err_other := readCmdLineArgs(&testread)
-	expected_args := []string{"-test", "-arguments"}
-	if reflect.DeepEqual(expected_args, slice_other) {
-		t.Errorf("Normal input yielded incorrect arguments, Test Failed.")
-	}
-	if err_other != nil {
-		t.Errorf("Normal input yielded an error, Test Failed.")
 	}
 }
 
