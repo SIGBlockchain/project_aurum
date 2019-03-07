@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
 /*=====================================================================
@@ -46,6 +46,17 @@ func GetUserInput(text *string, reader io.Reader) error {
 	return err
 }
 
+// Establishes connection to addr with Dial
+// Return 0 and err if Dial fails
+// Get the length of buf
+// Write buf to the connection IN 1024 BYTE CHUNKS
+// if any conn write call fails, return how many bytes you wrote and an error
+// if everything works out fine, return how many bytes you wrote and a nil error
+func SendToProducer(buf []byte, addr string) (int, error) {
+	// TODO
+	return 0, errors.New("Incomplete function")
+}
+
 /*=================================================================================================
 * Purpose: Clears the terminal of all previous text and adds a seperator to the top of the screen *
 * Returns: Nothing                                                                                *
@@ -78,10 +89,10 @@ func ClearScreen() {
 * Returns: Nothing																				  *
 =================================================================================================*/
 func PrintHelp() {
-	fmt.Println("\tclear\t\tclears the screen of all previous output") // clear
+	fmt.Println("\tclear\t\tclears the screen of all previous output")            // clear
 	fmt.Println("\thelp\t\tprints all avalible commands and description of each") // help
-	fmt.Println("\tmoreinfo\tprints link to project_aurum github page") // moreinfo
-	fmt.Println("\tq\t\tquits the program") // q
+	fmt.Println("\tmoreinfo\tprints link to project_aurum github page")           // moreinfo
+	fmt.Println("\tq\t\tquits the program")                                       // q
 }
 
 /*=================================================================================================
@@ -89,27 +100,6 @@ func PrintHelp() {
 =================================================================================================*/
 func PrintGithubLink() {
 	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
-}
-
-/*=================================================================================================
-* Purpose: Reads command line arguments into a queue, returns an empty queue if there are 1 or 0  *
-* words in input                                                                                  *
-=================================================================================================*/
-func readCmdLineArgs(reader io.Reader) ([]string, error) {
-	// Reads text from reader
-	newReader := bufio.NewReader(reader)
-	text, err := newReader.ReadString('\n')
-	// If there was an error reading input, return empty set and error
-	if err != nil {
-		return []string{}, err	
-	}
-	// If the input is read as empty, return empty set and relevant error
-	if text == "" {
-		return []string{}, errors.New("ERROR: Attempted to read command line arguments from empty input.\n")
-	}
-	// Splits input
-	args := strings.Split(text, " ")
-	return args[1:], nil
 }
 
 /*=================================================================================================
