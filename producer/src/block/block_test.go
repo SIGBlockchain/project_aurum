@@ -3,10 +3,9 @@ package block
 import (
 	"bytes"           // for comparing []bytes
 	"encoding/binary" // for encoding/decoding
-	"fmt"
-	"reflect" // to get data type
-	"testing" // testing
-	"time"    // to get time stamp
+	"reflect"         // to get data type
+	"testing"         // testing
+	"time"            // to get time stamp
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -164,7 +163,7 @@ func TestGetMerkleRootHashQuadInput(t *testing.T) {
 	}
 }
 
-func TestDeserialize(t *testing.T) { // Missing DataLen field
+func TestDeserialize(t *testing.T) {
 	expected := Block{
 		Version:        1,
 		Height:         0,
@@ -173,9 +172,9 @@ func TestDeserialize(t *testing.T) { // Missing DataLen field
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{HashSHA256([]byte{'r'})},
 	}
+	expected.DataLen = uint16(len(expected.Data))
 	intermed := expected.Serialize()
 	actual := Deserialize(intermed)
-	fmt.Println(actual)
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
