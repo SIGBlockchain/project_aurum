@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	client "project_aurum/client/src/client"
+	client "../client"
 )
 
 // Initializes logger format
