@@ -50,7 +50,9 @@ func main() {
 
 	// Main loop
 	bp.WorkLoop()
-
+	// If loop is exited properly, interrupt signal had been recieved
+	log.Println("Interrupt signal encountered, program terminating.\n")
+	
 	// Close the server
 	bp.Server.Close()
 }
