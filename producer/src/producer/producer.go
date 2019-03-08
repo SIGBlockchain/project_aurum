@@ -52,12 +52,14 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 // The main work loop
 // Handles communication, block production, and ledger maintenance
 func (bp *BlockProducer) WorkLoop() {
+	// Creates signal
 	signalCh := make(chan os.Signal, 1)
     signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		select {
 		case conn := <-bp.NewConnection:
 			go bp.Handle(conn)
+		// If an interrupt signal is encountered, exit
 		case <-signalCh:
 			return
 		default:
