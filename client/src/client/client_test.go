@@ -1,8 +1,12 @@
 package client
 
 import (
-	"testing"
 	"bytes"
+	"net"
+	"testing"
+	"time"
+
+	producer "../../../producer/src/producer"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -21,7 +25,7 @@ func TestGetUserInput(t *testing.T) {
 
 	var user_input string
 	if GetUserInput(&user_input, &testread) != nil {
-		t.Errorf("User Input Check Failed.")		
+		t.Errorf("User Input Check Failed.")
 	}
 
 	if user_input != "TEST" {
@@ -29,8 +33,62 @@ func TestGetUserInput(t *testing.T) {
 	}
 }
 
+// Test send to producer with small max length message for one send
+func TestSendToProducer(t *testing.T) {
+	sz := 1024
+	testbuf := make([]byte, sz)
+	for i, _ := range testbuf {
+		testbuf[i] = 1
+	}
+	addr := "localhost:8080"
+	ln, err := net.Listen("tcp", addr)
+	bp := producer.BlockProducer{
+		Server:        ln,
+		NewConnection: make(chan net.Conn, 128),
+	}
+	go bp.AcceptConnections()
+	time.Sleep(1)
+	if err != nil {
+		t.Errorf("Failed to set up listener")
+	}
+	n, err := SendToProducer(testbuf, addr)
+	if err != nil {
+		t.Errorf("Failed to send to producer")
+	}
+	if n != sz {
+		t.Errorf("Did not write all bytes to connection")
+	}
+}
+
+// Test send to producer with large message
+func TestSendToProducerWithLargeMessage(t *testing.T) {
+	sz := 4096
+	testbuf := make([]byte, sz)
+	for i, _ := range testbuf {
+		testbuf[i] = 1
+	}
+	addr := "localhost:8080"
+	ln, err := net.Listen("tcp", addr)
+	bp := producer.BlockProducer{
+		Server:        ln,
+		NewConnection: make(chan net.Conn, 128),
+	}
+	go bp.AcceptConnections()
+	time.Sleep(1)
+	if err != nil {
+		t.Errorf("Failed to set up listener")
+	}
+	n, err := SendToProducer(testbuf, addr)
+	if err != nil {
+		t.Errorf("Failed to send to producer")
+	}
+	if n != sz {
+		t.Errorf("Did not write all bytes to connection")
+	}
+}
+
 // Test simulates user input, ensures correct processing of command line arguments
-func TestProcessCmdLineArgs(t *testing.T) {	
+func TestProcessCmdLineArgs(t *testing.T) {
 	// Empty Case, just executable call
 	err_empty := ProcessCmdLineArgs([]string{})
 	if err_empty != nil {
