@@ -3,6 +3,9 @@ package producer
 import (
 	"errors"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 // Purpose: stores communication information
@@ -49,10 +52,14 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 // The main work loop
 // Handles communication, block production, and ledger maintenance
 func (bp *BlockProducer) WorkLoop() {
+	signalCh := make(chan os.Signal, 1)
+    signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		select {
 		case conn := <-bp.NewConnection:
 			go bp.Handle(conn)
+		case <-signalCh:
+			return
 		default:
 			// Do other stuff
 		}

@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	producer "project_aurum/producer/src/producer"
+	producer "../producer"
 )
 
 // Initializes logger format
@@ -50,7 +50,7 @@ func main() {
 
 	// Main loop
 	bp.WorkLoop()
-
+	log.Println("Interrupt signal encountered, program terminating.\n")
 	// Close the server
 	bp.Server.Close()
 }
