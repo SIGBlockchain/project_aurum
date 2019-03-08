@@ -53,12 +53,10 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 
 // The main work loop
 // Handles communication, block production, and ledger maintenance
-func (bp *BlockProducer) WorkLoop() {
+func (bp *BlockProducer) WorkLoop(logger *log.Logger) {
 	// Creates signal
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
-	log.SetPrefix("LOG: ")
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	for {
 		select {
 		case conn := <-bp.NewConnection:
@@ -67,7 +65,7 @@ func (bp *BlockProducer) WorkLoop() {
 		case <-signalCh:
 			// If loop is exited properly, interrupt signal had been recieved
 			fmt.Print("\r")
-			log.Println("Interrupt signal encountered, program terminating.")
+			logger.Println("Interrupt signal encountered, program terminating.")
 			return
 		default:
 			// Do other stuff
