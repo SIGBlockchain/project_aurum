@@ -2,6 +2,8 @@ package producer
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -54,13 +56,18 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 func (bp *BlockProducer) WorkLoop() {
 	// Creates signal
 	signalCh := make(chan os.Signal, 1)
-    signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+	log.SetPrefix("LOG: ")
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	for {
 		select {
 		case conn := <-bp.NewConnection:
 			go bp.Handle(conn)
 		// If an interrupt signal is encountered, exit
 		case <-signalCh:
+			// If loop is exited properly, interrupt signal had been recieved
+			fmt.Print("\r")
+			log.Println("Interrupt signal encountered, program terminating.")
 			return
 		default:
 			// Do other stuff
