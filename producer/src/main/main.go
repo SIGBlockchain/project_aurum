@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -51,6 +52,7 @@ func main() {
 	// Main loop
 	bp.WorkLoop()
 	// If loop is exited properly, interrupt signal had been recieved
+	fmt.Print("\r")
 	log.Println("Interrupt signal encountered, program terminating.\n")
 
 	// Close the server
