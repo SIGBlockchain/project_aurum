@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	producer "project_aurum/producer/src/producer"
+	producer "../../../producer/src/producer"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
