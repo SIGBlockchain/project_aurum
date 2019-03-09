@@ -31,7 +31,7 @@ func TestMakeYield(t *testing.T) {
 	}
 }
 
-func TestGetUnclaimedYield(t *testing.T) {
+func TestMakeClaim(t *testing.T) {
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
 	statement, _ := conn.Prepare(
@@ -41,7 +41,16 @@ func TestGetUnclaimedYield(t *testing.T) {
 		holder TEXT, 
 		value INTEGER)`)
 	statement.Exec()
+	// First case is a with an equal sized claim
 	contractHash := block.HashSHA256([]byte("previous contract"))
+	expected := Claim{}
+	expected.PreviousContractHash = contractHash
+	expected.YieldIndex = 0
+	testPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	pubKeyBytes := testPubKey.X.Bytes()
+	pubKeyBytes = append(pubKeyBytes, testPubKey.Y.Bytes()...)
+	pubKeyStr := string(pubKeyBytes)
+	expected.Holder = testPrivKey.PublicKey
 	statement, _ = conn.Prepare(
 		`INSERT INTO unclaimed_yields(
 			contract_hash, 
@@ -49,17 +58,14 @@ func TestGetUnclaimedYield(t *testing.T) {
 			holder, 
 			value) 
 			values(?,?,?)`)
-	statement.Exec(contractHash, 0, 250)
-	expected := Claim{}
-	expected.PreviousContractHash = contractHash
-	expected.YieldIndex = 0
-	testPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	expected.Holder = testPrivKey.PublicKey
+	statement.Exec(contractHash, 0, pubKeyStr, 250)
 	actual, err := MakeClaim(testDB, 250)
 	if err != nil {
 		t.Errorf("Failed to make claim on valid available yield")
 	}
-
+	// If cmp.Equal is still referred to as undefined,
+	// inform test-maker of possible need for change
+	// only after you have fixed above errors
 	if cmp.Equal(expected, actual) {
 		t.Errorf("Claims do not match")
 		conn.Close()
@@ -72,7 +78,27 @@ func TestGetUnclaimedYield(t *testing.T) {
 		conn.Close()
 		os.Remove(testDB)
 	}
+	// Now to test a large Claim with smaller unclaimed-yield
+	contractHash = block.HashSHA256([]byte("this is a new yield"))
+	expected.PreviousContractHash = contractHash
+	expected.YieldIndex = 3
+	statement, _ = conn.Prepare(
+		`INSERT INTO unclaimed_yields(
+			contract_hash, 
+			index, 
+			holder, 
+			value) 
+			values(?,?,?)`)
+	statement.Exec(contractHash, 3, pubKeyStr, 250)
+	actual, err = MakeClaim(testDB, 500)
+	if err != nil {
+		t.Errorf("Failed to make claim on valid available yield")
+	}
+	if cmp.Equal(expected, actual) {
+		t.Errorf("Claims do not match")
+		conn.Close()
+		os.Remove(testDB)
+	}
 	conn.Close()
 	os.Remove(testDB)
-
 }
