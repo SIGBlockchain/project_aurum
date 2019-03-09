@@ -61,19 +61,12 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		return err
 	}
 
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-	_, err = statement.Exec()
-	if err != nil {
-		return err
-	}
-	statement, err = database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
-	if err != nil {
-		return err
-	}
-	_, err = statement.Exec(b.Height, bPosition, bLen, b.PreviousHash)
+	_, err = statement.Exec(b.Height, bPosition, bLen, b.MerkleRootHash)
 	if err != nil {
 		return err
 	}
