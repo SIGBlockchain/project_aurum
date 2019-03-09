@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"github.com/pborman/getopt/v2"
 
 	client "project_aurum/client/src/client"
 )
@@ -14,16 +15,18 @@ func init() {
 }
 
 func main() {
-	// Process the command line arguments
-	err := client.ProcessCmdLineArgs(os.Args)
-	// If any errors are found, exit execution
-	if err != nil {
-		log.Println(err)
-		log.Fatalln("Failed to process command line aguments.")
+	// List of Options
+	helpFlag := getopt.Bool('?', "Display Valid Flags")
+	getopt.Parse()
+	// If the help flag is on, print usage to os.Stdout
+	if *helpFlag == true {
+		getopt.Usage()
+		os.Exit(0)
 	}
 	client.ClearScreen()
+	
 	// Check to see if there is an internet connection
-	err = client.CheckConnection()
+	err := client.CheckConnection()
 	if err != nil {
 		log.Fatalln("Connectivity check failed.")
 	}

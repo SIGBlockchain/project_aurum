@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"github.com/pborman/getopt/v2"
 )
 
 /*=====================================================================
@@ -101,21 +100,4 @@ func PrintHelp() {
 =================================================================================================*/
 func PrintGithubLink() {
 	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
-}
-
-/*=================================================================================================
-* Purpose: Reads and processes command line arguments.                                            *
-* Returns: An error, nil if no arguments or only valid arguments. Not nil otherwise               *
-=================================================================================================*/
-func ProcessCmdLineArgs(args []string) error {
- 	optset := getopt.New()
-	// List of Options
-	helpFlag := optset.Bool('?', "Display Valid Flags")
-	optset.Parse(args)
-	// If the help flag is on, print usage to os.Stdout
-	if *helpFlag == true {
-		optset.PrintUsage(os.Stdout)
-		os.Exit(0)
-	}
-	return nil
 }
