@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	client "../client"
+	client "project_aurum/client/src/client"
 )
 
 // Initializes logger format
@@ -14,7 +14,9 @@ func init() {
 }
 
 func main() {
-	err := client.ProcessCmdLineArgs(os.Args[1:])
+	// Process the command line arguments
+	err := client.ProcessCmdLineArgs(os.Args)
+	// If any errors are found, exit execution
 	if err != nil {
 		log.Println(err)
 		log.Fatalln("Failed to process command line aguments.")
