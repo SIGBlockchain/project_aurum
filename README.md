@@ -38,3 +38,4 @@ If you would like to contribute, please comment on an issue you'd like to take o
 
 ## License
 MIT License
+- See the [LICENSE](https://github.com/SIGBlockchain/project_aurum/blob/readme/LICENSE) file for details.
