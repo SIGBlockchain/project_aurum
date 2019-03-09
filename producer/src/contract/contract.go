@@ -1,6 +1,9 @@
 package contract
 
-import "crypto/ecdsa"
+import (
+	"crypto/ecdsa"
+	"errors"
+)
 
 // Contains a 32 size byte slice recipient and a uint64 value
 type Yield struct{}
@@ -14,17 +17,16 @@ func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
 	return Yield{}
 }
 
-func MakeClaim(sender ecdsa.PrivateKey) Claim {
-	return Claim{}
-}
-
 // Must remove UY's from database
 // Checks database for a yield
-func GetUnclaimedYield(database string, value uint64) (Claim, error) {
-	return Claim{}, nil
+func MakeClaim(database string, value uint64) (Claim, error) {
+	return Claim{}, errors.New("Incomplete function")
 }
 
 func MakeContract(version uint32, database string, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64) Contract {
+	// Assign version
+	// Get list of claims
+	// Get list of yields
 	return Contract{}
 }
 
