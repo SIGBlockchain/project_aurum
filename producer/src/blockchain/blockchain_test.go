@@ -50,7 +50,8 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
@@ -88,7 +89,8 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
@@ -126,7 +128,8 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
