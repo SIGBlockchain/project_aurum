@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"database/sql"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -33,30 +34,51 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		return err
 	}
 
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	bPosition := fileInfo.Size()
+
 	serialized := b.Serialize()
 	bLen := len(serialized)
 	payload := make([]byte, 4)
 	binary.LittleEndian.PutUint32(payload, uint32(bLen))
 	payload = append(payload, serialized...)
+
 	if _, err := file.Write(payload); err != nil {
 		fmt.Println(err)
 		return err
 	}
+
 	if err := file.Close(); err != nil {
 		log.Fatalln(err)
 	}
 
-	// database, err := sql.Open("sqlite3i", databaseName)
-	// // Checks if the opening was successful
-	// if err != nil {
-	//     return err
-	// }
+	database, err := sql.Open("sqlite3", databaseName)
+	// Checks if the opening was successful
+	if err != nil {
+		return err
+	}
 
-	// statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-	// statement.Exec()
-	// statement, _ = database.Prepare("INSERT INTO")
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec()
+	if err != nil {
+		return err
+	}
+	statement, err = database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec(b.Height, bPosition, bLen, b.PreviousHash)
+	if err != nil {
+		return err
+	}
 
-	return nil // change this to nil once the function is completed
+	return nil
 }
 
 // Phase 2:
