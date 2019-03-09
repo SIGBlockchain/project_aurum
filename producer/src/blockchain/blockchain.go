@@ -1,7 +1,12 @@
 package blockchain
 
 import (
-	"errors"
+	"encoding/binary"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	block "../block"
 )
@@ -22,8 +27,36 @@ import (
 // If this fails, return an error
 // Close the database connection
 func AddBlock(b block.Block, filename string, databaseName string) error { // Additional parameter is DB connection
-	// TODO
-	return errors.New("") // change this to nil once the function is completed
+	// open file for appending
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	serialized := b.Serialize()
+	bLen := len(serialized)
+	newBS := make([]byte, 4)
+	binary.LittleEndian.PutUint32(newBS, uint32(bLen))
+	newBS = append(newBS, serialized...)
+	if _, err := file.Write(newBS); err != nil {
+		fmt.Println(err)
+		return err
+	}
+	if err := file.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	// database, err := sql.Open("sqlite3i", databaseName)
+	// // Checks if the opening was successful
+	// if err != nil {
+	//     return err
+	// }
+
+	// statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	// statement.Exec()
+	// statement, _ = database.Prepare("INSERT INTO")
+
+	return nil // change this to nil once the function is completed
 }
 
 // Phase 2:
