@@ -64,7 +64,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByHeight(height int, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }
@@ -74,7 +74,7 @@ func GetBlockByHeight(height int, filename string) ([]byte, error) { // Addition
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByPosition(position int, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }
@@ -84,7 +84,7 @@ func GetBlockByPosition(position int, filename string) ([]byte, error) { // Addi
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByHash(hash []byte, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }

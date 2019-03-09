@@ -60,7 +60,7 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByHeight(0, testFile)
+	actualBlock, err := GetBlockByHeight(0, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
@@ -99,7 +99,7 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByPosition(0, testFile)
+	actualBlock, err := GetBlockByPosition(0, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
@@ -138,7 +138,7 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByHash(block.HashSHA256(expectedBlock.Serialize()), testFile)
+	actualBlock, err := GetBlockByHash(block.HashSHA256(expectedBlock.Serialize()), testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
