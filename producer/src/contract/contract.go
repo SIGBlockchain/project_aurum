@@ -5,7 +5,8 @@ import (
 	"errors"
 )
 
-// Contains a 32 size byte slice recipient and a uint64 value
+/*Contains a 32 size byte slice recipient,
+and a uint64 value */
 type Yield struct{}
 
 /*
