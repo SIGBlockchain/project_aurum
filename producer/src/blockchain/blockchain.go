@@ -35,15 +35,15 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 
 	serialized := b.Serialize()
 	bLen := len(serialized)
-	newBS := make([]byte, 4)
-	binary.LittleEndian.PutUint32(newBS, uint32(bLen))
-	newBS = append(newBS, serialized...)
-	if _, err := file.Write(newBS); err != nil {
+	payload := make([]byte, 4)
+	binary.LittleEndian.PutUint32(payload, uint32(bLen))
+	payload = append(payload, serialized...)
+	if _, err := file.Write(payload); err != nil {
 		fmt.Println(err)
 		return err
 	}
 	if err := file.Close(); err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	// database, err := sql.Open("sqlite3i", databaseName)
