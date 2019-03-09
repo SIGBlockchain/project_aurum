@@ -26,6 +26,10 @@ func TestPhaseOneAddBlock(t *testing.T) {
 	// Get files
 	testFile := "testBlockchain.dat"
 	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
+	conn.Close()
 	// Add the block
 	err := AddBlock(b, testFile, testDB)
 	if err != nil {
