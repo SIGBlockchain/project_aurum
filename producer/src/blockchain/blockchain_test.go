@@ -30,7 +30,9 @@ func TestPhaseOneAddBlock(t *testing.T) {
 	err := AddBlock(b, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to add block")
+		os.Remove(testFile)
 	}
+	os.Remove(testFile)
 }
 
 func TestPhaseTwoGetBlockByHeight(t *testing.T) {
