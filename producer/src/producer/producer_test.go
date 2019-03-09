@@ -1,7 +1,7 @@
 package producer
 
 import (
-	"fmt"
+	"bytes"
 	"log"
 	"net"
 	"os"
@@ -53,17 +53,13 @@ func TestHandler(t *testing.T) {
 	}
 	expected := []byte("This is a test.")
 	conn.Write(expected)
-	fmt.Println("Made it")
-	actual := make([]byte, 128)
+	actual := make([]byte, len(expected))
 	_, readErr := conn.Read(actual)
-	fmt.Println("Made it")
 	if readErr != nil {
 		t.Errorf("Failed to read from socket.")
 	}
-	for i, b := range expected {
-		if b != actual[i] {
-			t.Errorf("Message mismatch.")
-		}
+	if bytes.Equal(expected, actual) == false {
+		t.Errorf("Message mismatch")
 	}
 	conn.Close()
 	ln.Close()
