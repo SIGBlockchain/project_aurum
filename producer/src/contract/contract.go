@@ -19,8 +19,9 @@ func MakeClaim(sender ecdsa.PrivateKey) Claim {
 }
 
 // Must remove UY's from database
-func GetUnclaimedYield(database string, value uint64) Claim {
-	return Claim{}
+// Checks database for a yield
+func GetUnclaimedYield(database string, value uint64) (Claim, error) {
+	return Claim{}, nil
 }
 
 func MakeContract(version uint32, database string, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64) Contract {

@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"os"
 	"testing"
 
 	block "../block"
@@ -32,5 +33,24 @@ func TestMakeYield(t *testing.T) {
 func TestGetUnclaimedYield(t *testing.T) {
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("")
+	statement, _ := conn.Prepare(
+		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+		contract_hash TEXT, 
+		index INTEGER, 
+		holder TEXT, 
+		value INTEGER)`)
+	statement.Exec()
+	contractHash := block.HashSHA256([]byte("previous contract"))
+	statement, _ = conn.Prepare(
+		`INSERT INTO unclaimed_yields(
+			contract_hash, 
+			index, 
+			holder, 
+			value) 
+			values(?,?,?)`)
+	statement.Exec(contractHash, 0, 250)
+
+	conn.Close()
+	os.Remove(testDB)
+
 }
