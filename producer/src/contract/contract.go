@@ -3,10 +3,8 @@ package contract
 import "crypto/ecdsa"
 
 // Contains a 32 size byte slice recipient and a uint64 value
-type Yield struct {
-}
+type Yield struct{}
 
-//
 type Claim struct{}
 
 type Contract struct{}
@@ -20,6 +18,7 @@ func MakeClaim(sender ecdsa.PrivateKey) Claim {
 	return Claim{}
 }
 
+// Must remove UY's from database
 func GetUnclaimedYield(database string, value uint64) Claim {
 	return Claim{}
 }
@@ -40,8 +39,12 @@ func (k *Claim) Serialize() []byte {
 	return []byte{}
 }
 
-func (c *Contract) Deserialize(b []byte) {}
-
-func (k *Claim) Deserialize(b []byte) {}
-
-func (y *Yield) Deserialize(b []byte) {}
+func DeserializeContract(b []byte) Contract {
+	return Contract{}
+}
+func DeserializeClaim(b []byte) Claim {
+	return Claim{}
+}
+func DeserializeYield(b []byte) Yield {
+	return Yield{}
+}

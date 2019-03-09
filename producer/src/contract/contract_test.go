@@ -5,9 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"database/sql"
 	"testing"
 
 	block "../block"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestMakeYield(t *testing.T) {
@@ -20,9 +22,15 @@ func TestMakeYield(t *testing.T) {
 	expectedValue := 1000000
 	actual := MakeYield(testPubKey, 1000000)
 	if bytes.Equal(expectedRecipient, actual.Recipient) {
-		return t.Errorf("Recipients do not match")
+		t.Errorf("Recipients do not match")
 	}
 	if expectedValue != actual.Value {
-		return t.Errorf("Values do not match")
+		t.Errorf("Values do not match")
 	}
+}
+
+func TestGetUnclaimedYield(t *testing.T) {
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	conn.Prepare("")
 }
