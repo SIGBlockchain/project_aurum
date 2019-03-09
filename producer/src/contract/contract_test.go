@@ -31,17 +31,30 @@ func TestMakeYield(t *testing.T) {
 	}
 }
 
-func TestMakeClaim(t *testing.T) {
+// Make Claim Cases:
+/*
+Makes claim appropriately with one unclaimed-yield
+Does not make claim when there are no yields
+A priority test - not yet available
+Priority test would either be block height,
+absolute value difference between desired value and available yield values
+smallest values first
+largest values first
+*/
+
+func TestMakeClaimSingle(t *testing.T) {
+	// Create table
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
 	statement, _ := conn.Prepare(
 		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+		block_height INTEGER,
 		contract_hash TEXT, 
 		index INTEGER, 
 		holder TEXT, 
 		value INTEGER)`)
 	statement.Exec()
-	// First case is a with an equal sized claim
+	// Single element in table
 	contractHash := block.HashSHA256([]byte("previous contract"))
 	expected := Claim{}
 	expected.PreviousContractHash = contractHash
@@ -53,12 +66,13 @@ func TestMakeClaim(t *testing.T) {
 	expected.Holder = testPrivKey.PublicKey
 	statement, _ = conn.Prepare(
 		`INSERT INTO unclaimed_yields(
+			block_height,
 			contract_hash, 
 			index, 
 			holder, 
 			value) 
 			values(?,?,?)`)
-	statement.Exec(contractHash, 0, pubKeyStr, 250)
+	statement.Exec(35, contractHash, 0, pubKeyStr, 250)
 	actual, err := MakeClaim(testDB, 250)
 	if err != nil {
 		t.Errorf("Failed to make claim on valid available yield")
@@ -66,35 +80,35 @@ func TestMakeClaim(t *testing.T) {
 	// If cmp.Equal is still referred to as undefined,
 	// inform test-maker of possible need for change
 	// only after you have fixed above errors
-	if cmp.Equal(expected, actual) {
+	if !(cmp.Equal(expected, actual)) {
 		t.Errorf("Claims do not match")
 		conn.Close()
 		os.Remove(testDB)
 	}
-	// At this point, that particular yield should be removed
-	actual, err = MakeClaim(testDB, 200)
+	conn.Close()
+	os.Remove(testDB)
+}
+
+func TestMakeClaimEmpty(t *testing.T) {
+	// Create table
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare(
+		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+		block_height INTEGER,
+		contract_hash TEXT, 
+		index INTEGER, 
+		holder TEXT, 
+		value INTEGER)`)
+	statement.Exec()
+	// No elements in table
+	// Claim should be empty
+	expected := Claim{}
+	actual, err := MakeClaim(testDB, 250)
 	if err == nil {
-		t.Errorf("Made claim to yield that shouldn't exist")
-		conn.Close()
-		os.Remove(testDB)
+		t.Errorf("Made claim on unavailable unclaimed-yield")
 	}
-	// Now to test a large Claim with smaller unclaimed-yield
-	contractHash = block.HashSHA256([]byte("this is a new yield"))
-	expected.PreviousContractHash = contractHash
-	expected.YieldIndex = 3
-	statement, _ = conn.Prepare(
-		`INSERT INTO unclaimed_yields(
-			contract_hash, 
-			index, 
-			holder, 
-			value) 
-			values(?,?,?)`)
-	statement.Exec(contractHash, 3, pubKeyStr, 250)
-	actual, err = MakeClaim(testDB, 500)
-	if err != nil {
-		t.Errorf("Failed to make claim on valid available yield")
-	}
-	if cmp.Equal(expected, actual) {
+	if !(cmp.Equal(expected, actual)) {
 		t.Errorf("Claims do not match")
 		conn.Close()
 		os.Remove(testDB)
