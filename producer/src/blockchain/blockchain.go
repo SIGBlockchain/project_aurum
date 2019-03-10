@@ -1,7 +1,13 @@
 package blockchain
 
 import (
-	"errors"
+	"database/sql"
+	"encoding/binary"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	block "../block"
 )
@@ -22,8 +28,50 @@ import (
 // If this fails, return an error
 // Close the database connection
 func AddBlock(b block.Block, filename string, databaseName string) error { // Additional parameter is DB connection
-	// TODO
-	return errors.New("") // change this to nil once the function is completed
+	// open file for appending
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	bPosition := fileInfo.Size()
+
+	serialized := b.Serialize()
+	bLen := len(serialized)
+	payload := make([]byte, 4)
+	binary.LittleEndian.PutUint32(payload, uint32(bLen))
+	payload = append(payload, serialized...)
+
+	if _, err := file.Write(payload); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	if err := file.Close(); err != nil {
+		log.Fatalln(err)
+	}
+
+	database, err := sql.Open("sqlite3", databaseName)
+	// Checks if the opening was successful
+	if err != nil {
+		return err
+	}
+
+	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	_, err = statement.Exec(b.Height, bPosition, bLen, b.MerkleRootHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Phase 2:
@@ -31,7 +79,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByHeight(height int, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }
@@ -41,7 +89,7 @@ func GetBlockByHeight(height int, filename string) ([]byte, error) { // Addition
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByPosition(position int, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }
@@ -51,7 +99,7 @@ func GetBlockByPosition(position int, filename string) ([]byte, error) { // Addi
 // Use a database query to find block's position and size in the file
 // If this fails, return an error
 // Make sure to close file and database connection before returning
-func GetBlockByHash(hash []byte, filename string) ([]byte, error) { // Additional parameter is DB connection
+func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// TODO
 	return []byte{}, nil
 }

@@ -26,11 +26,19 @@ func TestPhaseOneAddBlock(t *testing.T) {
 	// Get files
 	testFile := "testBlockchain.dat"
 	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
+	conn.Close()
 	// Add the block
 	err := AddBlock(b, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to add block")
+		os.Remove(testFile)
+		os.Remove(testDB)
 	}
+	os.Remove(testFile)
+	os.Remove(testDB)
 }
 
 func TestPhaseTwoGetBlockByHeight(t *testing.T) {
@@ -48,7 +56,8 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
@@ -57,7 +66,7 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByHeight(0, testFile)
+	actualBlock, err := GetBlockByHeight(0, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
@@ -86,7 +95,8 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
@@ -95,7 +105,7 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByPosition(0, testFile)
+	actualBlock, err := GetBlockByPosition(0, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
@@ -124,7 +134,8 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 	// Create database
 	testDB := "testDatabase.db"
 	conn, _ := sql.Open("sqlite3", testDB)
-	conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
 	conn.Close()
 	// Add the block
 	err := AddBlock(expectedBlock, testFile, testDB)
@@ -133,7 +144,7 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	actualBlock, err := GetBlockByHash(block.HashSHA256(expectedBlock.Serialize()), testFile)
+	actualBlock, err := GetBlockByHash(block.HashSHA256(expectedBlock.Serialize()), testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 		os.Remove(testFile)
