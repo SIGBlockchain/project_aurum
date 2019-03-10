@@ -2,9 +2,7 @@ package producer
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"testing"
 )
 
@@ -46,7 +44,7 @@ func TestHandler(t *testing.T) {
 		NewConnection: make(chan net.Conn, 128),
 	}
 	go bp.AcceptConnections()
-	go bp.WorkLoop(log.New(os.Stderr, "", log.Lshortfile))
+	go bp.WorkLoop()
 	conn, err := net.Dial("tcp", ":10000")
 	if err != nil {
 		t.Errorf("Failed to connect to server")
