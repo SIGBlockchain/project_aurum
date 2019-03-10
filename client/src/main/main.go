@@ -5,7 +5,7 @@ import (
 	"os"
 	"github.com/pborman/getopt/v2"
 
-	client "project_aurum/client/src/client"
+	client "../client"
 )
 
 // Initializes logger format
