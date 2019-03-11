@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -90,8 +91,41 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 // If this fails, return an error
 // Make sure to close file and database connection before returning
 func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	// TODO
-	return []byte{}, nil
+	// open file
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	//open database
+	db, err := sql.Open("sqlite3", database)
+	if err != nil {
+		return nil, err
+	}
+
+	var wantedSize int
+	var wantedPos int
+	// will only need the position and size of the block
+	rows, err := db.Query("SELECT position, size FROM metadata")
+	var pos int
+	var size int
+	for rows.Next() {
+		rows.Scan(&pos, &size)
+		if pos == position {
+			// save the wanted block size and position
+			wantedSize = size
+			wantedPos = pos
+		}
+	}
+
+	// goes to the positition of the block given through param
+	_, _ = file.Seek(int64(wantedPos)+4, 0)
+
+	// store the bytes from the file reading from the seeked position to the size of the block
+	bl := make([]byte, wantedSize)
+	_, _ = io.ReadAtLeast(file, bl, wantedSize)
+
+	return bl, nil
 }
 
 // Phase 2:
