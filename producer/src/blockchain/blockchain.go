@@ -67,7 +67,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		fmt.Println(err)
 		return err
 	}
-	_, err = statement.Exec(b.Height, bPosition, bLen, b.MerkleRootHash)
+	_, err = statement.Exec(b.Height, bPosition, bLen, block.HashBlock(b))
 	if err != nil {
 		return err
 	}
