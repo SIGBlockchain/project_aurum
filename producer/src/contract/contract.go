@@ -28,10 +28,12 @@ func InsertYield(y Yield, database string, blockHeight uint32, contractHash []by
 	return errors.New("Incomplete function")
 }
 
+/* Serialize ... serialies the yield */
 func (y *Yield) Serialize() []byte {
 	return []byte{}
 }
 
+/* DeserializeYield ... deserializes the yield */
 func DeserializeYield(b []byte) Yield {
 	return Yield{}
 }

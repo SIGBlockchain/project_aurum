@@ -14,6 +14,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+/* function for setting up database */
 func setUpDB(database string) {
 	conn, _ := sql.Open("sqlite3", database)
 	statement, _ := conn.Prepare(
@@ -27,11 +28,13 @@ func setUpDB(database string) {
 	conn.Close()
 }
 
+/* generates a random public key */
 func generatePubKey() ecdsa.PublicKey {
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	return privateKey.PublicKey
 }
 
+/* Makes a yield and tests if it matches the values */
 func TestMakeYield(t *testing.T) {
 	testPubKey := generatePubKey()
 	pubKeyBytes := testPubKey.X.Bytes()
@@ -48,6 +51,7 @@ func TestMakeYield(t *testing.T) {
 	}
 }
 
+/* Simple test to make sure insertion is working */
 func TestInsertYield(t *testing.T) {
 	setUpDB("testDB.dat")
 	testPubKey := generatePubKey()
@@ -59,6 +63,7 @@ func TestInsertYield(t *testing.T) {
 	}
 }
 
+/* Tests both serialization and deserialization */
 func TestSerialization(t *testing.T) {
 	testPubKey := generatePubKey()
 	expected := MakeYield(testPubKey, 200000)
