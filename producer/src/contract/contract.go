@@ -2,24 +2,31 @@ package contract
 
 import (
 	"crypto/ecdsa"
+	"errors"
 )
 
-/*Contains a 32 size byte slice recipient,
-and a uint64 value */
+/* Yield ... Contains a 32 size byte slice recipient, and a uint64 value */
 type Yield struct{}
 
-// Recipient will be SHA-256 hashed
+/* Make Yield ... Recipient will be SHA-256 hashed */
 func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
 	return Yield{}
 }
 
-// func InsertYield(y Yield, database string, blockHeight uint32, string contractHash, uint64 ) {
-// 	// Open database connection,
-// 	// Insert into table:
-// 	// height of the block the yield is located in
-// 	// hash of the contract the yield is located in
-// 	//
-// }
+/* Inserts Yield into database */
+func InsertYield(y Yield, database string, blockHeight uint32, contractHash []byte, yieldIndex uint8) error {
+	/*
+		Open database connection,
+		 Insert into table the following:
+		 height of the block the yield is located in
+		 hash of the contract the yield is located in (STRING FORM)
+		 index that the yield is in
+		 the yield's public key hash as a string
+		 the yield's value
+		 Close the database connection
+	*/
+	return errors.New("Incomplete function")
+}
 
 func (y *Yield) Serialize() []byte {
 	return []byte{}
