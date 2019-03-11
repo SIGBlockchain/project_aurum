@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	block "../block"
-	_ "github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -42,10 +42,8 @@ smallest values first
 largest values first
 */
 
-func TestMakeClaimSingle(t *testing.T) {
-	// Create table
-	testDB := "testDatabase.db"
-	conn, _ := sql.Open("sqlite3", testDB)
+func setUpDB(database string) {
+	conn, _ := sql.Open("sqlite3", database)
 	statement, _ := conn.Prepare(
 		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
 		block_height INTEGER,
@@ -54,16 +52,24 @@ func TestMakeClaimSingle(t *testing.T) {
 		holder TEXT, 
 		value INTEGER)`)
 	statement.Exec()
+	conn.Close()
+}
+
+func TestMakeClaimSingle(t *testing.T) {
+	// Create table
+	setUpDB("testDB")
 	// Single element in table
 	contractHash := block.HashSHA256([]byte("previous contract"))
-	expected := Claim{}
-	expected.PreviousContractHash = contractHash
-	expected.YieldIndex = 0
 	testPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	testPubKey := testPrivKey.PublicKey
 	pubKeyBytes := testPubKey.X.Bytes()
 	pubKeyBytes = append(pubKeyBytes, testPubKey.Y.Bytes()...)
 	pubKeyStr := string(pubKeyBytes)
-	expected.Holder = testPrivKey.PublicKey
+	expected := Claim{
+		PreviousContractHash: contractHash,
+		YieldIndex:           0,
+		Holder:               testPubKey,
+	}
 	statement, _ = conn.Prepare(
 		`INSERT INTO unclaimed_yields(
 			block_height,
@@ -73,13 +79,11 @@ func TestMakeClaimSingle(t *testing.T) {
 			value) 
 			values(?,?,?)`)
 	statement.Exec(35, contractHash, 0, pubKeyStr, 250)
+	conn.Close()
 	actual, err := MakeClaim(testDB, 250)
 	if err != nil {
 		t.Errorf("Failed to make claim on valid available yield")
 	}
-	// If cmp.Equal is still referred to as undefined,
-	// inform test-maker of possible need for change
-	// only after you have fixed above errors
 	if !(cmp.Equal(expected, actual)) {
 		t.Errorf("Claims do not match")
 		conn.Close()
@@ -101,6 +105,7 @@ func TestMakeClaimEmpty(t *testing.T) {
 		holder TEXT, 
 		value INTEGER)`)
 	statement.Exec()
+	conn.Close()
 	// No elements in table
 	// Claim should be empty
 	expected := Claim{}
@@ -115,4 +120,44 @@ func TestMakeClaimEmpty(t *testing.T) {
 	}
 	conn.Close()
 	os.Remove(testDB)
+}
+
+func TestMakeContract(t *testing.T) {
+	// Create table
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare(
+		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+		block_height INTEGER,
+		contract_hash TEXT, 
+		index INTEGER, 
+		holder TEXT, 
+		value INTEGER)`)
+	statement.Exec()
+	// Insert Yields
+	// Exact amount
+	// Broke
+	// Change back
+}
+
+func TestSerializeContract(t *testing.T) {
+	testPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	testPubKey := testPrivKey.PublicKey
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare(
+		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+		block_height INTEGER,
+		contract_hash TEXT, 
+		index INTEGER, 
+		holder TEXT, 
+		value INTEGER)`)
+	statement.Exec()
+	conn.Close()
+	c, err := MakeContract(1, testDB, testPrivKey, testPubKey, 50000)
+	serialized := c.Serialize()
+	deserialized := DeserializeContract(serialized)
+	if !cmp.Equal(c, deserialized) {
+		t.Errorf("Contracts don't match")
+	}
 }

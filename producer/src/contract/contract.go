@@ -2,6 +2,7 @@ package contract
 
 import (
 	"crypto/ecdsa"
+	"database/sql"
 	"errors"
 )
 
@@ -12,7 +13,8 @@ type Yield struct{}
 /*
 Consists of a previous contract hash,
 a claimed yield index,
-and a public key
+a public key,
+and a byte slice signature
 */
 type Claim struct{}
 
@@ -28,12 +30,26 @@ func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
 	return Yield{}
 }
 
+func InsertYield(y Yield, database string, blockHeight uint32, string contractHash, uint64 ) {
+	// Open database connection,
+	// Insert into table:
+	// height of the block the yield is located in
+	// hash of the contract the yield is located in
+	// 
+}
+
 // Must remove UY's from database
 // Checks database for a yield
 func MakeClaim(database string, value uint64) (Claim, error) {
 	return Claim{}, errors.New("Incomplete function")
 }
 
+// Signs each Claim
+func (c *Contract) SignContract(ecdsa.PrivateKey) error {
+	return errors.New("Incomplete function")
+}
+
+// Wrapper function that builds the whole contract
 func MakeContract(version uint32, database string, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64) (Contract, error) {
 	// Assign version
 	// Get list of claims
