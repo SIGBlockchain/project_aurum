@@ -81,8 +81,42 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 // If this fails, return an error
 // Make sure to close file and database connection before returning
 func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	// TODO
-	return []byte{}, nil
+	//open the file
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	// open database
+	db, err := sql.Open("sqlite3", database)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockPos int
+	var blockSize int
+	// only need the height, position and size of the block
+	rows, err := db.Query("SELECT height, position, size FROM metadata")
+	var ht int
+	var pos int
+	var size int
+	for rows.Next() {
+		rows.Scan(&ht, &pos, &size)
+		if ht == height {
+			// save the wanted blocks size and position
+			blockSize = size
+			blockPos = pos
+		}
+	}
+
+	// goes to the positition of the block
+	_, _ = file.Seek(int64(blockPos)+4, 0)
+
+	// store the bytes from the file
+	bl := make([]byte, blockSize)
+	_, _ = io.ReadAtLeast(file, bl, blockSize)
+
+	return bl, nil
 }
 
 // Phase 2:
@@ -134,6 +168,6 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 // If this fails, return an error
 // Make sure to close file and database connection before returning
 func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	// TODO
+	//TODO
 	return []byte{}, nil
 }
