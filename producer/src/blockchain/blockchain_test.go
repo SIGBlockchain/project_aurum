@@ -171,7 +171,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		PreviousHash:   block.HashSHA256([]byte{'0'}),
 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		Data:           [][]byte{block.HashSHA256([]byte{'x', 'o', 'x', 'o'})},
 	}
 	block0.DataLen = uint16(len(block0.Data))
 	block1 := block.Block{
@@ -180,16 +180,16 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		PreviousHash:   block.HashBlock(block0),
 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		Data:           [][]byte{block.HashSHA256([]byte{'x', 'y', 'z'})},
 	}
 	block1.DataLen = uint16(len(block1.Data))
 	block2 := block.Block{
 		Version:        1,
 		Height:         2,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashBlock(block0),
+		PreviousHash:   block.HashBlock(block1),
 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		Data:           [][]byte{block.HashSHA256([]byte{'a', 'b', 'c'})},
 	}
 	block2.DataLen = uint16(len(block2.Data))
 	// Blockchain datafile
@@ -207,13 +207,13 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	err = AddBlock(block0, testFile, testDB)
+	err = AddBlock(block1, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to add block1.")
 		os.Remove(testFile)
 		os.Remove(testDB)
 	}
-	err = AddBlock(block0, testFile, testDB)
+	err = AddBlock(block2, testFile, testDB)
 	if err != nil {
 		t.Errorf("Failed to add block2.")
 		os.Remove(testFile)
