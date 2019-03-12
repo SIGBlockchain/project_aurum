@@ -116,6 +116,11 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 	bl := make([]byte, blockSize)
 	_, _ = io.ReadAtLeast(file, bl, blockSize)
 
+	if err := file.Close(); err != nil {
+		log.Fatalln(err)
+	}
+	db.Close();
+
 	return bl, nil
 }
 
@@ -158,6 +163,12 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 	// store the bytes from the file reading from the seeked position to the size of the block
 	bl := make([]byte, wantedSize)
 	_, _ = io.ReadAtLeast(file, bl, wantedSize)
+
+	if err := file.Close(); err != nil {
+		log.Fatalln(err)
+	}
+	db.Close();
+	
 
 	return bl, nil
 }
