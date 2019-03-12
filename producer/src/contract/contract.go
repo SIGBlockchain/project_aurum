@@ -19,7 +19,7 @@ func InsertYield(y Yield, database string, blockHeight uint32, contractHash []by
 		Open database connection,
 		 Insert into table the following:
 		 height of the block the yield is located in
-		 hash of the contract the yield is located in (STRING FORM)
+		 hash of the contract the yield is located in (HEX STRING FORM)
 		 index that the yield is in
 		 the yield's public key hash as a string
 		 the yield's value
