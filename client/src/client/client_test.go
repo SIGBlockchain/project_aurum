@@ -86,18 +86,3 @@ func TestSendToProducerWithLargeMessage(t *testing.T) {
 		t.Errorf("Did not write all bytes to connection")
 	}
 }
-
-// Test simulates user input, ensures correct processing of command line arguments
-func TestProcessCmdLineArgs(t *testing.T) {
-	// Empty Case, just executable call
-	err_empty := ProcessCmdLineArgs([]string{})
-	if err_empty != nil {
-		t.Errorf("No arguments yielded an error, Test Failed.")
-	}
-
-	// Other Case
-	err_other := ProcessCmdLineArgs([]string{"-test"})
-	if err_other == nil {
-		t.Errorf("Invalid input yielded no error, Test Failed.")
-	}
-}
