@@ -53,8 +53,42 @@ func GetUserInput(text *string, reader io.Reader) error {
 // if any conn write call fails, return how many bytes you wrote and an error
 // if everything works out fine, return how many bytes you wrote and a nil error
 func SendToProducer(buf []byte, addr string) (int, error) {
-	// TODO
-	return 0, errors.New("Incomplete function")
+	// Opens a connection, if connection fails, return 0 and error
+	conn, err:= net.Dial("tcp", addr)
+	if err != nil {
+		conn.Close()
+		return 0, err
+	}
+	counter := 0
+	// While size of buf is > 0, send 1024 byte chunks to conn
+	for len(buf) > 1024 {
+		// Send first 1024 bytes of the buffer
+		n, err := conn.Write(buf[:1024])
+		// If there was an error in sending, close connection and return counter and error
+		if err != nil {
+			conn.Close()
+			return counter, err
+		}
+		// Replace buffer with buffer minus first 1024 bytes
+		buf = buf[1024:]
+		// Incriment counter with written bytes
+		counter += n
+	}
+	// If there is anything left in the buffer, send it
+	if len(buf) > 0 {
+		// Write remainder of buffer into connection
+		n, err := conn.Write(buf)
+		// If there was an error in sending, close connection and return counter
+		if err != nil {
+			conn.Close()
+			return counter, err
+		}
+		// Incriment counter with written bytes
+		counter += n	
+	}
+	// Close connection, return counter and no error
+	conn.Close()
+	return counter, nil
 }
 
 /*=================================================================================================
