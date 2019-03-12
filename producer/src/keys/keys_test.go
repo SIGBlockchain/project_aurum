@@ -6,6 +6,8 @@ import (
 	"crypto/rand"
 	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestKeys(t *testing.T) {
@@ -20,26 +22,41 @@ func TestKeys(t *testing.T) {
 		t.Errorf("Failed to store keys.")
 	}
 
-    // actual key
-    actualPrivKey, err := GetKey(testFile)
-    if err != nil {
-        t.Errorf("Failed to retrieve keys")
-    } 
+	// actual key
+	actualPrivKey, err := GetKey(testFile)
+	if err != nil {
+		t.Errorf("Failed to retrieve keys")
+	}
 
-    // Gets the Public Keys from the Private Keys
-    actualPublicKey := actualPrivKey.PublicKey
-    expectedPublicKey := expectedPrivKey.PublicKey
+	// Gets the Public Keys from the Private Keys
+	actualPublicKey := actualPrivKey.PublicKey
+	expectedPublicKey := expectedPrivKey.PublicKey
 
-  	// Compares the D field of the Private Keys
-    if actualPrivKey.D.Cmp(expectedPrivKey.D) != 0 {
-    	t.Errorf("Private Key from file does not match expected Private Key.")
-    }
+	// Compares the D field of the Private Keys
+	if actualPrivKey.D.Cmp(expectedPrivKey.D) != 0 {
+		t.Errorf("Private Key from file does not match expected Private Key.")
+	}
 
-    // Compares the Big Ints inside of the Public Key field
-    if actualPublicKey.X.Cmp(expectedPublicKey.X) != 0 || actualPublicKey.Y.Cmp(expectedPublicKey.Y) != 0 {
-        t.Errorf("Public Key from file does not match expected Public Key.")
-    }
+	// Compares the Big Ints inside of the Public Key field
+	if actualPublicKey.X.Cmp(expectedPublicKey.X) != 0 || actualPublicKey.Y.Cmp(expectedPublicKey.Y) != 0 {
+		t.Errorf("Public Key from file does not match expected Public Key.")
+	}
 
 	// Delete testFile
 	os.Remove(testFile)
+}
+
+// Full test for encoding/decoding public keys
+func TestEncoding(t *testing.T) {
+	private, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	public := private.PublicKey
+	encoded := EncodePublicKey(&public)
+	decoded := DecodePublicKey(encoded)
+	if !cmp.Equal(public, decoded) {
+		t.Errorf("Keys do not match")
+	}
+	reEncoded := EncodePublicKey(&decoded)
+	if !cmp.Equal(reEncoded, encoded) {
+		t.Errorf("Encoded keys do not match")
+	}
 }

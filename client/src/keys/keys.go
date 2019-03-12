@@ -73,3 +73,19 @@ func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 	// Returns private key
 	return privateKey, err
 }
+
+/*
+EncodePublicKey encodes given public key and returns its
+PEM-Encoded byte slice form
+*/
+func EncodePublicKey(key *ecdsa.PublicKey) []byte {
+	return []byte{}
+}
+
+/*
+DecodePublicKey takes a PEM-Encoded key and returns
+an ecdsa PublicKey Struct
+*/
+func DecodePublicKey(key []byte) ecdsa.PublicKey {
+	return ecdsa.PublicKey{}
+}
