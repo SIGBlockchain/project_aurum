@@ -62,6 +62,8 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		return err
 	}
 
+	defer database.Close()
+
 	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		fmt.Println(err)
@@ -119,7 +121,7 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 	if err := file.Close(); err != nil {
 		log.Fatalln(err)
 	}
-	db.Close();
+	db.Close()
 
 	return bl, nil
 }
@@ -167,8 +169,7 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 	if err := file.Close(); err != nil {
 		log.Fatalln(err)
 	}
-	db.Close();
-	
+	db.Close()
 
 	return bl, nil
 }

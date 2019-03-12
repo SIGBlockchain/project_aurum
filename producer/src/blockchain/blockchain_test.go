@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +13,6 @@ import (
 )
 
 func setUp(filename string, database string) {
-	fmt.Println("Setting up test")
 	conn, _ := sql.Open("sqlite3", database)
 	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
 	statement.Exec()
@@ -28,7 +26,6 @@ func setUp(filename string, database string) {
 }
 
 func tearDown(filename string, database string) {
-	fmt.Println("Tearing down test")
 	os.Remove(filename)
 	os.Remove(database)
 }
