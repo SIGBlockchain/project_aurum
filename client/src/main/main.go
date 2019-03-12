@@ -32,8 +32,11 @@ func main() {
 	}
 	// If the log flag is on, it will send the logs to a file in client/logs
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/project_aurum/client/logs"
-		os.Mkdir(filepath, 0777)
+		filepath := "../../logs"
+		err := os.MkdirAll(filepath, 0777)
+		if err != nil {
+			logger.Fatalln(err)
+		}
 		// If no filename is given, logs.txt
 		if *logFile == "" {
 			filepath += "/logs.txt"
@@ -46,7 +49,6 @@ func main() {
 
 		// If there is any error, do not set the logger. Log an error messgae
 		if err != nil {
-			logger.Println(filepath)
 			logger.Fatalln(err)
 		} else {
 			logger = log.New(f, "LOG: ", log.Ldate | log.Lmicroseconds | log.Lshortfile)	
