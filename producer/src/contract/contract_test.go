@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	block "../block"
+	keys "../keys"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -37,9 +38,11 @@ func generatePubKey() ecdsa.PublicKey {
 /* Makes a yield and tests if it matches the values */
 func TestMakeYield(t *testing.T) {
 	testPubKey := generatePubKey()
-	pubKeyBytes := testPubKey.X.Bytes()
-	pubKeyBytes = append(pubKeyBytes, testPubKey.Y.Bytes()...)
-	hashedKey := block.HashSHA256(pubKeyBytes)
+	// pubKeyBytes := testPubKey.X.Bytes()
+	// pubKeyBytes = append(pubKeyBytes, testPubKey.Y.Bytes()...)
+
+	encodedPubKey := keys.EncodePublicKey(testPubKey)
+	hashedKey := block.HashSHA256(encodedPubKey)
 	var expectedRecipient []byte = hashedKey[:]
 	expectedValue := 1000000
 	actual := MakeYield(testPubKey, 1000000)
