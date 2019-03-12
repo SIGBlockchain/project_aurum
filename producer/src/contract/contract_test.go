@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -15,7 +16,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-/* function for setting up database */
+/* <Testing adjunct> function for setting up database */
 func setUpDB(database string) {
 	conn, _ := sql.Open("sqlite3", database)
 	statement, _ := conn.Prepare(
@@ -29,7 +30,11 @@ func setUpDB(database string) {
 	conn.Close()
 }
 
-/* generates a random public key */
+func tearDown(database string) {
+	os.Remove(database)
+}
+
+/* <Testing adjunct> generates a random public key */
 func generatePubKey() ecdsa.PublicKey {
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	return privateKey.PublicKey
@@ -38,9 +43,6 @@ func generatePubKey() ecdsa.PublicKey {
 /* Makes a yield and tests if it matches the values */
 func TestMakeYield(t *testing.T) {
 	testPubKey := generatePubKey()
-	// pubKeyBytes := testPubKey.X.Bytes()
-	// pubKeyBytes = append(pubKeyBytes, testPubKey.Y.Bytes()...)
-
 	encodedPubKey := keys.EncodePublicKey(testPubKey)
 	hashedKey := block.HashSHA256(encodedPubKey)
 	var expectedRecipient []byte = hashedKey[:]
@@ -56,7 +58,8 @@ func TestMakeYield(t *testing.T) {
 
 /* Simple test to make sure insertion is working */
 func TestInsertYield(t *testing.T) {
-	setUpDB("testDB.dat")
+	defer tearDown("testDB.db")
+	setUpDB("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
