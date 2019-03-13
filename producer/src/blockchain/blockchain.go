@@ -34,6 +34,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 	if err != nil {
 		return errors.New("File containing block informations failed to open")
 	}
+	defer file.Close()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
@@ -62,7 +63,6 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		return errors.New("Unable to open sqlite3 database")
 	}
 
-	defer file.Close()
 	defer database.Close()
 
 	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
@@ -90,13 +90,14 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 		return nil, errors.New("Unable to open file used to extract block from by height")
 	}
 
+	defer file.Close()
+
 	// open database
 	db, err := sql.Open("sqlite3", database)
 	if err != nil {
 		return nil, errors.New("Failed to open sqlite3 database")
 	}
 
-	defer file.Close()
 	defer db.Close()
 
 	var blockPos int
@@ -150,13 +151,14 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 		return nil, errors.New("Unable to open file used to extract block from by position")
 	}
 
+	defer file.Close()
+
 	//open database
 	db, err := sql.Open("sqlite3", database)
 	if err != nil {
 		return nil, errors.New("Unable to open sqlite3 database")
 	}
 
-	defer file.Close()
 	defer db.Close()
 
 	var wantedSize int
