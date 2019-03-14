@@ -37,3 +37,9 @@ func (y *Yield) Serialize() []byte {
 func DeserializeYield(b []byte) Yield {
 	return Yield{}
 }
+
+type Claim struct{}
+
+func MakeClaim() Claim {
+	return Claim{}
+}
