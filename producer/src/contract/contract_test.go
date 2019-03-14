@@ -70,7 +70,7 @@ func TestInsertYield(t *testing.T) {
 }
 
 /* Tests both serialization and deserialization */
-func TestSerialization(t *testing.T) {
+func TestYieldSerialization(t *testing.T) {
 	testPubKey := generatePubKey()
 	expected := MakeYield(testPubKey, 200000)
 	serialized := expected.Serialize()
@@ -81,5 +81,37 @@ func TestSerialization(t *testing.T) {
 	reserialized := deserialized.Serialize()
 	if !bytes.Equal(reserialized, serialized) {
 		t.Errorf("Byte strings do not match")
+	}
+}
+
+func TestMakeClaim(t *testing.T) {
+	defer tearDown("testDB.db")
+	setUpDB("testDB.db")
+	testPubKey := generatePubKey()
+	testYield := MakeYield(testPubKey, 10000000)
+	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
+	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
+	if err != nil {
+		t.Errorf("Failed to insert yield")
+	}
+	testClaim, err := MakeClaim("testDB.dat", testPubKey, 10000000)
+	if err != nil {
+		t.Errorf("Failed to claim yield")
+	}
+	if !bytes.Equal(testClaim.PreviousContractHash, contractHash) {
+		t.Errorf("Contract hashes do not match")
+	}
+	if testClaim.BlockIndex != 35 {
+		t.Errorf("Block indeces do not match")
+	}
+	if testClaim.YieldIndex != 1 {
+		t.Errorf("Yield indeces do not match")
+	}
+	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+		t.Errorf("Public Keys do not match")
+	}
+	_, shouldReturnError := MakeClaim("testDB.dat", testPubKey, 1)
+	if shouldReturnError == nil {
+		t.Errorf("Made claim on empty yield pool")
 	}
 }
