@@ -59,36 +59,13 @@ func SendToProducer(buf []byte, addr string) (int, error) {
 		conn.Close()
 		return 0, err
 	}
-	counter := 0
-	// While size of buf is > 0, send 1024 byte chunks to conn
-	for len(buf) > 1024 {
-		// Send first 1024 bytes of the buffer
-		n, err := conn.Write(buf[:1024])
-		// If there was an error in sending, close connection and return counter and error
-		if err != nil {
-			conn.Close()
-			return counter, err
-		}
-		// Replace buffer with buffer minus first 1024 bytes
-		buf = buf[1024:]
-		// Incriment counter with written bytes
-		counter += n
+	if len(buf) > 1024 {
+		return 0, errors.New("Attempted to send message of size %d, maximum size of 1024 bytes.")
 	}
-	// If there is anything left in the buffer, send it
-	if len(buf) > 0 {
-		// Write remainder of buffer into connection
-		n, err := conn.Write(buf)
-		// If there was an error in sending, close connection and return counter
-		if err != nil {
-			conn.Close()
-			return counter, err
-		}
-		// Incriment counter with written bytes
-		counter += n	
-	}
+	n, err := conn.Write(buf)
 	// Close connection, return counter and no error
 	conn.Close()
-	return counter, nil
+	return len(buf), nil
 }
 
 /*=================================================================================================
