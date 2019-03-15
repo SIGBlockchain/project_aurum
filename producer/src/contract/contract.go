@@ -6,7 +6,13 @@ import (
 )
 
 /* Yield ... Contains a 32 size byte slice recipient, and a uint64 value */
-type Yield struct{}
+type Yield struct {
+	BlockHeight  int32
+	ContractHash []byte
+	YeildIndex   int32
+	Recipient    []byte
+	Value        int64
+}
 
 /* Make Yield ... Recipient will be SHA-256 hashed */
 func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
