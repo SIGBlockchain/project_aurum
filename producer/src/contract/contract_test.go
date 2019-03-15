@@ -58,8 +58,8 @@ func TestMakeYield(t *testing.T) {
 
 /* Simple test to make sure insertion is working */
 func TestInsertYield(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
@@ -85,8 +85,8 @@ func TestYieldSerialization(t *testing.T) {
 }
 
 func TestMakeClaimCase1A(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
@@ -118,8 +118,8 @@ func TestMakeClaimCase1A(t *testing.T) {
 }
 
 func TestMakeClaimCase1B(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(testPubKey, 50000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
@@ -151,8 +151,8 @@ func TestMakeClaimCase1B(t *testing.T) {
 }
 
 func TestMakeClaimCase2(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
@@ -184,8 +184,8 @@ func TestMakeClaimCase2(t *testing.T) {
 }
 
 func TestMakeClaimPriorityCase1(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYieldFloor := MakeYield(testPubKey, 10000000)
 	testYieldCeiling := MakeYield(testPubKey, 10000010)
@@ -218,8 +218,8 @@ func TestMakeClaimPriorityCase1(t *testing.T) {
 }
 
 func TestMakeClaimPriorityCase2(t *testing.T) {
-	defer tearDown("testDB.db")
 	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYieldFloor := MakeYield(testPubKey, 10000000)
 	testYieldCeiling := MakeYield(testPubKey, 10000010)
@@ -248,5 +248,24 @@ func TestMakeClaimPriorityCase2(t *testing.T) {
 	}
 	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
 		t.Errorf("Public Keys do not match")
+	}
+}
+
+func TestClaimSerialization(t *testing.T) {
+	setUpDB("testDB.db")
+	defer tearDown("testDB.db")
+	testPubKey := generatePubKey()
+	testYield := MakeYield(testPubKey, 50000)
+	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
+	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 2)
+	expected, err := MakeClaim(50000)
+	serialized := expected.Serialize()
+	deserialized := DeserializeClaim(serialized)
+	if !cmp.Equal(deserialized, expected) {
+		t.Errorf("Claim structs do not match")
+	}
+	reserialized := deserialized.Serialize()
+	if !bytes.Equal(reserialized, serialized) {
+		t.Errorf("Byte strings do not match")
 	}
 }

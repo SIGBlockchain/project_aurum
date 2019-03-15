@@ -69,3 +69,13 @@ that simply states there are insufficient funds
 func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, error) {
 	return Claim{}, errors.New("Incomplete function")
 }
+
+/* Serialize ... serialies the claim */
+func (y *Claim) Serialize() []byte {
+	return []byte{}
+}
+
+/* DeserializeYield ... deserializes the claim */
+func DeserializeClaim(b []byte) Claim {
+	return Claim{}
+}
