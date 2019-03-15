@@ -37,3 +37,45 @@ func (y *Yield) Serialize() []byte {
 func DeserializeYield(b []byte) Yield {
 	return Yield{}
 }
+
+/*
+Contains the contract hash of the claimed yield,
+the block index containing the contract of the claimed yield,
+the index of the claimed yield in the contract,
+and the public key of the claimant
+*/
+type Claim struct{}
+
+/*
+Should scan the Unclaimed Yield Pool for a yield
+
+Prioritize yields that are closest to the value parameter,
+ie. MIN(abs(value - yieldValue0), abs(value - yieldValue1), ... abs(value - yieldValueN))
+
+Case 1:
+If the claimed yield is less than or equal to the value, return
+the claim and a nil for the error
+
+Case 2:
+If the claimed yield exceeds the value, return
+the claim as usual and a custom error struct with
+the difference as a uint64 field called "Change"
+
+Case 3:
+If there are no yields left in the Pool,
+return an empty Claim struct and a custom error struct
+that simply states there are insufficient funds
+*/
+func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, error) {
+	return Claim{}, errors.New("Incomplete function")
+}
+
+/* Serialize ... serialies the claim */
+func (y *Claim) Serialize() []byte {
+	return []byte{}
+}
+
+/* DeserializeYield ... deserializes the claim */
+func DeserializeClaim(b []byte) Claim {
+	return Claim{}
+}
