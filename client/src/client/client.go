@@ -65,7 +65,7 @@ func SendToProducer(buf []byte, addr string) (int, error) {
 	n, err := conn.Write(buf)
 	// Close connection, return counter and no error
 	conn.Close()
-	return len(buf), nil
+	return n, nil
 }
 
 /*=================================================================================================
