@@ -203,6 +203,56 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 // If this fails, return an error
 // Make sure to close file and database connection before returning
 func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	//TODO
-	return []byte{}, nil
+	// open file
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, errors.New("Unable to open file used to extract block from by position")
+	}
+
+	//open database
+	db, err := sql.Open("sqlite3", database)
+	if err != nil {
+		return nil, errors.New("Unable to open sqlite3 database")
+	}
+
+	defer file.Close()
+	defer db.Close()
+
+	var blockPos int
+	var blockSize int
+	// need the position, size and hash of the block from databse
+	rows, err := db.Query("SELECT position, size, hash FROM metadata")
+	if err != nil {
+		return nil, errors.New("Failed to create rows to iterate to find position and size of wanted block")
+	}
+	var pos int
+	var size int
+	var bHash string
+	for rows.Next() {
+		rows.Scan(&pos, &size, &bHash)
+		if bHash == string(hash) {
+			// save the wanted block size and position
+			blockPos = pos
+			blockSize = size
+		}
+	}
+
+	// goes to the positition of the block given through param
+	_, err = file.Seek(int64(blockPos)+4, 0)
+	if err != nil {
+		return nil, errors.New("Failed to seek up to given blocks position in file")
+	}
+
+	// store the bytes from the file reading from the seeked position to the size of the block
+	bl := make([]byte, blockSize)
+	_, err = io.ReadAtLeast(file, bl, blockSize)
+	if err != nil {
+		return nil, errors.New("Unable to read file data from the blocks start to it's end")
+	}
+
+	if err := file.Close(); err != nil {
+		return nil, errors.New("Failed to close file after use")
+	}
+
+	return bl, nil
 }

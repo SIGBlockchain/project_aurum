@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"database/sql"
 	"os"
 	"testing"
@@ -54,126 +55,142 @@ func TestPhaseOneAddBlock(t *testing.T) {
 	}
 }
 
-// func TestPhaseTwoGetBlockByHeight(t *testing.T) {
-// 	// Create a block
-// 	expectedBlock := block.Block{
-// 		Version:        1,
-// 		Height:         0,
-// 		Timestamp:      time.Now().UnixNano(),
-// 		PreviousHash:   block.HashSHA256([]byte{'0'}),
-// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-// 		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
-// 	}
-// 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
-// 	// Blockchain datafile
-// 	testFile := "testBlockchain.dat"
-// 	// Create database
-// 	testDB := "testDatabase.db"
-// 	conn, _ := sql.Open("sqlite3", testDB)
-// 	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-// 	statement.Exec()
-// 	conn.Close()
-// 	// Add the block
-// 	err := AddBlock(expectedBlock, testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to add block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	actualBlock, err := GetBlockByHeight(0, testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to extract block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
-// 		t.Errorf("Blocks do not match")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	os.Remove(testFile)
-// 	os.Remove(testDB)
-// }
-// func TestPhaseTwoGetBlockPosition(t *testing.T) {
-// 	// Create a block
-// 	expectedBlock := block.Block{
-// 		Version:        1,
-// 		Height:         0,
-// 		Timestamp:      time.Now().UnixNano(),
-// 		PreviousHash:   block.HashSHA256([]byte{'0'}),
-// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-// 		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
-// 	}
-// 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
-// 	// Blockchain datafile
-// 	testFile := "testBlockchain.dat"
-// 	// Create database
-// 	testDB := "testDatabase.db"
-// 	conn, _ := sql.Open("sqlite3", testDB)
-// 	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-// 	statement.Exec()
-// 	conn.Close()
-// 	// Add the block
-// 	err := AddBlock(expectedBlock, testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to add block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	actualBlock, err := GetBlockByPosition(0, testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to extract block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
-// 		t.Errorf("Blocks do not match")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	os.Remove(testFile)
-// 	os.Remove(testDB)
-// }
-// func TestPhaseTwoGetBlockByHash(t *testing.T) {
-// 	// Create a block
-// 	expectedBlock := block.Block{
-// 		Version:        1,
-// 		Height:         0,
-// 		Timestamp:      time.Now().UnixNano(),
-// 		PreviousHash:   block.HashSHA256([]byte{'0'}),
-// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-// 		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
-// 	}
-// 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
-// 	// Blockchain datafile
-// 	testFile := "testBlockchain.dat"
-// 	// Create database
-// 	testDB := "testDatabase.db"
-// 	conn, _ := sql.Open("sqlite3", testDB)
-// 	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-// 	statement.Exec()
-// 	conn.Close()
-// 	// Add the block
-// 	err := AddBlock(expectedBlock, testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to add block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	actualBlock, err := GetBlockByHash(block.HashBlock(expectedBlock), testFile, testDB)
-// 	if err != nil {
-// 		t.Errorf("Failed to extract block.")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
-// 		t.Errorf("Blocks do not match")
-// 		os.Remove(testFile)
-// 		os.Remove(testDB)
-// 	}
-// 	os.Remove(testFile)
-// 	os.Remove(testDB)
-// }
+func TestPhaseTwoGetBlockByHeight(t *testing.T) {
+	// Create a block
+	expectedBlock := block.Block{
+		Version:        1,
+		Height:         0,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+	}
+	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
+	// Blockchain datafile
+	testFile := "testBlockchain.txt"
+	// Create database
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
+	conn.Close()
+
+	// Setup
+	defer tearDown(testFile, testDB)
+	setUp(testFile, testDB)
+
+	// Add the block
+	err := AddBlock(expectedBlock, testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to add block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	actualBlock, err := GetBlockByHeight(0, testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to extract block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
+		t.Errorf("Blocks do not match")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	os.Remove(testFile)
+	os.Remove(testDB)
+}
+
+func TestPhaseTwoGetBlockPosition(t *testing.T) {
+	// Create a block
+	expectedBlock := block.Block{
+		Version:        1,
+		Height:         0,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+	}
+	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
+	// Blockchain datafile
+	testFile := "testBlockchain.dat"
+	// Create database
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
+	conn.Close()
+
+	// Setup
+	defer tearDown(testFile, testDB)
+	setUp(testFile, testDB)
+
+	// Add the block
+	err := AddBlock(expectedBlock, testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to add block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	actualBlock, err := GetBlockByPosition(0, testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to extract block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
+		t.Errorf("Blocks do not match")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	os.Remove(testFile)
+	os.Remove(testDB)
+}
+func TestPhaseTwoGetBlockByHash(t *testing.T) {
+	// Create a block
+	expectedBlock := block.Block{
+		Version:        1,
+		Height:         0,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+	}
+	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
+	// Blockchain datafile
+	testFile := "testBlockchain.dat"
+	// Create database
+	testDB := "testDatabase.db"
+	conn, _ := sql.Open("sqlite3", testDB)
+	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement.Exec()
+	conn.Close()
+
+	// Setup
+	defer tearDown(testFile, testDB)
+	setUp(testFile, testDB)
+
+	// Add the block
+	err := AddBlock(expectedBlock, testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to add block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	actualBlock, err := GetBlockByHash(block.HashBlock(expectedBlock), testFile, testDB)
+	if err != nil {
+		t.Errorf("Failed to extract block.")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
+		t.Errorf("Blocks do not match")
+		os.Remove(testFile)
+		os.Remove(testDB)
+	}
+	os.Remove(testFile)
+	os.Remove(testDB)
+}
 
 // func TestPhaseTwoMultiple(t *testing.T) {
 // 	// Create a bunch of blocks
