@@ -59,9 +59,6 @@ func SendToProducer(buf []byte, addr string) (int, error) {
 		conn.Close()
 		return 0, err
 	}
-	if len(buf) > 1024 {
-		return 0, errors.New("Attempted to send message of size %d, maximum size of 1024 bytes.")
-	}
 	n, err := conn.Write(buf)
 	// Close connection, return counter and no error
 	conn.Close()
