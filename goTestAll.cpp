@@ -10,7 +10,7 @@ int main() {
         f = popen("go test -v .\\...", "r");
     else
         f = popen("go test -v ./...", "r");
-        f = popen("make clean", "r");
+        //f = popen("make clean", "r");
 
     return 0;
 }

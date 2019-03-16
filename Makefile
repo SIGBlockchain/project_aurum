@@ -1,8 +1,11 @@
 BINS=goTestAll
 all: $(BINS)
 
-gotTestAll: gotTestAll.cpp
+goTestAll: goTestAll.cpp
 	g++ -g $? -o $@
+
+run: ${BINS}
+	./${BINS}
 
 clean:
 	rm -rf *~ *.dSYM $(BINS)
