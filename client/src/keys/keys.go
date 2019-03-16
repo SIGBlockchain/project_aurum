@@ -14,6 +14,8 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 	// Opens the file, if it does not exist the O_CREATE flag tells it to create the file otherwise overwrite file
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 
+	defer file.Close()
+
 	// Checks if the opening was successful
 	if err != nil {
 		return err
@@ -79,13 +81,17 @@ EncodePublicKey encodes given public key and returns its
 PEM-Encoded byte slice form
 */
 func EncodePublicKey(key *ecdsa.PublicKey) []byte {
-	return []byte{}
+	x509EncodedPub, _ := x509.MarshalPKIXPublicKey(key)
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
 }
 
 /*
 DecodePublicKey takes a PEM-Encoded key and returns
 an ecdsa PublicKey Struct
 */
-func DecodePublicKey(key []byte) ecdsa.PublicKey {
-	return ecdsa.PublicKey{}
+func DecodePublicKey(key []byte) *ecdsa.PublicKey {
+	blockPub, _ := pem.Decode(key)
+	x509EncodedPub := blockPub.Bytes
+	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
+	return genericPublicKey.(*ecdsa.PublicKey)
 }

@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"os"
+
 	"github.com/pborman/getopt/v2"
-	"bytes"
+
 	//"fmt"
 	//"strings"
 
-	client "project_aurum/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/client/src/client"
 )
 
 func main() {
@@ -23,12 +25,12 @@ func main() {
 		getopt.Usage()
 		os.Exit(0)
 	}
-	logger := log.New(os.Stdout, "LOG: ", log.Ldate | log.Lmicroseconds | log.Lshortfile)
-	
+	logger := log.New(os.Stdout, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+
 	// If the debug flag is not on, the logger is set to a dummy buffer, which stores the input
 	if *debugFlag == false {
 		var buffer bytes.Buffer
-		logger = log.New(&buffer, "LOG: ", log.Ldate | log.Lmicroseconds | log.Lshortfile)
+		logger = log.New(&buffer, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	}
 	// If the log flag is on, it will send the logs to a file in client/logs
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
@@ -40,18 +42,18 @@ func main() {
 		// If no filename is given, logs.txt
 		if *logFile == "" {
 			filepath += "/logs.txt"
-		// Otherwise the custom filename is used
+			// Otherwise the custom filename is used
 		} else {
 			filepath += "/" + *logFile
 		}
-		f, err := os.OpenFile(filepath, os.O_RDWR | os.O_CREATE, 0666)
+		f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
 		defer f.Close()
 
 		// If there is any error, do not set the logger. Log an error messgae
 		if err != nil {
 			logger.Fatalln(err)
 		} else {
-			logger = log.New(f, "LOG: ", log.Ldate | log.Lmicroseconds | log.Lshortfile)	
+			logger = log.New(f, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 		}
 	}
 	// Clears the screen before program execution
