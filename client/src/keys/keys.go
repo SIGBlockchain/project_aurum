@@ -14,6 +14,8 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 	// Opens the file, if it does not exist the O_CREATE flag tells it to create the file otherwise overwrite file
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 
+	defer file.Close()
+
 	// Checks if the opening was successful
 	if err != nil {
 		return err
