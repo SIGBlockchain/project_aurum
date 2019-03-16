@@ -5,9 +5,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"os"
+	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestKeys(t *testing.T) {
@@ -52,11 +51,12 @@ func TestEncoding(t *testing.T) {
 	public := private.PublicKey
 	encoded := EncodePublicKey(&public)
 	decoded := DecodePublicKey(encoded)
-	if !cmp.Equal(public, decoded) {
+
+	if !reflect.DeepEqual(public, *decoded) {
 		t.Errorf("Keys do not match")
 	}
-	reEncoded := EncodePublicKey(&decoded)
-	if !cmp.Equal(reEncoded, encoded) {
+	reEncoded := EncodePublicKey(decoded)
+	if !reflect.DeepEqual(reEncoded, encoded) {
 		t.Errorf("Encoded keys do not match")
 	}
 }
