@@ -32,7 +32,7 @@ func main() {
 	}
 	// If the log flag is on, it will send the logs to a file in client/logs
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/github.com/project_aurum/client/logs"
+		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/client/logs"
 		os.Mkdir(filepath, 0777)
 		// If no filename is given, logs.txt
 		if *logFile == "" {
@@ -46,7 +46,6 @@ func main() {
 
 		// If there is any error, do not set the logger. Log an error messgae
 		if err != nil {
-			logger.Println(filepath)
 			logger.Fatalln(err)
 		} else {
 			logger = log.New(f, "LOG: ", log.Ldate | log.Lmicroseconds | log.Lshortfile)	
@@ -74,7 +73,7 @@ func main() {
 		inputs := strings.Split(userInput, " ")
 		// Switch checks the first argument of a command
 		switch inputs[0] {
-
+      
 		// 'q' command exits the program
 		case "q":
 			logger.Println("Exiting program.\nGoodbye")
@@ -119,6 +118,5 @@ func main() {
 		default:
 			fmt.Println("Invalid command \"" + userInput + "\" rejected\n\tUse \"help\" to see available commands")
 			logger.Println("Invalid command \"" + userInput + "\" rejected")
-		}
 	}
 }

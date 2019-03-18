@@ -8,20 +8,17 @@ import (
 	producer "../producer"
 )
 
-// Initializes logger format
-func init() {
-	log.SetPrefix("LOG: ")
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
-}
-
 func main() {
+	// Initialize logger
+	logger := log.New(os.Stdout, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	// Check to see if there is an internet connection
 	err := producer.CheckConnectivity()
 	if err != nil {
-		log.Fatalln("Connectivity check failed.")
+		logger.Fatalln("Connectivity check failed.")
+
 	}
-	log.Println("Connection check passed.")
+	logger.Println("Connection check passed.")
 
 	// Default port
 	port := "13131"
@@ -35,7 +32,7 @@ func main() {
 	// NOTE: If this doesn't work, try deleting `localhost`
 	ln, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
-		log.Fatalln("Failed to start server.")
+		logger.Fatalln("Failed to start server.")
 	}
 
 	// Initialize BP struct with listener and empty map
@@ -45,11 +42,11 @@ func main() {
 	}
 
 	// Start listening for connections
-	log.Printf("Server listening on port %s.\n", port)
+	logger.Printf("Server listening on port %s.\n", port)
 	go bp.AcceptConnections()
 
 	// Main loop
-	bp.WorkLoop()
+	bp.WorkLoop(logger)
 
 	// Close the server
 	bp.Server.Close()
