@@ -104,7 +104,7 @@ func main() {
 				break
 			}
 			// This 64 bit integer holds the value for the contract
-			var value int
+			var value int64
 			_, err = fmt.Sscanf(inputs[2], "%d", &value)
 			if err != nil {
 				logger.Println("ERROR: Attempt to collect value integer failed")
