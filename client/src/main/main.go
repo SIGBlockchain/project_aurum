@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	client "github.com/project_aurum/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/client/src/client"
 )
 
 func main() {
