@@ -58,6 +58,7 @@ func TestSendToProducer(t *testing.T) {
 	if n != sz {
 		t.Errorf("Did not write all bytes to connection")
 	}
+	ln.Close()
 }
 
 // Test send to producer with large message
@@ -85,4 +86,5 @@ func TestSendToProducerWithLargeMessage(t *testing.T) {
 	if n != sz {
 		t.Errorf("Did not write all bytes to connection")
 	}
+	ln.Close()
 }
