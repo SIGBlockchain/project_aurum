@@ -1,3 +1,4 @@
+#!/bin/bash
 if [[ "$OSTYPE" == "darwin"* || "$OSTYPE" == "linux-gnu" ]]; then
     go test ../...
 else
