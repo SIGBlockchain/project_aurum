@@ -3,6 +3,8 @@ package contract
 import (
 	"crypto/ecdsa"
 	"errors"
+
+	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 )
 
 /* Yield ... Contains a 32 size byte slice recipient, and a uint64 value */
@@ -12,8 +14,8 @@ type Yield struct {
 }
 
 /* Make Yield ... Recipient will be SHA-256 hashed */
-func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
-	return Yield{}
+func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
+	return Yield{Recipient: keys.EncodePublicKey(recipient), Value: value}
 }
 
 /* Inserts Yield into database */
