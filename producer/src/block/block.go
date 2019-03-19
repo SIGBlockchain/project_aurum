@@ -110,17 +110,22 @@ func Deserialize(block []byte) Block {
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
 		elementLen := int(block[index])
 		index += 2
-		data[i] = block[index : index+elementLen]
+		data[i] = make([]byte, elementLen)
+		copy(data[i], block[index:index+elementLen])
 		index += elementLen
 	}
 
+	previousHash := make([]byte, 32)
+	merkleRootHash := make([]byte, 32)
+	copy(previousHash, block[20:52])
+	copy(merkleRootHash, block[52:84])
 	// initialize the deserialized block
 	deserializeBlock := Block{
 		Version:        binary.LittleEndian.Uint32(block[0:4]),
 		Height:         binary.LittleEndian.Uint64(block[4:12]),
 		Timestamp:      int64(binary.LittleEndian.Uint64(block[12:20])),
-		PreviousHash:   block[20:52],
-		MerkleRootHash: block[52:84],
+		PreviousHash:   previousHash,
+		MerkleRootHash: merkleRootHash,
 		DataLen:        dataLen,
 		Data:           data,
 	}

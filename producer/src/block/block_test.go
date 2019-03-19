@@ -3,10 +3,9 @@ package block
 import (
 	"bytes"           // for comparing []bytes
 	"encoding/binary" // for encoding/decoding
-	"fmt"
-	"reflect" // to get data type
-	"testing" // testing
-	"time"    // to get time stamp
+	"reflect"         // to get data type
+	"testing"         // testing
+	"time"            // to get time stamp
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -178,12 +177,10 @@ func TestDeserialize(t *testing.T) {
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
-	fmt.Printf("%v\n", intermed)
-	fmt.Printf("actual.Height: %v\n", actual.Height)
+
 	//change itermed to see if that changes the deserialized block
 	intermed[21] = uint8(21)
-	fmt.Printf("%v\n", intermed)
-	fmt.Printf("actual.Height: %v\n", actual.Height)
+	intermed[54] = uint8(21)
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
