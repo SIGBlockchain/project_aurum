@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"log"
 	"os"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	"github.com/stretchr/testify/assert"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -41,7 +43,10 @@ func setUpDB(database string) error {
 }
 
 func tearDown(database string) {
-	os.Remove(database)
+	err := os.Remove(database)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 /* <Testing adjunct> generates a random public key */
@@ -74,11 +79,11 @@ func TestInsertYield(t *testing.T) {
 		t.Errorf("Failed to set up database")
 		log.Fatal(err)
 	}
-	//defer tearDown("testDB.db")
+	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(&testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err2 := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
+	err2 := InsertYield(testYield, "testDB.db", 35, contractHash, 1)
 	if err2 != nil {
 		t.Errorf("Failed to insert yield")
 		log.Fatal(err2)
@@ -92,19 +97,28 @@ func TestInsertYield(t *testing.T) {
 		t.Errorf("failed to query db")
 	}
 
-	var height uint32
-	var contract_hash string
-	var index uint8
-	var holder string
-	var value uint64
+	var dbHeight uint32
+	var dbContract string
+	var dbIndex uint8
+	var dbHolder string
+	var dbValue uint64
 
 	if rows.Next() {
-		if err3 := rows.Scan(&height, &contract_hash, &index, &holder, &value); err3 != nil {
+		if err3 := rows.Scan(&dbHeight, &dbContract, &dbIndex, &dbHolder, &dbValue); err3 != nil {
 			log.Fatal(err3)
 		}
+		//check if each value is correct
+		assert.Equal(t, uint32(35), dbHeight, "The height value in the database is wrong")
+		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database iw wrong")
+		assert.Equal(t, uint8(1), dbIndex, "The yield index in database iw wrong")
+		assert.Equal(t, hex.EncodeToString(testYield.Recipient), dbHolder, "The holder in database is wrong")
+		assert.Equal(t, testYield.Value, dbValue, "The value in the database is wrong")
 	} else {
 		t.Errorf("InsertYield failed to insert row into database")
 	}
+
+	rows.Close()
+	dbConn.Close()
 }
 
 /* Tests both serialization and deserialization */

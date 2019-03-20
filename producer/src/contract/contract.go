@@ -27,22 +27,12 @@ func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
 
 /* Inserts Yield into database */
 func InsertYield(y Yield, database string, blockHeight uint32, contractHash []byte, yieldIndex uint8) error {
-	/*
-		Open database connection,
-		 Insert into table the following:
-		 height of the block the yield is located in
-		 hash of the contract the yield is located in (HEX STRING FORM)
-		 index that the yield is in
-		 the yield's public key hash as a string
-		 the yield's value
-		 Close the database connection
-	*/
 	dbConn, err := sql.Open("sqlite3", database)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	sqlStatement := `INSERT INTO uy VALUES ($1, "$2", $3, "$4", $5);`
+	sqlStatement := `INSERT INTO uy VALUES ($1, $2, $3, $4, $5);`
 	_, err2 := dbConn.Exec(sqlStatement, blockHeight, hex.EncodeToString(contractHash), yieldIndex, hex.EncodeToString(y.Recipient), y.Value)
 	if err2 != nil {
 		fmt.Println("Failed to insert")
