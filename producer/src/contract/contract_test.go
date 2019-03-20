@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	block "../block"
-	keys "../keys"
+	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
+	keys "github.com/SIGBlockchain/project_aurum/producer/src/keys"
 	_ "github.com/mattn/go-sqlite3"
 )
 
