@@ -2,10 +2,14 @@ package contract
 
 import (
 	"crypto/ecdsa"
+	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
+	"log"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 /* Yield ... Contains a 32 size byte slice recipient, and a uint64 value */
@@ -31,7 +35,19 @@ func InsertYield(y Yield, database string, blockHeight uint32, contractHash []by
 		 the yield's value
 		 Close the database connection
 	*/
-	return errors.New("Incomplete function")
+	dbConn, err := sql.Open("sqlite3", database)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	sqlStatement := `INSERT INTO unclaimed_yields (block_height, contract_hash, index, holder, value) VALUES ($1, "$2", $3, "$4", $5)`
+	_, err2 := dbConn.Exec(sqlStatement, blockHeight, hex.EncodeToString(contractHash), yieldIndex, hex.EncodeToString(y.Recipient), y.Value)
+	if err2 != nil {
+		log.Fatal(err2)
+		return err
+	}
+	dbConn.Close()
+	return nil
 }
 
 /* Serialize ... serialies the yield */
