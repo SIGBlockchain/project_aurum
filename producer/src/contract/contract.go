@@ -2,6 +2,7 @@ package contract
 
 import (
 	"crypto/ecdsa"
+	"encoding/binary"
 	"errors"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
@@ -35,7 +36,10 @@ func InsertYield(y Yield, database string, blockHeight uint32, contractHash []by
 
 /* Serialize ... serialies the yield */
 func (y *Yield) Serialize() []byte {
-	return []byte{}
+	s := make([]byte, 40) //32 bytes for hash and 8 bytes for value
+	copy(s[0:32], y.Recipient)
+	binary.LittleEndian.PutUint64(s[32:40], y.Value)
+	return s
 }
 
 /* DeserializeYield ... deserializes the yield */
