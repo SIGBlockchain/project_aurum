@@ -6,10 +6,10 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"log"
 	"os"
+	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
@@ -18,17 +18,26 @@ import (
 )
 
 /* <Testing adjunct> function for setting up database */
-func setUpDB(database string) {
-	conn, _ := sql.Open("sqlite3", database)
-	statement, _ := conn.Prepare(
-		`CREATE TABLE IF NOT EXiSTS unclaimed_yields( 
+func setUpDB(database string) error {
+	conn, err := sql.Open("sqlite3", database)
+	if err != nil {
+		return err
+	}
+
+	statement, err2 := conn.Prepare(
+		`CREATE TABLE IF NOT EXiSTS uy ( 
 		block_height INTEGER,
 		contract_hash TEXT, 
-		index INTEGER, 
+		yield_index INTEGER, 
 		holder TEXT, 
-		value INTEGER)`)
+		value INTEGER);`)
+
+	if err2 != nil {
+		return err2
+	}
 	statement.Exec()
 	conn.Close()
+	return nil
 }
 
 func tearDown(database string) {
@@ -46,10 +55,11 @@ func TestMakeYield(t *testing.T) {
 	testPubKey := generatePubKey()
 	encodedPubKey := keys.EncodePublicKey(&testPubKey)
 	hashedKey := block.HashSHA256(encodedPubKey)
-	var expectedRecipient []byte = hashedKey[:]
+	expectedRecipient := hashedKey[:]
 	expectedValue := uint64(1000000)
 	actual := MakeYield(&testPubKey, 1000000)
-	if bytes.Equal(expectedRecipient, actual.Recipient) {
+
+	if !bytes.Equal(expectedRecipient, actual.Recipient) {
 		t.Errorf("Recipients do not match")
 	}
 	if expectedValue != actual.Value {
@@ -59,14 +69,41 @@ func TestMakeYield(t *testing.T) {
 
 /* Simple test to make sure insertion is working */
 func TestInsertYield(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
+	err := setUpDB("testDB.db")
+	if err != nil {
+		t.Errorf("Failed to set up database")
+		log.Fatal(err)
+	}
+	//defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
 	testYield := MakeYield(&testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
-	if err != nil {
+	err2 := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
+	if err2 != nil {
 		t.Errorf("Failed to insert yield")
+		log.Fatal(err2)
+	}
+
+	dbConn, _ := sql.Open("sqlite3", "testDB.db")
+	//check if a row is actually inserted
+	sqlQuery := `SELECT * FROM uy;`
+	rows, err2 := dbConn.Query(sqlQuery)
+	if err2 != nil {
+		t.Errorf("failed to query db")
+	}
+
+	var height uint32
+	var contract_hash string
+	var index uint8
+	var holder string
+	var value uint64
+
+	if rows.Next() {
+		if err3 := rows.Scan(&height, &contract_hash, &index, &holder, &value); err3 != nil {
+			log.Fatal(err3)
+		}
+	} else {
+		t.Errorf("InsertYield failed to insert row into database")
 	}
 }
 
@@ -76,7 +113,7 @@ func TestYieldSerialization(t *testing.T) {
 	expected := MakeYield(&testPubKey, 200000)
 	serialized := expected.Serialize()
 	deserialized := DeserializeYield(serialized)
-	if !cmp.Equal(deserialized, expected) {
+	if !reflect.DeepEqual(deserialized, expected) {
 		t.Errorf("Yield structs do not match")
 	}
 	reserialized := deserialized.Serialize()

@@ -4,10 +4,11 @@ import (
 	"crypto/ecdsa"
 	"database/sql"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 
+	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,7 +21,7 @@ type Yield struct {
 
 /* Make Yield ... Recipient will be SHA-256 hashed */
 func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
-	return Yield{Recipient: keys.EncodePublicKey(recipient), Value: value}
+	return Yield{Recipient: block.HashSHA256(keys.EncodePublicKey(recipient)), Value: value}
 }
 
 /* Inserts Yield into database */
@@ -40,12 +41,17 @@ func InsertYield(y Yield, database string, blockHeight uint32, contractHash []by
 		log.Fatal(err)
 		return err
 	}
-	sqlStatement := `INSERT INTO unclaimed_yields (block_height, contract_hash, index, holder, value) VALUES ($1, "$2", $3, "$4", $5)`
-	_, err2 := dbConn.Exec(sqlStatement, blockHeight, hex.EncodeToString(contractHash), yieldIndex, hex.EncodeToString(y.Recipient), y.Value)
+	fmt.Println("inserting!")
+	sqlStatement := `INSERT INTO uy VALUES (1, "$2", 3, "$4", 5);`
+	result, err2 := dbConn.Exec(sqlStatement) //, blockHeight, hex.EncodeToString(contractHash), yieldIndex, hex.EncodeToString(y.Recipient), y.Value)
+	fmt.Println("tried inserting!")
 	if err2 != nil {
-		log.Fatal(err2)
-		return err
+		fmt.Println("Failed to insert")
+		return err2
 	}
+	r, _ := result.RowsAffected()
+	fmt.Printf("Trying to print number of rows affected")
+	fmt.Printf("number of rows affected: %v", r)
 	dbConn.Close()
 	return nil
 }
@@ -60,7 +66,10 @@ func (y *Yield) Serialize() []byte {
 
 /* DeserializeYield ... deserializes the yield */
 func DeserializeYield(b []byte) Yield {
-	return Yield{}
+	recipient := make([]byte, 32)
+	copy(recipient, b[0:32])
+	value := binary.LittleEndian.Uint64(b[32:40])
+	return Yield{Recipient: recipient, Value: value}
 }
 
 /*
