@@ -16,8 +16,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/google/go-cmp/cmp"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
