@@ -9,12 +9,13 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/google/go-cmp/cmp"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -127,7 +128,7 @@ func TestYieldSerialization(t *testing.T) {
 	expected := MakeYield(&testPubKey, 200000)
 	serialized := expected.Serialize()
 	deserialized := DeserializeYield(serialized)
-	if !reflect.DeepEqual(deserialized, expected) {
+	if !cmp.Equal(deserialized, expected) {
 		t.Errorf("Yield structs do not match")
 	}
 	reserialized := deserialized.Serialize()
