@@ -109,8 +109,8 @@ func TestInsertYield(t *testing.T) {
 		}
 		//check if each value is correct
 		assert.Equal(t, uint32(35), dbHeight, "The height value in the database is wrong")
-		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database iw wrong")
-		assert.Equal(t, uint8(1), dbIndex, "The yield index in database iw wrong")
+		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database is wrong")
+		assert.Equal(t, uint8(1), dbIndex, "The yield index in database is wrong")
 		assert.Equal(t, hex.EncodeToString(testYield.Recipient), dbHolder, "The holder in database is wrong")
 		assert.Equal(t, testYield.Value, dbValue, "The value in the database is wrong")
 	} else {
