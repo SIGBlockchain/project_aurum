@@ -177,4 +177,11 @@ func TestDeserialize(t *testing.T) {
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
+
+	//change itermed to see if that changes the deserialized block
+	intermed[21] = uint8(21)
+	intermed[54] = uint8(21)
+	if !cmp.Equal(expected, actual) {
+		t.Errorf("Blocks do not match")
+	}
 }
