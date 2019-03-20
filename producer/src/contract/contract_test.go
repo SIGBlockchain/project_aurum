@@ -14,6 +14,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -136,7 +137,6 @@ func TestYieldSerialization(t *testing.T) {
 	}
 }
 
-/*
 func TestMakeClaimCase1A(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
@@ -322,4 +322,3 @@ func TestClaimSerialization(t *testing.T) {
 		t.Errorf("Byte strings do not match")
 	}
 }
-*/
