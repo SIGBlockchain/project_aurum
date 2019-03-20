@@ -184,4 +184,5 @@ func TestDeserialize(t *testing.T) {
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
 	}
+
 }
