@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	producer "../producer"
+	producer "github.com/SIGBlockchain/project_aurum/producer/src/producer"
 )
 
 func main() {
