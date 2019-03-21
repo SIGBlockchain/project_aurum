@@ -173,7 +173,7 @@ func TestMakeClaimCase1B(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 50000)
+	testYield := MakeYield(&testPubKey, 50000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
 	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
 	if err != nil {
