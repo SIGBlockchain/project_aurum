@@ -118,5 +118,6 @@ func main() {
 		default:
 			fmt.Println("Invalid command \"" + userInput + "\" rejected\n\tUse \"help\" to see available commands")
 			logger.Println("Invalid command \"" + userInput + "\" rejected")
+		}
 	}
 }
