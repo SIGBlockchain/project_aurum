@@ -42,7 +42,7 @@ func setUpDB(database string) error {
 	return nil
 }
 
-func tearDown(database string) SkipNow() {
+func tearDown(database string) {
 	err := os.Remove(database)
 	if err != nil {
 		log.Fatal(err)
