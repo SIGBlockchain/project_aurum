@@ -2,6 +2,3 @@ language: go
 
 go:
 - master
-
-deploy:
-  exclude: "./producer/src/contract/contract_test.go"
