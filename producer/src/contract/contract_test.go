@@ -42,7 +42,7 @@ func setUpDB(database string) error {
 	return nil
 }
 
-func tearDown(database string) {
+func tearDown(database string) SkipNow() {
 	err := os.Remove(database)
 	if err != nil {
 		log.Fatal(err)
@@ -50,14 +50,13 @@ func tearDown(database string) {
 }
 
 /* <Testing adjunct> generates a random public key */
-func generatePubKey() ecdsa.PublicKey {
+func generatePubKey() ecdsa.PublicKey SkipNow(){
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	return privateKey.PublicKey
 }
 
 /* Makes a yield and tests if it matches the values */
-func TestMakeYield(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeYield(t *testing.T) SkipNow(){
 	testPubKey := generatePubKey()
 	encodedPubKey := keys.EncodePublicKey(&testPubKey)
 	hashedKey := block.HashSHA256(encodedPubKey)
@@ -74,8 +73,7 @@ func TestMakeYield(t *testing.T) {
 }
 
 /* Simple test to make sure insertion is working */
-func TestInsertYield(t *testing.T) {
-	t.Skip("skipping")
+func TestInsertYield(t *testing.T) SkipNow(){
 	err := setUpDB("testDB.db")
 	if err != nil {
 		t.Errorf("Failed to set up database")
@@ -124,8 +122,7 @@ func TestInsertYield(t *testing.T) {
 }
 
 /* Tests both serialization and deserialization */
-func TestYieldSerialization(t *testing.T) {
-	t.Skip("skipping")
+func TestYieldSerialization(t *testing.T) SkipNow(){
 	testPubKey := generatePubKey()
 	expected := MakeYield(&testPubKey, 200000)
 	serialized := expected.Serialize()
@@ -139,8 +136,7 @@ func TestYieldSerialization(t *testing.T) {
 	}
 }
 
-func TestMakeClaimCase1A(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeClaimCase1A(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
@@ -173,8 +169,7 @@ func TestMakeClaimCase1A(t *testing.T) {
 	}
 }
 
-func TestMakeClaimCase1B(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeClaimCase1B(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
@@ -207,8 +202,7 @@ func TestMakeClaimCase1B(t *testing.T) {
 	}
 }
 
-func TestMakeClaimCase2(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeClaimCase2(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
@@ -241,8 +235,7 @@ func TestMakeClaimCase2(t *testing.T) {
 	}
 }
 
-func TestMakeClaimPriorityCase1(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeClaimPriorityCase1(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
@@ -276,8 +269,7 @@ func TestMakeClaimPriorityCase1(t *testing.T) {
 	}
 }
 
-func TestMakeClaimPriorityCase2(t *testing.T) {
-	t.Skip("skipping")
+func TestMakeClaimPriorityCase2(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
@@ -311,8 +303,7 @@ func TestMakeClaimPriorityCase2(t *testing.T) {
 	}
 }
 
-func TestClaimSerialization(t *testing.T) {
-	t.Skip("skipping")
+func TestClaimSerialization(t *testing.T) SkipNow(){
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
