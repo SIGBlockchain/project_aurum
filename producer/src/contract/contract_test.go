@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -97,9 +98,9 @@ func TestInsertYield(t *testing.T) {
 		t.Errorf("failed to query db")
 	}
 
-	var dbHeight uint32
+	var dbHeight uint64
 	var dbContract string
-	var dbIndex uint8
+	var dbIndex uint16
 	var dbHolder string
 	var dbValue uint64
 
@@ -108,7 +109,7 @@ func TestInsertYield(t *testing.T) {
 			log.Fatal(err3)
 		}
 		//check if each value is correct
-		assert.Equal(t, uint32(35), dbHeight, "The height value in the database is wrong")
+		assert.Equal(t, uint64(35), dbHeight, "The height value in the database is wrong")
 		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database is wrong")
 		assert.Equal(t, uint8(1), dbIndex, "The yield index in database is wrong")
 		assert.Equal(t, hex.EncodeToString(testYield.Recipient), dbHolder, "The holder in database is wrong")
@@ -139,14 +140,20 @@ func TestYieldSerialization(t *testing.T) {
 func TestMakeClaimCase1A(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
-	testPubKey := generatePubKey()
-	testYield := MakeYield(&testPubKey, 10000000)
-	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
+
+	amt := uint64(500)
+	pubKey := generatePubKey()
+	yield := MakeYield(&pubKey, amt)
+	contractHash := block.HashSHA256([]byte("blokchain"))
+	blockHeight := uint64(35)
+	yieldIndex := uint16(1)
+
+	err := InsertYield(yield, "testDB.db", blockHeight, contractHash, yieldIndex)
 	if err != nil {
 		t.Errorf("Failed to insert yield")
 	}
-	testClaim, err := MakeClaim("testDB.dat", testPubKey, 10000000)
+
+	testClaim, err := MakeClaim("testDB.db", pubKey, amt)
 	if err != nil {
 		t.Errorf("Failed to claim yield")
 	}
@@ -159,161 +166,25 @@ func TestMakeClaimCase1A(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, pubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 	// Case 3
-	_, shouldNotBeNil := MakeClaim("testDB.dat", testPubKey, 1)
+	_, shouldNotBeNil := MakeClaim("testDB.db", pubKey, 1)
 	if shouldNotBeNil == nil {
 		t.Errorf("Made claim on empty yield pool")
-	}
-}
-
-func TestMakeClaimCase1B(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
-	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 50000)
-	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	testClaim, err := MakeClaim("testDB.dat", testPubKey, 10000000)
-	if err != nil {
-		t.Errorf("Failed to claim yield")
-	}
-	if !bytes.Equal(testClaim.PreviousContractHash, contractHash) {
-		t.Errorf("Contract hashes do not match")
-	}
-	if testClaim.BlockIndex != 35 {
-		t.Errorf("Block indeces do not match")
-	}
-	if testClaim.YieldIndex != 1 {
-		t.Errorf("Yield indeces do not match")
-	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
-		t.Errorf("Public Keys do not match")
-	}
-	// Case 3
-	_, shouldNotBeNil := MakeClaim("testDB.dat", testPubKey, 1)
-	if shouldNotBeNil == nil {
-		t.Errorf("Made claim on empty yield pool")
-	}
-}
-
-func TestMakeClaimCase2(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
-	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 10000000)
-	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	testClaim, err := MakeClaim("testDB.dat", testPubKey, 50000)
-	if err == nil {
-		t.Errorf("Should have an error that resembles change")
-	}
-	if !bytes.Equal(testClaim.PreviousContractHash, contractHash) {
-		t.Errorf("Contract hashes do not match")
-	}
-	if testClaim.BlockIndex != 35 {
-		t.Errorf("Block indeces do not match")
-	}
-	if testClaim.YieldIndex != 1 {
-		t.Errorf("Yield indeces do not match")
-	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
-		t.Errorf("Public Keys do not match")
-	}
-	// Case 3
-	_, shouldNotBeNil := MakeClaim("testDB.dat", testPubKey, 1)
-	if shouldNotBeNil == nil {
-		t.Errorf("Made claim on empty yield pool")
-	}
-}
-
-func TestMakeClaimPriorityCase1(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
-	testPubKey := generatePubKey()
-	testYieldFloor := MakeYield(testPubKey, 10000000)
-	testYieldCeiling := MakeYield(testPubKey, 10000010)
-	contractHashFloor := block.HashSHA256([]byte("This should not be claimed"))
-	contractHashCeiling := block.HashSHA256([]byte("This should be claimed"))
-	err := InsertYield(testYieldFloor, "testDB.dat", 35, contractHashFloor, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	err = InsertYield(testYieldFloor, "testDB.dat", 35, contractHashCeiling, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	testClaim, err := MakeClaim("testDB.dat", testPubKey, 10000008)
-	if err == nil {
-		t.Errorf("Should have an error that resembles change")
-	}
-	if !bytes.Equal(testClaim.PreviousContractHash, contractHashCeiling) {
-		t.Errorf("Contract hashes do not match")
-	}
-	if testClaim.BlockIndex != 35 {
-		t.Errorf("Block indeces do not match")
-	}
-	if testClaim.YieldIndex != 1 {
-		t.Errorf("Yield indeces do not match")
-	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
-		t.Errorf("Public Keys do not match")
-	}
-}
-
-func TestMakeClaimPriorityCase2(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
-	testPubKey := generatePubKey()
-	testYieldFloor := MakeYield(testPubKey, 10000000)
-	testYieldCeiling := MakeYield(testPubKey, 10000010)
-	contractHashFloor := block.HashSHA256([]byte("This should be claimed"))
-	contractHashCeiling := block.HashSHA256([]byte("This should not be claimed"))
-	err := InsertYield(testYieldFloor, "testDB.dat", 35, contractHashFloor, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	err = InsertYield(testYieldFloor, "testDB.dat", 35, contractHashCeiling, 1)
-	if err != nil {
-		t.Errorf("Failed to insert yield")
-	}
-	testClaim, err := MakeClaim("testDB.dat", testPubKey, 10000002)
-	if err != nil {
-		t.Errorf("Failed to make claim on lesser yield")
-	}
-	if !bytes.Equal(testClaim.PreviousContractHash, contractHashCeiling) {
-		t.Errorf("Contract hashes do not match")
-	}
-	if testClaim.BlockIndex != 35 {
-		t.Errorf("Block indeces do not match")
-	}
-	if testClaim.YieldIndex != 1 {
-		t.Errorf("Yield indeces do not match")
-	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
-		t.Errorf("Public Keys do not match")
 	}
 }
 
 func TestClaimSerialization(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 50000)
-	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 2)
-	expected, err := MakeClaim(50000)
+	prevHash := block.HashSHA256(([]byte("Something")))
+	expected := Claim{PreviousContractHash: prevHash, BlockIndex: uint64(2), YieldIndex: uint16(3), PublicKey: testPubKey}
 	serialized := expected.Serialize()
 	deserialized := DeserializeClaim(serialized)
-	if !cmp.Equal(deserialized, expected) {
+
+	//using reflect because cmp does not suppor unexported fields
+	if !reflect.DeepEqual(deserialized, expected) {
 		t.Errorf("Claim structs do not match")
 	}
 	reserialized := deserialized.Serialize()
