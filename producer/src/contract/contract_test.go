@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -159,7 +160,7 @@ func TestMakeClaimCase1A(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, testPubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 	// Case 3
@@ -192,7 +193,7 @@ func TestMakeClaimCase1B(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, testPubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 	// Case 3
@@ -206,7 +207,7 @@ func TestMakeClaimCase2(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 10000000)
+	testYield := MakeYield(&testPubKey, 10000000)
 	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
 	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 1)
 	if err != nil {
@@ -225,7 +226,7 @@ func TestMakeClaimCase2(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, testPubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 	// Case 3
@@ -239,8 +240,8 @@ func TestMakeClaimPriorityCase1(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYieldFloor := MakeYield(testPubKey, 10000000)
-	testYieldCeiling := MakeYield(testPubKey, 10000010)
+	testYieldFloor := MakeYield(&testPubKey, 10000000)
+	//testYieldCeiling := MakeYield(&testPubKey, 10000010)
 	contractHashFloor := block.HashSHA256([]byte("This should not be claimed"))
 	contractHashCeiling := block.HashSHA256([]byte("This should be claimed"))
 	err := InsertYield(testYieldFloor, "testDB.dat", 35, contractHashFloor, 1)
@@ -264,7 +265,7 @@ func TestMakeClaimPriorityCase1(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, testPubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 }
@@ -273,8 +274,8 @@ func TestMakeClaimPriorityCase2(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYieldFloor := MakeYield(testPubKey, 10000000)
-	testYieldCeiling := MakeYield(testPubKey, 10000010)
+	testYieldFloor := MakeYield(&testPubKey, 10000000)
+	//testYieldCeiling := MakeYield(&testPubKey, 10000010)
 	contractHashFloor := block.HashSHA256([]byte("This should be claimed"))
 	contractHashCeiling := block.HashSHA256([]byte("This should not be claimed"))
 	err := InsertYield(testYieldFloor, "testDB.dat", 35, contractHashFloor, 1)
@@ -298,22 +299,20 @@ func TestMakeClaimPriorityCase2(t *testing.T) {
 	if testClaim.YieldIndex != 1 {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, testPubkey) {
+	if !cmp.Equal(testClaim.PublicKey, testPubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 }
 
 func TestClaimSerialization(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
 	testPubKey := generatePubKey()
-	testYield := MakeYield(testPubKey, 50000)
-	contractHash := block.HashSHA256([]byte{'b', 'l', 'k', 'c', 'h', 'a', 'i', 'n'})
-	err := InsertYield(testYield, "testDB.dat", 35, contractHash, 2)
-	expected, err := MakeClaim(50000)
+	prevHash := block.HashSHA256(([]byte("Something")))
+	expected := Claim{PreviousContractHash: prevHash, BlockIndex: uint64(2), YieldIndex: uint32(3), PublicKey: testPubKey}
 	serialized := expected.Serialize()
 	deserialized := DeserializeClaim(serialized)
-	if !cmp.Equal(deserialized, expected) {
+
+	//using reflect because cmp does not suppor unexported fields
+	if !reflect.DeepEqual(deserialized, expected) {
 		t.Errorf("Claim structs do not match")
 	}
 	reserialized := deserialized.Serialize()
