@@ -2,46 +2,61 @@ package contract
 
 import (
 	"crypto/ecdsa"
+	"database/sql"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"log"
+
+	"github.com/SIGBlockchain/project_aurum/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 /* Yield ... Contains a 32 size byte slice recipient, and a uint64 value */
 type Yield struct {
-	BlockHeight  int32
-	ContractHash []byte
-	YeildIndex   int32
-	Recipient    []byte
-	Value        int64
+	Recipient []byte
+	Value     uint64
 }
 
 /* Make Yield ... Recipient will be SHA-256 hashed */
-func MakeYield(recipient ecdsa.PublicKey, value uint64) Yield {
-	return Yield{}
+func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
+	return Yield{Recipient: block.HashSHA256(keys.EncodePublicKey(recipient)), Value: value}
 }
 
 /* Inserts Yield into database */
 func InsertYield(y Yield, database string, blockHeight uint32, contractHash []byte, yieldIndex uint8) error {
-	/*
-		Open database connection,
-		 Insert into table the following:
-		 height of the block the yield is located in
-		 hash of the contract the yield is located in (HEX STRING FORM)
-		 index that the yield is in
-		 the yield's public key hash as a string
-		 the yield's value
-		 Close the database connection
-	*/
-	return errors.New("Incomplete function")
+	dbConn, err := sql.Open("sqlite3", database)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	sqlStatement := `INSERT INTO uy VALUES ($1, $2, $3, $4, $5);`
+	_, err2 := dbConn.Exec(sqlStatement, blockHeight, hex.EncodeToString(contractHash), yieldIndex, hex.EncodeToString(y.Recipient), y.Value)
+	if err2 != nil {
+		fmt.Println("Failed to insert")
+		return err2
+	}
+
+	dbConn.Close()
+	return nil
 }
 
 /* Serialize ... serialies the yield */
 func (y *Yield) Serialize() []byte {
-	return []byte{}
+	s := make([]byte, 40) //32 bytes for hash and 8 bytes for value
+	copy(s[0:32], y.Recipient)
+	binary.LittleEndian.PutUint64(s[32:40], y.Value)
+	return s
 }
 
 /* DeserializeYield ... deserializes the yield */
 func DeserializeYield(b []byte) Yield {
-	return Yield{}
+	recipient := make([]byte, 32)
+	copy(recipient, b[0:32])
+	value := binary.LittleEndian.Uint64(b[32:40])
+	return Yield{Recipient: recipient, Value: value}
 }
 
 /*
