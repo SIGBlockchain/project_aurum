@@ -42,7 +42,7 @@ func InsertYield(y Yield, database string, blockHeight uint64, contractHash []by
 	return nil
 }
 
-/* Serialize ... serialies the yield */
+/*Serialize serializes the yield */
 func (y *Yield) Serialize() []byte {
 	s := make([]byte, 40) //32 bytes for hash and 8 bytes for value
 	copy(s[0:32], y.Recipient)
@@ -50,7 +50,7 @@ func (y *Yield) Serialize() []byte {
 	return s
 }
 
-/* DeserializeYield ... deserializes the yield */
+/*DeserializeYield deserializes the yield */
 func DeserializeYield(b []byte) Yield {
 	recipient := make([]byte, 32)
 	copy(recipient, b[0:32])
@@ -58,6 +58,7 @@ func DeserializeYield(b []byte) Yield {
 	return Yield{Recipient: recipient, Value: value}
 }
 
+/*Claim contains information about which yield it is claiming*/
 type Claim struct {
 	PreviousContractHash []byte
 	BlockIndex           uint64
@@ -65,6 +66,7 @@ type Claim struct {
 	PublicKey            ecdsa.PublicKey
 }
 
+/*MakeClaim will query the database to find the best yield to claim */
 func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, error) {
 	claimantHexHash := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&claimant)))
 	//open datase first
@@ -75,64 +77,49 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 	}
 	defer dbConn.Close()
 
-	//first query the db for any yeilds equal or above
-	sqlQuery := `SELECT * FROM uy WHERE value >= $1 AND holder = $2 ORDER BY value ASC LIMIT 1;`
-	rows, err2 := dbConn.Query(sqlQuery, value, claimantHexHash)
-	if err2 != nil {
-		log.Printf("Error! Unable to execte query: %v\n", err2)
-	}
-
 	var dbHeight uint64
 	var dbContract string
 	var dbIndex uint8
 	var dbHolder string
 	var dbValue uint64
 
-	if rows.Next() {
-		if err3 := rows.Scan(&dbHeight, &dbContract, &dbIndex, &dbHolder, &dbValue); err3 != nil {
-			log.Fatal(err3)
-		}
-		c := Claim{}
-		var rtnErr error //nil by default
-		//determine if there is change
-		if dbValue > value {
-			rtnErr = ChangeError{Change: dbValue - value}
-		}
-		c.PreviousContractHash, _ = hex.DecodeString(dbContract)
-		c.BlockIndex = dbHeight
-		c.YieldIndex = dbIndex
-		c.PublicKey = claimant
-
-		rows.Close()
-		return c, rtnErr
+	//first query the db for any yeilds equal or above
+	sqlQuery := `SELECT * FROM uy WHERE value >= $1 AND holder = $2 ORDER BY value ASC LIMIT 1;`
+	rows, err := dbConn.Query(sqlQuery, value, claimantHexHash)
+	if err != nil {
+		log.Printf("Error! Unable to execte query: %v\n", err)
+		return Claim{}, err
 	}
 
-	//else we need to select a yield that has less value
-	sqlQuery = `SELECT * FROM uy WHERE holder = $1 ORDER BY value DESC LIMIT 1;`
-	rows2, err3 := dbConn.Query(sqlQuery, claimantHexHash)
-	if err3 != nil {
-		log.Printf("Error! Unable to execte query: %v\n", err2)
-	}
-	if rows2.Next() {
-		if err3 := rows2.Scan(&dbHeight, &dbContract, &dbIndex, &dbHolder, &dbValue); err3 != nil {
-			log.Fatal(err3)
+	if !rows.Next() {
+		//do another query if the first one wasn't successful
+		sqlQuery = `SELECT * FROM uy WHERE holder = $1 ORDER BY value DESC LIMIT 1;`
+		rows, err = dbConn.Query(sqlQuery, claimantHexHash)
+		if err != nil {
+			log.Printf("Error! Unable to execte query: %v\n", err)
+			return Claim{}, err
 		}
-		c := Claim{}
-		var rtnErr error //nil by default
-		//determine if there is change
-		if dbValue < value {
-			rtnErr = DeficitError{Deficit: value - dbValue}
+		if !rows.Next() {
+			//no results found in either query, no yields to claim
+			return Claim{}, errors.New("No yields to claim")
 		}
-		c.PreviousContractHash, _ = hex.DecodeString(dbContract)
-		c.BlockIndex = dbHeight
-		c.YieldIndex = dbIndex
-		c.PublicKey = claimant
-
-		rows2.Close()
-		return c, rtnErr
 	}
 
-	return Claim{}, errors.New("Unable to properly make claim")
+	if err = rows.Scan(&dbHeight, &dbContract, &dbIndex, &dbHolder, &dbValue); err != nil {
+		return Claim{}, err
+	}
+	c := Claim{BlockIndex: dbHeight, YieldIndex: dbIndex, PublicKey: claimant}
+	var rtnErr error //nil by default
+	//determine if there is change
+	if dbValue > value {
+		rtnErr = ChangeError{Change: dbValue - value}
+	} else if dbValue < value {
+		rtnErr = DeficitError{Deficit: value - dbValue}
+	}
+	c.PreviousContractHash, _ = hex.DecodeString(dbContract)
+
+	rows.Close()
+	return c, rtnErr
 }
 
 /* Serialize ... serialies the claim */
