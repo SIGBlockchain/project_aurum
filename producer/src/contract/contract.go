@@ -139,13 +139,13 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 func (y *Claim) Serialize() []byte {
 	encodedPubKey := keys.EncodePublicKey(&y.PublicKey)
 	keyLen := uint16(len(encodedPubKey))
-	len := 32 + 8 + 2 + 2 + len(encodedPubKey)
+	len := 32 + 8 + 1 + 2 + len(encodedPubKey)
 	s := make([]byte, len)
 	copy(s[0:32], y.PreviousContractHash)
 	binary.LittleEndian.PutUint64(s[32:40], y.BlockIndex)
 	s[40] = y.YieldIndex
 	binary.LittleEndian.PutUint16(s[41:43], keyLen)
-	copy(s[44:44+keyLen], encodedPubKey)
+	copy(s[43:43+keyLen], encodedPubKey)
 	return s
 }
 
@@ -159,7 +159,7 @@ func DeserializeClaim(b []byte) Claim {
 
 	keylen := binary.LittleEndian.Uint16(b[41:43])
 	decodedPubKey := make([]byte, keylen)
-	copy(decodedPubKey, b[44:44+keylen])
+	copy(decodedPubKey, b[43:43+keylen])
 	c.PublicKey = *keys.DecodePublicKey(decodedPubKey)
 	return c
 }
