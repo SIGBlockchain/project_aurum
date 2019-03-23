@@ -270,6 +270,88 @@ func TestMakeClaimDeficit(t *testing.T) {
 
 }
 
+func TestMakeClaimMultipleYield(t *testing.T) {
+	db := "testDB.db"
+	setUpDB(db)
+	defer tearDown(db)
+
+	amt := []uint64{uint64(100), uint64(200)}
+	pubKey := []ecdsa.PublicKey{generatePubKey(), generatePubKey()}
+	yield := []Yield{MakeYield(&pubKey[0], amt[0]), MakeYield(&pubKey[1], amt[1])}
+	contractHash := [][]byte{block.HashSHA256([]byte("1")), block.HashSHA256([]byte("2"))}
+	blockHeight := []uint64{uint64(35), uint64(40)}
+	yieldIndex := []uint16{uint16(1), uint16(4)}
+
+	err := InsertYield(yield[0], db, blockHeight[0], contractHash[0], yieldIndex[0])
+	if err != nil {
+		t.Errorf("Failed to insert yield: %v", err)
+	}
+	err = InsertYield(yield[1], db, blockHeight[1], contractHash[1], yieldIndex[1])
+	if err != nil {
+		t.Errorf("Failed to insert yield: %v", err)
+	}
+
+	testClaim, err := MakeClaim(db, pubKey[1], uint64(50))
+	if err == nil {
+		t.Errorf("No change error struct returned")
+	} else {
+		if change, ok := err.(ChangeError); ok {
+			if change.Change != uint64(150) {
+				t.Errorf("Wrong change value, expected: 5, actual: %d", change)
+			}
+		} else {
+			t.Errorf("Different error given: %v", err)
+		}
+	}
+
+	if !bytes.Equal(testClaim.PreviousContractHash, contractHash[1]) {
+		t.Errorf("Contract hashes do not match")
+	}
+	if testClaim.BlockIndex != blockHeight[1] {
+		t.Errorf("Block indeces do not match")
+	}
+	if testClaim.YieldIndex != yieldIndex[1] {
+		t.Errorf("Yield indeces do not match")
+	}
+	if !reflect.DeepEqual(testClaim.PublicKey, pubKey[1]) {
+		t.Errorf("Public Keys do not match")
+	}
+
+}
+
+func TestMakeClaimEmpty(t *testing.T) {
+	db := "testDB.db"
+	setUpDB(db)
+	defer tearDown(db)
+
+	amt := []uint64{uint64(100), uint64(200)}
+	pubKey := []ecdsa.PublicKey{generatePubKey(), generatePubKey(), generatePubKey()}
+	yield := []Yield{MakeYield(&pubKey[0], amt[0]), MakeYield(&pubKey[1], amt[1])}
+	contractHash := [][]byte{block.HashSHA256([]byte("1")), block.HashSHA256([]byte("2"))}
+	blockHeight := []uint64{uint64(35), uint64(40)}
+	yieldIndex := []uint16{uint16(1), uint16(4)}
+
+	err := InsertYield(yield[0], db, blockHeight[0], contractHash[0], yieldIndex[0])
+	if err != nil {
+		t.Errorf("Failed to insert yield: %v", err)
+	}
+	err = InsertYield(yield[1], db, blockHeight[1], contractHash[1], yieldIndex[1])
+	if err != nil {
+		t.Errorf("Failed to insert yield: %v", err)
+	}
+
+	emptyClaim := Claim{}
+
+	testClaim, err := MakeClaim(db, pubKey[2], uint64(50))
+	if err == nil {
+		t.Errorf("No error struct returned")
+	} else {
+		if !reflect.DeepEqual(emptyClaim, testClaim) {
+			t.Errorf("Empty yield not returned")
+		}
+	}
+}
+
 func TestClaimSerialization(t *testing.T) {
 	testPubKey := generatePubKey()
 	prevHash := block.HashSHA256(([]byte("Something")))
