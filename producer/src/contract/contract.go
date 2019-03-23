@@ -99,10 +99,11 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 			log.Fatal(err3)
 		}
 		c := Claim{}
-		var rtnErr error = nil
+		var rtnErr error //nil by default
 		//determine if there is change
 		if dbValue > value {
-			rtnErr = changeError{change: dbValue - value}
+			fmt.Printf("make a change error")
+			rtnErr = ChangeError{Change: dbValue - value}
 		}
 		c.PreviousContractHash, _ = hex.DecodeString(dbContract)
 		c.BlockIndex = dbHeight

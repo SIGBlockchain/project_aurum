@@ -4,10 +4,10 @@ import "fmt"
 
 //seperate file for errors and their structs
 
-type changeError struct {
-	change uint64
+type ChangeError struct {
+	Change uint64
 }
 
-func (e changeError) Error() string {
-	return fmt.Sprintf("Claim produces a change of %d", e.change)
+func (e ChangeError) Error() string {
+	return fmt.Sprintf("Claim produces a change of %d", e.Change)
 }

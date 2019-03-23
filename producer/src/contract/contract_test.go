@@ -137,7 +137,8 @@ func TestYieldSerialization(t *testing.T) {
 	}
 }
 
-func TestMakeClaimCase1A(t *testing.T) {
+//test making a claim for an exact amount matching a yield
+func TestMakeClaimExact(t *testing.T) {
 	db := "testDB.db"
 	setUpDB(db)
 	defer tearDown(db)
@@ -176,6 +177,52 @@ func TestMakeClaimCase1A(t *testing.T) {
 	if shouldNotBeNil == nil {
 		t.Errorf("Made claim on empty yield pool")
 	}
+}
+
+//test
+func TestMakeClaimChange(t *testing.T) {
+	db := "testDB.db"
+	setUpDB(db)
+	defer tearDown(db)
+
+	amt := uint64(500)
+	pubKey := generatePubKey()
+	yield := MakeYield(&pubKey, amt)
+	contractHash := block.HashSHA256([]byte("blokchain"))
+	blockHeight := uint64(35)
+	yieldIndex := uint16(1)
+
+	err := InsertYield(yield, db, blockHeight, contractHash, yieldIndex)
+	if err != nil {
+		t.Errorf("Failed to insert yield: %v", err)
+	}
+
+	testClaim, err := MakeClaim(db, pubKey, amt-5)
+	if err == nil {
+		t.Errorf("No change error struct returned")
+	} else {
+		if change, ok := err.(ChangeError); ok {
+			if change.Change != uint64(5) {
+				t.Errorf("Wrong change value, expected: 5, actual: %d", change)
+			}
+		} else {
+			t.Errorf("Different error given: %v", err)
+		}
+	}
+
+	if !bytes.Equal(testClaim.PreviousContractHash, contractHash) {
+		t.Errorf("Contract hashes do not match")
+	}
+	if testClaim.BlockIndex != blockHeight {
+		t.Errorf("Block indeces do not match")
+	}
+	if testClaim.YieldIndex != yieldIndex {
+		t.Errorf("Yield indeces do not match")
+	}
+	if !reflect.DeepEqual(testClaim.PublicKey, pubKey) {
+		t.Errorf("Public Keys do not match")
+	}
+
 }
 
 func TestClaimSerialization(t *testing.T) {
