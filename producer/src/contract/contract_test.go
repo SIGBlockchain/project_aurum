@@ -111,7 +111,7 @@ func TestInsertYield(t *testing.T) {
 		//check if each value is correct
 		assert.Equal(t, uint64(35), dbHeight, "The height value in the database is wrong")
 		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database is wrong")
-		assert.Equal(t, uint8(1), dbIndex, "The yield index in database is wrong")
+		assert.Equal(t, uint16(1), dbIndex, "The yield index in database is wrong")
 		assert.Equal(t, hex.EncodeToString(testYield.Recipient), dbHolder, "The holder in database is wrong")
 		assert.Equal(t, testYield.Value, dbValue, "The value in the database is wrong")
 	} else {
@@ -138,8 +138,9 @@ func TestYieldSerialization(t *testing.T) {
 }
 
 func TestMakeClaimCase1A(t *testing.T) {
-	setUpDB("testDB.db")
-	defer tearDown("testDB.db")
+	db := "testDB.db"
+	setUpDB(db)
+	defer tearDown(db)
 
 	amt := uint64(500)
 	pubKey := generatePubKey()
@@ -148,29 +149,30 @@ func TestMakeClaimCase1A(t *testing.T) {
 	blockHeight := uint64(35)
 	yieldIndex := uint16(1)
 
-	err := InsertYield(yield, "testDB.db", blockHeight, contractHash, yieldIndex)
+	err := InsertYield(yield, db, blockHeight, contractHash, yieldIndex)
 	if err != nil {
 		t.Errorf("Failed to insert yield")
 	}
 
-	testClaim, err := MakeClaim("testDB.db", pubKey, amt)
+	testClaim, err := MakeClaim(db, pubKey, amt)
 	if err != nil {
-		t.Errorf("Failed to claim yield")
+		t.Errorf("Failed to claim yield: %v", err)
 	}
+
 	if !bytes.Equal(testClaim.PreviousContractHash, contractHash) {
 		t.Errorf("Contract hashes do not match")
 	}
-	if testClaim.BlockIndex != 35 {
+	if testClaim.BlockIndex != blockHeight {
 		t.Errorf("Block indeces do not match")
 	}
-	if testClaim.YieldIndex != 1 {
+	if testClaim.YieldIndex != yieldIndex {
 		t.Errorf("Yield indeces do not match")
 	}
-	if !cmp.Equal(testClaim.PublicKey, pubKey) {
+	if !reflect.DeepEqual(testClaim.PublicKey, pubKey) {
 		t.Errorf("Public Keys do not match")
 	}
 	// Case 3
-	_, shouldNotBeNil := MakeClaim("testDB.db", pubKey, 1)
+	_, shouldNotBeNil := MakeClaim(db, pubKey, 1)
 	if shouldNotBeNil == nil {
 		t.Errorf("Made claim on empty yield pool")
 	}

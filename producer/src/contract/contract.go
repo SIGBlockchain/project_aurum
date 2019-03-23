@@ -28,6 +28,7 @@ func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
 /* Inserts Yield into database */
 func InsertYield(y Yield, database string, blockHeight uint64, contractHash []byte, yieldIndex uint16) error {
 	dbConn, err := sql.Open("sqlite3", database)
+	defer dbConn.Close()
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -38,8 +39,6 @@ func InsertYield(y Yield, database string, blockHeight uint64, contractHash []by
 		fmt.Println("Failed to insert")
 		return err2
 	}
-
-	dbConn.Close()
 	return nil
 }
 
@@ -83,7 +82,7 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 	defer dbConn.Close()
 
 	//first query the db for any yeilds equal or above
-	sqlQuery := `SELECT * FROM uy WHERE value > $1 AND holder = '$2' ORDER BY value ASC LIMIT 1;`
+	sqlQuery := `SELECT * FROM uy WHERE value >= $1 AND holder = $2 ORDER BY value ASC LIMIT 1;`
 	rows, err2 := dbConn.Query(sqlQuery, value, claimantHexHash)
 	if err2 != nil {
 		log.Printf("Error! Unable to execte query: %v\n", err2)
@@ -109,6 +108,8 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 		c.BlockIndex = dbHeight
 		c.YieldIndex = dbIndex
 		c.PublicKey = claimant
+
+		rows.Close()
 		return c, rtnErr
 	}
 
@@ -126,7 +127,7 @@ func (y *Claim) Serialize() []byte {
 	binary.LittleEndian.PutUint64(s[32:40], y.BlockIndex)
 	binary.LittleEndian.PutUint16(s[40:42], y.YieldIndex)
 	binary.LittleEndian.PutUint16(s[42:44], keyLen)
-	copy(s[46:46+keyLen], encodedPubKey)
+	copy(s[44:44+keyLen], encodedPubKey)
 	return s
 }
 
@@ -140,7 +141,7 @@ func DeserializeClaim(b []byte) Claim {
 
 	keylen := binary.LittleEndian.Uint16(b[42:44])
 	decodedPubKey := make([]byte, keylen)
-	copy(decodedPubKey, b[46:46+keylen])
+	copy(decodedPubKey, b[44:44+keylen])
 	c.PublicKey = *keys.DecodePublicKey(decodedPubKey)
 	return c
 }
