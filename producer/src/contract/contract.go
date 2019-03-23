@@ -102,7 +102,6 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 		var rtnErr error //nil by default
 		//determine if there is change
 		if dbValue > value {
-			fmt.Printf("make a change error")
 			rtnErr = ChangeError{Change: dbValue - value}
 		}
 		c.PreviousContractHash, _ = hex.DecodeString(dbContract)
@@ -115,7 +114,31 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 	}
 
 	//else we need to select a yield that has less value
-	return Claim{}, errors.New("Incomplete function")
+	sqlQuery = `SELECT * FROM uy WHERE holder = $1 ORDER BY value DESC LIMIT 1;`
+	rows2, err3 := dbConn.Query(sqlQuery, claimantHexHash)
+	if err3 != nil {
+		log.Printf("Error! Unable to execte query: %v\n", err2)
+	}
+	if rows2.Next() {
+		if err3 := rows2.Scan(&dbHeight, &dbContract, &dbIndex, &dbHolder, &dbValue); err3 != nil {
+			log.Fatal(err3)
+		}
+		c := Claim{}
+		var rtnErr error //nil by default
+		//determine if there is change
+		if dbValue < value {
+			rtnErr = DeficitError{Deficit: value - dbValue}
+		}
+		c.PreviousContractHash, _ = hex.DecodeString(dbContract)
+		c.BlockIndex = dbHeight
+		c.YieldIndex = dbIndex
+		c.PublicKey = claimant
+
+		rows2.Close()
+		return c, rtnErr
+	}
+
+	return Claim{}, errors.New("Unable to properly make claim")
 }
 
 /* Serialize ... serialies the claim */
