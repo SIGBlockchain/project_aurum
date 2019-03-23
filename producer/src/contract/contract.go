@@ -26,7 +26,7 @@ func MakeYield(recipient *ecdsa.PublicKey, value uint64) Yield {
 }
 
 /* Inserts Yield into database */
-func InsertYield(y Yield, database string, blockHeight uint64, contractHash []byte, yieldIndex uint16) error {
+func InsertYield(y Yield, database string, blockHeight uint64, contractHash []byte, yieldIndex uint8) error {
 	dbConn, err := sql.Open("sqlite3", database)
 	defer dbConn.Close()
 	if err != nil {
@@ -58,16 +58,10 @@ func DeserializeYield(b []byte) Yield {
 	return Yield{Recipient: recipient, Value: value}
 }
 
-/*
-Contains the contract hash of the claimed yield,
-the block index containing the contract of the claimed yield,
-the index of the claimed yield in the contract,
-and the public key of the claimant
-*/
 type Claim struct {
 	PreviousContractHash []byte
 	BlockIndex           uint64
-	YieldIndex           uint16
+	YieldIndex           uint8
 	PublicKey            ecdsa.PublicKey
 }
 
@@ -90,7 +84,7 @@ func MakeClaim(database string, claimant ecdsa.PublicKey, value uint64) (Claim, 
 
 	var dbHeight uint64
 	var dbContract string
-	var dbIndex uint16
+	var dbIndex uint8
 	var dbHolder string
 	var dbValue uint64
 
@@ -149,8 +143,8 @@ func (y *Claim) Serialize() []byte {
 	s := make([]byte, len)
 	copy(s[0:32], y.PreviousContractHash)
 	binary.LittleEndian.PutUint64(s[32:40], y.BlockIndex)
-	binary.LittleEndian.PutUint16(s[40:42], y.YieldIndex)
-	binary.LittleEndian.PutUint16(s[42:44], keyLen)
+	s[40] = y.YieldIndex
+	binary.LittleEndian.PutUint16(s[41:43], keyLen)
 	copy(s[44:44+keyLen], encodedPubKey)
 	return s
 }
@@ -161,9 +155,9 @@ func DeserializeClaim(b []byte) Claim {
 	c.PreviousContractHash = make([]byte, 32)
 	copy(c.PreviousContractHash, b[0:32])
 	c.BlockIndex = binary.LittleEndian.Uint64(b[32:40])
-	c.YieldIndex = binary.LittleEndian.Uint16(b[40:42])
+	c.YieldIndex = b[40]
 
-	keylen := binary.LittleEndian.Uint16(b[42:44])
+	keylen := binary.LittleEndian.Uint16(b[41:43])
 	decodedPubKey := make([]byte, keylen)
 	copy(decodedPubKey, b[44:44+keylen])
 	c.PublicKey = *keys.DecodePublicKey(decodedPubKey)

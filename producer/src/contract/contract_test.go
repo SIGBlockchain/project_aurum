@@ -100,7 +100,7 @@ func TestInsertYield(t *testing.T) {
 
 	var dbHeight uint64
 	var dbContract string
-	var dbIndex uint16
+	var dbIndex uint8
 	var dbHolder string
 	var dbValue uint64
 
@@ -111,7 +111,7 @@ func TestInsertYield(t *testing.T) {
 		//check if each value is correct
 		assert.Equal(t, uint64(35), dbHeight, "The height value in the database is wrong")
 		assert.Equal(t, hex.EncodeToString(contractHash), dbContract, "The contract hash in database is wrong")
-		assert.Equal(t, uint16(1), dbIndex, "The yield index in database is wrong")
+		assert.Equal(t, uint8(1), dbIndex, "The yield index in database is wrong")
 		assert.Equal(t, hex.EncodeToString(testYield.Recipient), dbHolder, "The holder in database is wrong")
 		assert.Equal(t, testYield.Value, dbValue, "The value in the database is wrong")
 	} else {
@@ -148,7 +148,7 @@ func TestMakeClaimExact(t *testing.T) {
 	yield := MakeYield(&pubKey, amt)
 	contractHash := block.HashSHA256([]byte("blokchain"))
 	blockHeight := uint64(35)
-	yieldIndex := uint16(1)
+	yieldIndex := uint8(1)
 
 	err := InsertYield(yield, db, blockHeight, contractHash, yieldIndex)
 	if err != nil {
@@ -190,7 +190,7 @@ func TestMakeClaimChange(t *testing.T) {
 	yield := MakeYield(&pubKey, amt)
 	contractHash := block.HashSHA256([]byte("blokchain"))
 	blockHeight := uint64(35)
-	yieldIndex := uint16(1)
+	yieldIndex := uint8(1)
 
 	err := InsertYield(yield, db, blockHeight, contractHash, yieldIndex)
 	if err != nil {
@@ -235,7 +235,7 @@ func TestMakeClaimDeficit(t *testing.T) {
 	yield := MakeYield(&pubKey, amt)
 	contractHash := block.HashSHA256([]byte("blokchain"))
 	blockHeight := uint64(35)
-	yieldIndex := uint16(1)
+	yieldIndex := uint8(1)
 
 	err := InsertYield(yield, db, blockHeight, contractHash, yieldIndex)
 	if err != nil {
@@ -280,7 +280,7 @@ func TestMakeClaimMultipleYield(t *testing.T) {
 	yield := []Yield{MakeYield(&pubKey[0], amt[0]), MakeYield(&pubKey[1], amt[1])}
 	contractHash := [][]byte{block.HashSHA256([]byte("1")), block.HashSHA256([]byte("2"))}
 	blockHeight := []uint64{uint64(35), uint64(40)}
-	yieldIndex := []uint16{uint16(1), uint16(4)}
+	yieldIndex := []uint8{uint8(1), uint8(4)}
 
 	err := InsertYield(yield[0], db, blockHeight[0], contractHash[0], yieldIndex[0])
 	if err != nil {
@@ -329,7 +329,7 @@ func TestMakeClaimEmpty(t *testing.T) {
 	yield := []Yield{MakeYield(&pubKey[0], amt[0]), MakeYield(&pubKey[1], amt[1])}
 	contractHash := [][]byte{block.HashSHA256([]byte("1")), block.HashSHA256([]byte("2"))}
 	blockHeight := []uint64{uint64(35), uint64(40)}
-	yieldIndex := []uint16{uint16(1), uint16(4)}
+	yieldIndex := []uint8{uint8(1), uint8(4)}
 
 	err := InsertYield(yield[0], db, blockHeight[0], contractHash[0], yieldIndex[0])
 	if err != nil {
@@ -355,7 +355,7 @@ func TestMakeClaimEmpty(t *testing.T) {
 func TestClaimSerialization(t *testing.T) {
 	testPubKey := generatePubKey()
 	prevHash := block.HashSHA256(([]byte("Something")))
-	expected := Claim{PreviousContractHash: prevHash, BlockIndex: uint64(2), YieldIndex: uint16(3), PublicKey: testPubKey}
+	expected := Claim{PreviousContractHash: prevHash, BlockIndex: uint64(2), YieldIndex: uint8(3), PublicKey: testPubKey}
 	serialized := expected.Serialize()
 	deserialized := DeserializeClaim(serialized)
 
