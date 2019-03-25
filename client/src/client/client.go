@@ -97,10 +97,12 @@ func ClearScreen() {
 * Returns: Nothing																				  *
 =================================================================================================*/
 func PrintHelp() {
-	fmt.Println("\tclear\t\tclears the screen of all previous output")            // clear
-	fmt.Println("\thelp\t\tprints all avalible commands and description of each") // help
-	fmt.Println("\tmoreinfo\tprints link to project_aurum github page")           // moreinfo
-	fmt.Println("\tq\t\tquits the program")                                       // q
+	fmt.Println("\tbalance\t\t\t\tcheck your wallet balance")								// balance
+	fmt.Println("\tclear\t\t\t\tclears the screen of all previous output")            	// clear
+	fmt.Println("\thelp\t\t\t\tprints all avalible commands and description of each") 	// help
+	fmt.Println("\tmoreinfo\t\t\tprints link to project_aurum github page")           	// moreinfo
+	fmt.Println("\tsend [recipient] [value]\tsend aurum to using their public key")	// send
+	fmt.Println("\tq\t\t\t\tquits the program")                                       	// q
 }
 
 /*=================================================================================================
