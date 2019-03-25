@@ -50,13 +50,13 @@ func ValidateContract(c Contract, tableName string) bool {
 }
 
 /*
-Called with table already open
+Open table
 Find public key
 subtract from signing key
 Fields:
 public key, balance, nonce
 */
-func UpdateAccountBalanceTable() {}
+func UpdateAccountBalanceTable(table string) {}
 
 // Serialize al lfields of the contract
 func (c Contract) Serialize() []byte {

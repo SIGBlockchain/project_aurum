@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -15,6 +16,9 @@ import (
 func TestValidateContract(t *testing.T) {
 	table := "table.dat"
 	conn, err := sql.Open("sqlite3", table)
+	defer func() {
+		os.Remove(table)
+	}()
 	statement, err := conn.Prepare(
 		`CREATE TABLE IF NOT EXISTS account_balances ( 
 		public_key TEXT, 
