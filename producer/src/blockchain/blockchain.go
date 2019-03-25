@@ -267,6 +267,6 @@ Test will check to make sure a ledger populated by AddBlock() will result in the
 metadata table as would result from here
 Return an error if anything I/O operations fail with detailed message
 */
-func RecoverBlockchainMetadata(string ledgerFilename, string metadataFilename) error {
+func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) error {
 	return errors.New("Incomplete function")
 }
