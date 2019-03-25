@@ -57,7 +57,7 @@ public key, balance, nonce
 */
 func UpdateAccountBalanceTable(table string) {}
 
-// Serialize al lfields of the contract
+// Serialize all fields of the contract
 func (c Contract) Serialize() []byte {
 	return []byte{}
 }
