@@ -35,18 +35,17 @@ func (c *Contract) SignContract() {}
 Check balance (ideal scenario):
 Open table
 Get hash of contract
-Match up signature, hash, and public key
+Verify signature with hash and public key
 Go to table and find sender
-Check value
-Update Account Balances
+Confirm balance is sufficient
+Update Account Balances (S & R)
 Increment Nonce
 */
 func ValidateContract(c Contract, tableName string) bool {
 	if true && false {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 /*
