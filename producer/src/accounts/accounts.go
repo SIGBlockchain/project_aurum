@@ -40,7 +40,7 @@ Verify signature with hash and public key
 Go to table and find sender
 Confirm balance is sufficient
 Update Account Balances (S & R)
-Increment Nonce
+Increment Table Nonce
 */
 func ValidateContract(c Contract, tableName string) bool {
 	if true && false {
