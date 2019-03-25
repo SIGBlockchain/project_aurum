@@ -261,11 +261,12 @@ func GetBlockByHash(hash []byte, filename string, database string) ([]byte, erro
 
 /*
 Takes in the ledger file's name and the desired name for the metadata file
-Creates the database, inserts the appropriate column names
+Creates the database if it doesn't exist, inserts the appropriate column names
 Moves through the ledger file and extracts blocks, repopulating the metadata file
 Test will check to make sure a ledger populated by AddBlock() will result in the same
 metadata table as would result from here
+Return an error if anything I/O operations fail with detailed message
 */
-func RecoverBlockchainMetadata(string ledgerFilename, string metadataFilename) {
-
+func RecoverBlockchainMetadata(string ledgerFilename, string metadataFilename) error {
+	return errors.New("Incomplete function")
 }
