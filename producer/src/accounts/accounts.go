@@ -8,6 +8,7 @@ Sender Public Key
 Signature
 Recipient Public Key Hash
 Value
+Nonce
 */
 type Contract struct{}
 
@@ -17,7 +18,7 @@ Fills struct fields with parameters given
 Calls sign contract
 Returns contract
 */
-func MakeContract(version uint32, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64) Contract {
+func MakeContract(version uint32, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) Contract {
 	return Contract{}
 }
 

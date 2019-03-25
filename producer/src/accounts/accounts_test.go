@@ -35,9 +35,9 @@ func TestValidateContract(t *testing.T) {
 	senderPublicKey := sender.PublicKey
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipient := recipientPrivateKey.PublicKey
-	MakeContract(1, *sender, senderPublicKey, 1000)
-	validContract := MakeContract(1, *sender, recipient, 1000)
-	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000)
+	MakeContract(1, *sender, senderPublicKey, 1000, 0)
+	validContract := MakeContract(1, *sender, recipient, 1000, 1)
+	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {
 		t.Errorf("Valid contract regarded as invalid")
 	}
@@ -49,7 +49,7 @@ func TestValidateContract(t *testing.T) {
 func TestContractSerialization(t *testing.T) {
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	senderPublicKey := sender.PublicKey
-	contract := MakeContract(1, *sender, senderPublicKey, 1000)
+	contract := MakeContract(1, *sender, senderPublicKey, 1000, 20)
 	serialized := contract.Serialize()
 	deserialized := Contract{}.Deserialize(serialized)
 	if !cmp.Equal(contract, deserialized) {
