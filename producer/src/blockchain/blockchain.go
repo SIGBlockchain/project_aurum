@@ -271,7 +271,8 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) e
 	_, err := os.Stat(metadataFilename)
 	if err != nil {
 		// create database
-		_, err = os.Create(metadataFilename)
+		f, err := os.Create(metadataFilename)
+		f.Close()
 
 		// open database
 		db, err := sql.Open("sqlite3", metadataFilename)

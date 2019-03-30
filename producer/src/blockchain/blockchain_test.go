@@ -288,6 +288,10 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 		t.Errorf("Failed to add block2.")
 	}
 	os.Remove(table)
+	_, err = os.Stat(table)
+	if err == nil {
+		t.Errorf("table still exists")
+	}
 	err = RecoverBlockchainMetadata(blockchain, table)
 
 	// Block 0 by height
@@ -316,5 +320,4 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	if bytes.Equal(block2.Serialize(), actualBlock2) == false {
 		t.Errorf("Blocks do not match (block 2 by height)")
 	}
-
 }
