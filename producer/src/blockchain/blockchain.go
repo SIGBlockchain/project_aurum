@@ -268,5 +268,74 @@ metadata table as would result from here
 Return an error if anything I/O operations fail with detailed message
 */
 func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) error {
-	return errors.New("Incomplete function")
+	_, err := os.Stat(metadataFilename)
+	if err != nil {
+		// create database
+		_, err = os.Create("Database.db")
+
+		// open database
+		db, err := sql.Open("sqlite3", "testDatabase.db")
+		if err != nil {
+			return errors.New("Failed to open newly created database")
+		}
+		defer db.Close()
+
+		// create metadata table in database
+		statement, _ := db.Prepare("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		statement.Exec()
+		statement.Close()
+
+		// create a prepared statement to insert into metadata
+		statement, err = db.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+		if err != nil {
+			return errors.New("Failed to prepare a statement for further executes")
+		}
+		defer statement.Close()
+
+		// open ledger file
+		file, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
+		if err != nil {
+			return errors.New("Failed to open ledger file")
+		}
+		defer file.Close()
+
+		// loop that adds blocks' metadata into database
+		bPosition := int64(0)
+		for {
+			length := make([]byte, 4)
+
+			// read 4 bytes for blocks' length
+			_, err = file.Read(length)
+			if err == io.EOF {
+				// if reader reaches EOF, exit loop
+				break
+			} else if err != nil {
+				return errors.New("Failed to read ledger file")
+			}
+			bLen := binary.LittleEndian.Uint32(length)
+
+			// set offset for next read to get to the position of the block
+			file.Seek(bPosition+int64(len(length)), 0)
+			serialized := make([]byte, bLen)
+			_, err = io.ReadAtLeast(file, serialized, int(bLen))
+			if err != nil {
+				return errors.New("Failed to retrieve serialized block")
+			}
+
+			// need to deserialize block for block's height and hash
+			deserializedBlock := block.Deserialize(serialized)
+			bHeight := deserializedBlock.Height
+			bHash := block.HashBlock(deserializedBlock)
+
+			// execute statement
+			_, err = statement.Exec(bHeight, bPosition, bLen, bHash)
+			if err != nil {
+				return errors.New("Failed to execute statement")
+			}
+
+			// position of next block
+			bPosition += int64(len(length) + len(serialized))
+		}
+	}
+	return err
 }

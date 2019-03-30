@@ -242,7 +242,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 }
 
 func TestRecoverBlockchainMetadata(t *testing.T) {
-	blockchain := "blockchain.dat"
+	blockchain := "testBlockchain.dat"
 	table := "table.db"
 	setUp(blockchain, table)
 	defer tearDown(blockchain, table)
@@ -291,7 +291,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	err = RecoverBlockchainMetadata(blockchain, table)
 
 	// Block 0 by height
-	actualBlock0, err = GetBlockByHeight(0, "testBlockchain.dat", "testDatabase.db")
+	actualBlock0, err := GetBlockByHeight(0, "testBlockchain.dat", "testDatabase.db")
 	if err != nil {
 		t.Errorf("Failed to extract block (block 0 by height).")
 	}
@@ -300,7 +300,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	}
 
 	// Block 1 by height
-	actualBlock1, err = GetBlockByHeight(1, "testBlockchain.dat", "testDatabase.db")
+	actualBlock1, err := GetBlockByHeight(1, "testBlockchain.dat", "testDatabase.db")
 	if err != nil {
 		t.Errorf("Failed to extract block (block 1 by height).")
 	}
@@ -309,7 +309,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	}
 
 	// Block 2
-	actualBlock2, err = GetBlockByHeight(2, "testBlockchain.dat", "testDatabase.db")
+	actualBlock2, err := GetBlockByHeight(2, "testBlockchain.dat", "testDatabase.db")
 	if err != nil {
 		t.Errorf("Failed to extract block (block 2 by height).")
 	}
