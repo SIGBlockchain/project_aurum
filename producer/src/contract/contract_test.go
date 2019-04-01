@@ -137,6 +137,7 @@ func TestYieldSerialization(t *testing.T) {
 	}
 }
 
+/*
 func TestMakeClaimCase1A(t *testing.T) {
 	setUpDB("testDB.db")
 	defer tearDown("testDB.db")
@@ -192,3 +193,4 @@ func TestClaimSerialization(t *testing.T) {
 		t.Errorf("Byte strings do not match")
 	}
 }
+*/

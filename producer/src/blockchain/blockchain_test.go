@@ -240,3 +240,84 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		t.Errorf("Blocks do not match (block 2 by height)")
 	}
 }
+
+func TestRecoverBlockchainMetadata(t *testing.T) {
+	blockchain := "testBlockchain.dat"
+	table := "table.db"
+	setUp(blockchain, table)
+	defer tearDown(blockchain, table)
+	// Create a bunch of blocks
+	block0 := block.Block{
+		Version:        1,
+		Height:         0,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'x', 'o', 'x', 'o'})},
+	}
+	block0.DataLen = uint16(len(block0.Data))
+	block1 := block.Block{
+		Version:        1,
+		Height:         1,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashBlock(block0),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'x', 'y', 'z'})},
+	}
+	block1.DataLen = uint16(len(block1.Data))
+	block2 := block.Block{
+		Version:        1,
+		Height:         2,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashBlock(block1),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte{'a', 'b', 'c'})},
+	}
+	block2.DataLen = uint16(len(block2.Data))
+	// Add all the blocks
+	err := AddBlock(block0, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to add block0.")
+	}
+	err = AddBlock(block1, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to add block1.")
+	}
+	err = AddBlock(block2, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to add block2.")
+	}
+	os.Remove(table)
+	_, err = os.Stat(table)
+	if err == nil {
+		t.Errorf("table still exists")
+	}
+	err = RecoverBlockchainMetadata(blockchain, table)
+
+	// Block 0 by height
+	actualBlock0, err := GetBlockByHeight(0, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to extract block (block 0 by height).")
+	}
+	if bytes.Equal(block0.Serialize(), actualBlock0) == false {
+		t.Errorf("Blocks do not match (block 0 by height)")
+	}
+
+	// Block 1 by height
+	actualBlock1, err := GetBlockByHeight(1, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to extract block (block 1 by height).")
+	}
+	if bytes.Equal(block1.Serialize(), actualBlock1) == false {
+		t.Errorf("Blocks do not match (block 1 by height)")
+	}
+
+	// Block 2
+	actualBlock2, err := GetBlockByHeight(2, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to extract block (block 2 by height).")
+	}
+	if bytes.Equal(block2.Serialize(), actualBlock2) == false {
+		t.Errorf("Blocks do not match (block 2 by height)")
+	}
+}
