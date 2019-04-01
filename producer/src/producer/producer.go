@@ -51,6 +51,22 @@ Given a public key, query the database for the current account balance
 Sent a Contract:
 Validate contract, add to contract pool
 */
+
+/*
+Should contain version, payload type, payload size
+*/
+type Header struct{}
+
+/*
+Messages have headers and payloads
+Payloads should correspond to message type
+*/
+type Message struct{}
+
+/*
+Should first check if messag is prefixed with keybytes
+Rejects messages without keybytes and add IP to to greylist
+*/
 func (bp *BlockProducer) Handle(conn net.Conn) {
 	buf := make([]byte, 1024)
 	_, err := conn.Read(buf)
