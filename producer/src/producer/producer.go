@@ -14,13 +14,15 @@ import (
 type BlockProducer struct {
 	Server        net.Listener
 	NewConnection chan net.Conn
+	// Add ledger name, metadata name, and contract table name
+	// Slice of Contracts representing contract pool
 }
 
 // Purpose: Checks to see if there is an internet connection established
 func CheckConnectivity() error {
 	conn, err := net.Dial("tcp", "www.google.com:80")
 	if err != nil {
-		return errors.New("Connectivity check failed.")
+		return errors.New("connectivity check failed")
 	}
 	conn.Close()
 	return nil
