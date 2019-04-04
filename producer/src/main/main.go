@@ -39,6 +39,7 @@ func main() {
 	bp := producer.BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
+		Logger:        logger,
 	}
 
 	// Start listening for connections
@@ -46,7 +47,7 @@ func main() {
 	go bp.AcceptConnections()
 
 	// Main loop
-	bp.WorkLoop(logger)
+	bp.WorkLoop()
 
 	// Close the server
 	bp.Server.Close()

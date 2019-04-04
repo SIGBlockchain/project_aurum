@@ -14,6 +14,7 @@ import (
 type BlockProducer struct {
 	Server        net.Listener
 	NewConnection chan net.Conn
+	Logger        *log.Logger
 	// Add ledger name, metadata name, and contract table name
 	// Slice of Contracts representing contract pool
 }
@@ -36,6 +37,7 @@ func (bp *BlockProducer) AcceptConnections() {
 			return
 		}
 		bp.NewConnection <- conn
+		bp.Logger.Printf("%s connected\n", conn.RemoteAddr())
 	}
 }
 
@@ -60,6 +62,7 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 	if err != nil {
 		return
 	}
+	bp.Logger.Printf("%s sent: %s", conn.RemoteAddr(), buf)
 	/*
 		Check if keybytes are present.
 		If they aren't, close the connection, add IP to greylist
@@ -80,7 +83,7 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 
 // The main work loop
 // Handles communication, block production, and ledger maintenance
-func (bp *BlockProducer) WorkLoop(logger *log.Logger) {
+func (bp *BlockProducer) WorkLoop() {
 	// Creates signal
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
@@ -94,7 +97,7 @@ func (bp *BlockProducer) WorkLoop(logger *log.Logger) {
 		case <-signalCh:
 			// If loop is exited properly, interrupt signal had been recieved
 			fmt.Print("\r")
-			logger.Println("Interrupt signal encountered, program terminating.")
+			bp.Logger.Println("Interrupt signal encountered, program terminating.")
 			return
 		default:
 			/*
