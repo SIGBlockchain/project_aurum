@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"log"
 	"net"
 	"testing"
 	"time"
@@ -42,9 +43,11 @@ func TestSendToProducer(t *testing.T) {
 	}
 	addr := "localhost:8080"
 	ln, err := net.Listen("tcp", addr)
+	var buffer bytes.Buffer
 	bp := producer.BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
+		Logger:        log.New(&buffer, "LOG:", log.Ldate),
 	}
 	go bp.AcceptConnections()
 	time.Sleep(1)
