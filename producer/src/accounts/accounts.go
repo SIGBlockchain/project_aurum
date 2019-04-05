@@ -1,6 +1,10 @@
 package accounts
 
-import "crypto/ecdsa"
+import (
+	"crypto/ecdsa"
+	"fmt"
+	"unsafe"
+)
 
 /*
 Version
@@ -10,7 +14,14 @@ Recipient Public Key Hash
 Value
 Nonce
 */
-type Contract struct{}
+type Contract struct {
+	Version      uint16
+	SenderPubKey ecdsa.PublicKey
+	Signature    []byte
+	RecipPubKey  ecdsa.PublicKey
+	Value        uint64
+	Nonce        uint64
+}
 
 /*
 Fills struct fields with parameters given
@@ -19,7 +30,19 @@ Calls sign contract
 Returns contract
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) Contract {
-	return Contract{}
+
+	c := Contract{
+		Version:      version,
+		SenderPubKey: sender.PublicKey,
+		Signature:    nil,
+		RecipPubKey:  recipient,
+		Value:        value,
+		Nonce:        nonce,
+	}
+	c.SignContract()
+	//unsafe.Sizeof(c)
+	fmt.Println(unsafe.Sizeof(c))
+	return c
 }
 
 /*
@@ -30,7 +53,9 @@ Hash it
 Generate a signature with the sender public key
 Update the signature field
 */
-func (c *Contract) SignContract() {}
+func (c *Contract) SignContract() {
+
+}
 
 /*
 Check balance (ideal scenario):
@@ -60,6 +85,7 @@ func UpdateAccountBalanceTable(table string) {}
 
 // Serialize all fields of the contract
 func (c Contract) Serialize() []byte {
+
 	return []byte{}
 }
 
