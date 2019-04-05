@@ -31,37 +31,37 @@ func TestSerialize(t *testing.T) {
 	// indicies are fixed since we know what the max sizes are going to be
 
 	// check Version
-	blockVersion := binary.LittleEndian.Uint32(serial[0:4])
+	blockVersion := binary.LittleEndian.Uint16(serial[0:2])
 	if blockVersion != b.Version {
 		t.Errorf("Version does not match")
 	}
 
 	// check Height
-	blockHeight := binary.LittleEndian.Uint64(serial[4:12])
+	blockHeight := binary.LittleEndian.Uint64(serial[2:10])
 	if blockHeight != b.Height {
 		t.Errorf("Height does not match")
 	}
 
 	// check Timestamp
-	blockTimestamp := binary.LittleEndian.Uint64(serial[12:20])
+	blockTimestamp := binary.LittleEndian.Uint64(serial[10:18])
 	if int64(blockTimestamp) != b.Timestamp {
 		t.Errorf("Timestamps do not match")
 	}
 
 	// check PreviousHash
-	blockPrevHash := serial[20:52]
+	blockPrevHash := serial[18:50]
 	if bytes.Equal(blockPrevHash, b.PreviousHash) != true {
 		t.Errorf("PreviousHashes do not match")
 	}
 
 	// check MerkleRootHash
-	blockMerkleHash := serial[52:84]
+	blockMerkleHash := serial[50:82]
 	if bytes.Equal(blockMerkleHash, b.MerkleRootHash) != true {
 		t.Errorf("MerkleRootHashes do not match")
 	}
 
 	// check DataLen
-	blockDataLen := binary.LittleEndian.Uint16(serial[84:86])
+	blockDataLen := binary.LittleEndian.Uint16(serial[82:84])
 	if blockDataLen != b.DataLen {
 		t.Errorf("DataLen does not match")
 	}
@@ -70,7 +70,7 @@ func TestSerialize(t *testing.T) {
 	testslice := [][]byte{{12, 3}, {132, 90, 23}, {23}}
 	dataLen := int(blockDataLen)
 	blockData := make([][]byte, dataLen)
-	index := 86
+	index := 84
 
 	for i := 0; i < dataLen; i++ {
 		elementLen := int(serial[index])
@@ -179,7 +179,7 @@ func TestDeserialize(t *testing.T) {
 	}
 
 	//change itermed to see if that changes the deserialized block
-	intermed[21] = uint8(21)
+	intermed[18] = uint8(21)
 	intermed[54] = uint8(21)
 	if !cmp.Equal(expected, actual) {
 		t.Errorf("Blocks do not match")
