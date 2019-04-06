@@ -2,8 +2,13 @@ package accounts
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
-	"unsafe"
+
+	"github.com/SIGBlockchain/project_aurum/producer/src/block"
+
+	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 )
 
 /*
@@ -17,7 +22,7 @@ Nonce
 type Contract struct {
 	Version      uint16
 	SenderPubKey ecdsa.PublicKey
-	Signature    []byte
+	Signature    []byte // size of 22
 	RecipPubKey  ecdsa.PublicKey
 	Value        uint64
 	Nonce        uint64
@@ -31,6 +36,9 @@ Returns contract
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) Contract {
 
+	// private key is of size 40 bytes
+	// public key is of size 32 bytes
+	// total size of struct is 112 bytes
 	c := Contract{
 		Version:      version,
 		SenderPubKey: sender.PublicKey,
@@ -41,7 +49,18 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 	}
 	c.SignContract()
 	//unsafe.Sizeof(c)
-	fmt.Println(unsafe.Sizeof(c))
+	// fmt.Println("SIZE")
+	// fmt.Println(unsafe.Sizeof(c))
+	// fmt.Println("SIZE SENDER")
+	// fmt.Println(unsafe.Sizeof(sender))
+
+	// fmt.Println("SIZE recp")
+	// fmt.Println(unsafe.Sizeof(recipient))
+
+	// senderSlice := keys.EncodePublicKey(&c.SenderPubKey)
+	// fmt.Println("SIZE send")
+	// fmt.Println(unsafe.Sizeof(senderSlice))
+
 	return c
 }
 
@@ -54,6 +73,30 @@ Generate a signature with the sender public key
 Update the signature field
 */
 func (c *Contract) SignContract() {
+
+	senderSlice := keys.EncodePublicKey(&c.SenderPubKey)
+	recipSlice := keys.EncodePublicKey(&c.RecipPubKey)
+
+	preSerial := make([]byte, 374)
+
+	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)
+	copy(preSerial[2:180], senderSlice)
+	copy(preSerial[180:358], recipSlice)
+	binary.LittleEndian.PutUint64(preSerial[358:366], c.Value)
+	binary.LittleEndian.PutUint64(preSerial[366:374], c.Nonce)
+
+	preHash := block.HashSHA256(preSerial)
+
+	privKey, _ := ecdsa.GenerateKey(c.SenderPubKey.Curve, rand.Reader)
+
+	c.Signature, _ = privKey.Sign(rand.Reader, preHash, nil)
+
+	fmt.Println("SIGN send")
+	fmt.Println(len(senderSlice))
+	fmt.Println("rec")
+	fmt.Println(len(recipSlice))
+	fmt.Println("sig")
+	fmt.Println(len(c.Signature))
 
 }
 
@@ -85,11 +128,38 @@ func UpdateAccountBalanceTable(table string) {}
 
 // Serialize all fields of the contract
 func (c Contract) Serialize() []byte {
+	// senderSlice := keys.EncodePublicKey(&c.SenderPubKey) // size 178
+	// recipSlice := keys.EncodePublicKey(&c.RecipPubKey)   // size 178
 
-	return []byte{}
+	// size of signature VARIES*********************
+	// fmt.Println("send")
+	// fmt.Println(len(senderSlice))
+	// fmt.Println("sig")
+	// fmt.Println(len(c.Signature))
+	// fmt.Println("rec")
+	// fmt.Println(len(recipSlice))
+
+	serializedContract := make([]byte, 446)
+
+	// binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+	// copy(serializedContract[2:180], senderSlice)
+	// copy(serializedContract[180:252], c.Signature)
+	// copy(serializedContract[252:430], recipSlice)
+	// binary.LittleEndian.PutUint64(serializedContract[430:438], c.Value)
+	// binary.LittleEndian.PutUint64(serializedContract[438:446], c.Nonce)
+
+	return serializedContract
 }
 
 // Deserialize into a struct
 func (c Contract) Deserialize(b []byte) Contract {
-	return Contract{}
+	// c2 := Contract{
+	// 	Version:      binary.LittleEndian.Uint16(b[0:2]),
+	// 	SenderPubKey: *(keys.DecodePublicKey(b[2:26])),
+	// 	Signature:    b[26:48],
+	// 	RecipPubKey:  *(keys.DecodePublicKey(b[48:80])),
+	// 	Value:        binary.LittleEndian.Uint64(b[80:88]),
+	// 	Nonce:        binary.LittleEndian.Uint64(b[88:96]),
+	// }
+	return Contract{} //c2
 }
