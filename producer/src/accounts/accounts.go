@@ -14,6 +14,7 @@ import (
 /*
 Version
 Sender Public Key
+Signature Length
 Signature
 Recipient Public Key Hash
 Value
@@ -29,11 +30,21 @@ type Contract struct {
 	Nonce        uint64
 }
 
-/*		CLIENT FUNCTION*************************** PRIVATE KEY IS OKAY
-Fills struct fields with parameters given
-(with the exception of the signature field)
-Calls sign contract
-Returns contract
+// 		CLIENT FUNCTION*************************** PRIVATE KEY IS OKAY
+// Fills struct fields with parameters given
+// (with the exception of the signature field)
+// Calls sign contract
+// Returns contract
+
+/*
+version field comes from version parameter
+sender public key comes from sender private key
+signature comes from calling sign contract
+signature length comes from signature
+recipient pk hash comes from sha-256 hash of rpk
+value is value parameter
+nonce is nonce parameter
+returns contract struct
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) Contract {
 
@@ -68,12 +79,10 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 }
 
 /*
-Take the contract by reference
-(with a null signature field)
-Serialize it
-Hash it
-Generate a signature with the sender public key
-Update the signature field
+hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
+signature = Sign ( hashed contract, sender private key )
+sig len = signature length
+siglen and sig go into respective fields in contract
 */
 func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 
@@ -119,6 +128,16 @@ Go to table and find sender
 Confirm balance is sufficient
 Update Account Balances (S & R)		// ony updated when true
 Increment Table Nonce
+
+1. verify signature
+hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
+verify (hashed contract, spubkey, signature) (T)
+2. validate amount
+check table to see if sender's balance >= contract amount (T)
+3. validate nonce
+check to see that nonce is 1 + table nonce for that account (T)
+
+If all 3 are true, update table
 */
 func ValidateContract(c Contract, tableName string) bool {
 	fmt.Println("ABOUT TO VALID")
@@ -157,11 +176,11 @@ func ValidateContract(c Contract, tableName string) bool {
 }
 
 /*
-Open table
-Find public key
-subtract from signing key
-Fields:
-public key, balance, nonce
+spkh = sha256 ( serialized sender pub key )
+find sender public key hash
+decrease value from sender public key hash account
+increment their nonce by one
+increase value of recipient public key hash account by contract value
 */
 func UpdateAccountBalanceTable(table string) {}
 

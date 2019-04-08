@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
-	"fmt"
 	"os"
 
 	"github.com/google/go-cmp/cmp"
@@ -24,9 +23,10 @@ func TestValidateContract(t *testing.T) {
 		os.Remove(table)
 	}()
 	statement, err := conn.Prepare(
-		`CREATE TABLE IF NOT EXISTS account_balances (
-		public_key TEXT,
-		balance INTEGER,
+
+		`CREATE TABLE IF NOT EXISTS account_balances ( 
+		public_key_hash TEXT, 
+		balance INTEGER, 
 		nonce INTEGER);`)
 
 	if err != nil {
@@ -40,23 +40,8 @@ func TestValidateContract(t *testing.T) {
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipient := recipientPrivateKey.PublicKey
 	c := MakeContract(1, *sender, senderPublicKey, 1000, 0)
-	// insert contract information into table*****************************
-	conn, err = sql.Open("sqlite3", table)
-	if err != nil {
-		t.Errorf("Unable to open sqlite3 database")
-	}
-	defer conn.Close()
-
-	statement, err = conn.Prepare("INSERT INTO account_balances (public_key, balance, nonce) VALUES (?, ?, ?)")
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("Failed to prepare a statement for further queries")
-	}
-	_, err = statement.Exec(c.SenderPubKey, c.Value, c.Nonce)
-	if err != nil {
-		t.Errorf("Failed to execute query")
-	}
-	fmt.Println("DONE ADDING TO TABLE")
+	MakeContract(1, *sender, senderPublicKey, 1000, 0)
+	// INSERT ABOVE VALUES INTO TABLE
 	validContract := MakeContract(1, *sender, recipient, 1000, 1)
 	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {
