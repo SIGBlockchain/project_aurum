@@ -21,7 +21,7 @@ func TestValidateContract(t *testing.T) {
 	}()
 	statement, err := conn.Prepare(
 		`CREATE TABLE IF NOT EXISTS account_balances ( 
-		public_key TEXT, 
+		public_key_hash TEXT, 
 		balance INTEGER, 
 		nonce INTEGER);`)
 
@@ -36,6 +36,7 @@ func TestValidateContract(t *testing.T) {
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipient := recipientPrivateKey.PublicKey
 	MakeContract(1, *sender, senderPublicKey, 1000, 0)
+	// INSERT ABOVE VALUES INTO TABLE
 	validContract := MakeContract(1, *sender, recipient, 1000, 1)
 	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {
