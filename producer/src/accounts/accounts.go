@@ -3,7 +3,6 @@ package accounts
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -21,13 +20,13 @@ Value
 Nonce
 */
 type Contract struct {
-	Version      uint16
-	SenderPubKey ecdsa.PublicKey
-	SigLen       uint8  // len of the signature
-	Signature    []byte // size of 22
-	RecipPubKey  ecdsa.PublicKey
-	Value        uint64
-	Nonce        uint64
+	Version         uint16
+	SenderPubKey    ecdsa.PublicKey
+	SigLen          uint8  // len of the signature
+	Signature       []byte // size varies
+	RecipPubKeyHash []byte //NEED TO FIND SIZE OF THIS...
+	Value           uint64
+	Nonce           uint64
 }
 
 // 		CLIENT FUNCTION*************************** PRIVATE KEY IS OKAY
@@ -52,28 +51,16 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 	// public key is of size 32 bytes
 	// total size of struct is 112 bytes
 	c := Contract{
-		Version:      version,
-		SenderPubKey: sender.PublicKey,
-		SigLen:       0,
-		Signature:    nil,
-		RecipPubKey:  recipient,
-		Value:        value,
-		Nonce:        nonce,
+		Version:         version,
+		SenderPubKey:    sender.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipient)), // whats the size of this?!?!?
+		Value:           value,
+		Nonce:           nonce,
 	}
 	fmt.Println("ABOUT TO SIGN")
-	c.SignContract(sender) // passing in the senders private key to get sig
-	//unsafe.Sizeof(c)
-	// fmt.Println("SIZE")
-	// fmt.Println(unsafe.Sizeof(c))
-	// fmt.Println("SIZE SENDER")
-	// fmt.Println(unsafe.Sizeof(sender))
-
-	// fmt.Println("SIZE recp")
-	// fmt.Println(unsafe.Sizeof(recipient))
-
-	// senderSlice := keys.EncodePublicKey(&c.SenderPubKey)
-	// fmt.Println("SIZE send")
-	// fmt.Println(unsafe.Sizeof(senderSlice))
+	//c.SignContract(sender) // passing in the senders private key to get sig
 
 	return c
 }
@@ -87,15 +74,17 @@ siglen and sig go into respective fields in contract
 func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 
 	senderSlice := keys.EncodePublicKey(&c.SenderPubKey)
-	recipSlice := keys.EncodePublicKey(&c.RecipPubKey)
+	//recipSlice := c.RecipPubKeyHash
+
+	fmt.Println(len(c.RecipPubKeyHash))
 
 	preSerial := make([]byte, 374)
 
-	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)
-	copy(preSerial[2:180], senderSlice)
-	copy(preSerial[180:358], recipSlice)
-	binary.LittleEndian.PutUint64(preSerial[358:366], c.Value)
-	binary.LittleEndian.PutUint64(preSerial[366:374], c.Nonce)
+	// binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)
+	// copy(preSerial[2:180], senderSlice)
+	// copy(preSerial[180:358], c.RecipPubKeyHash)
+	// binary.LittleEndian.PutUint64(preSerial[358:366], c.Value)
+	// binary.LittleEndian.PutUint64(preSerial[366:374], c.Nonce)
 
 	preHash := block.HashSHA256(preSerial)
 
@@ -105,15 +94,15 @@ func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 	fmt.Println("SIGNING******")
 	fmt.Println("SIGN sender")
 	fmt.Println(len(senderSlice))
-	fmt.Println("recip slice")
-	fmt.Println(len(recipSlice))
+	fmt.Println("SIZE OF RECIP PUB KEY HASH")
+	fmt.Println(len(c.RecipPubKeyHash))
 	fmt.Println("sig")
 	fmt.Println(len(c.Signature))
 	fmt.Println("sigLen")
 	fmt.Println(c.SigLen)
 
 	fmt.Println("AT ENDDD of signing****")
-	fmt.Println(len(senderSlice) + len(recipSlice) + int(c.SigLen) + 2 + 16 + 1)
+	fmt.Println(len(senderSlice) + len(c.RecipPubKeyHash) + int(c.SigLen) + 2 + 16 + 1)
 
 	fmt.Println(c.Signature)
 
@@ -140,7 +129,7 @@ check to see that nonce is 1 + table nonce for that account (T)
 If all 3 are true, update table
 */
 func ValidateContract(c Contract, tableName string) bool {
-	fmt.Println("ABOUT TO VALID")
+	//fmt.Println("ABOUT TO VALID")
 
 	// table, err := sql.Open("sqlite3", tableName)
 	// if err != nil {
@@ -157,7 +146,7 @@ func ValidateContract(c Contract, tableName string) bool {
 	// 	return false
 	// }
 
-	// //fmt.Println("ABOUT TO VALID")
+	//fmt.Println("ABOUT TO VALID")
 
 	// var pk string
 	// for rows.Next() {

@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"fmt"
 	"os"
 
 	"github.com/google/go-cmp/cmp"
@@ -39,9 +40,9 @@ func TestValidateContract(t *testing.T) {
 	senderPublicKey := sender.PublicKey
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipient := recipientPrivateKey.PublicKey
-	c := MakeContract(1, *sender, senderPublicKey, 1000, 0)
 	MakeContract(1, *sender, senderPublicKey, 1000, 0)
 	// INSERT ABOVE VALUES INTO TABLE
+	fmt.Println("DONE ADDING TO TABLE")
 	validContract := MakeContract(1, *sender, recipient, 1000, 1)
 	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {
