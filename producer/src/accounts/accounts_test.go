@@ -6,15 +6,15 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
-	"fmt"
 	"os"
 
 	"github.com/google/go-cmp/cmp"
 
-	// "database/sql"
-	// "os"
+	"database/sql"
+	"os"
 	"testing"
-	// _ "github.com/mattn/go-sqlite3"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestValidateContract(t *testing.T) {
@@ -24,10 +24,9 @@ func TestValidateContract(t *testing.T) {
 		os.Remove(table)
 	}()
 	statement, err := conn.Prepare(
-
-		`CREATE TABLE IF NOT EXISTS account_balances ( 
-		public_key_hash TEXT, 
-		balance INTEGER, 
+		`CREATE TABLE IF NOT EXISTS account_balances (
+		public_key_hash TEXT,
+		balance INTEGER,
 		nonce INTEGER);`)
 
 	if err != nil {
@@ -42,7 +41,6 @@ func TestValidateContract(t *testing.T) {
 	recipient := recipientPrivateKey.PublicKey
 	MakeContract(1, *sender, senderPublicKey, 1000, 0)
 	// INSERT ABOVE VALUES INTO TABLE
-	fmt.Println("DONE ADDING TO TABLE")
 	validContract := MakeContract(1, *sender, recipient, 1000, 1)
 	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {

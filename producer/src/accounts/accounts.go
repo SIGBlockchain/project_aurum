@@ -3,6 +3,7 @@ package accounts
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -24,7 +25,7 @@ type Contract struct {
 	SenderPubKey    ecdsa.PublicKey
 	SigLen          uint8  // len of the signature
 	Signature       []byte // size varies
-	RecipPubKeyHash []byte //NEED TO FIND SIZE OF THIS...
+	RecipPubKeyHash []byte // 32 bytes
 	Value           uint64
 	Nonce           uint64
 }
@@ -55,12 +56,11 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 		SenderPubKey:    sender.PublicKey,
 		SigLen:          0,
 		Signature:       nil,
-		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipient)), // whats the size of this?!?!?
+		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipient)), // size 32 bytes
 		Value:           value,
 		Nonce:           nonce,
 	}
-	fmt.Println("ABOUT TO SIGN")
-	//c.SignContract(sender) // passing in the senders private key to get sig
+	c.SignContract(sender) // passing in the senders private key to get sig
 
 	return c
 }
@@ -73,39 +73,22 @@ siglen and sig go into respective fields in contract
 */
 func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 
-	senderSlice := keys.EncodePublicKey(&c.SenderPubKey)
-	//recipSlice := c.RecipPubKeyHash
+	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
 
 	fmt.Println(len(c.RecipPubKeyHash))
 
 	preSerial := make([]byte, 374)
 
-	// binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)
-	// copy(preSerial[2:180], senderSlice)
-	// copy(preSerial[180:358], c.RecipPubKeyHash)
-	// binary.LittleEndian.PutUint64(preSerial[358:366], c.Value)
-	// binary.LittleEndian.PutUint64(preSerial[366:374], c.Nonce)
+	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
+	copy(preSerial[2:180], spubkey)                            //178
+	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
+	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
+	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
 
 	preHash := block.HashSHA256(preSerial)
 
 	c.Signature, _ = sender.Sign(rand.Reader, preHash, nil)
 	c.SigLen = uint8(len(c.Signature))
-
-	fmt.Println("SIGNING******")
-	fmt.Println("SIGN sender")
-	fmt.Println(len(senderSlice))
-	fmt.Println("SIZE OF RECIP PUB KEY HASH")
-	fmt.Println(len(c.RecipPubKeyHash))
-	fmt.Println("sig")
-	fmt.Println(len(c.Signature))
-	fmt.Println("sigLen")
-	fmt.Println(c.SigLen)
-
-	fmt.Println("AT ENDDD of signing****")
-	fmt.Println(len(senderSlice) + len(c.RecipPubKeyHash) + int(c.SigLen) + 2 + 16 + 1)
-
-	fmt.Println(c.Signature)
-
 }
 
 /*
@@ -129,7 +112,7 @@ check to see that nonce is 1 + table nonce for that account (T)
 If all 3 are true, update table
 */
 func ValidateContract(c Contract, tableName string) bool {
-	//fmt.Println("ABOUT TO VALID")
+	// fmt.Println("ABOUT TO VALID")
 
 	// table, err := sql.Open("sqlite3", tableName)
 	// if err != nil {
@@ -175,48 +158,64 @@ func UpdateAccountBalanceTable(table string) {}
 
 // Serialize all fields of the contract
 func (c Contract) Serialize() []byte {
-	//senderSlice := keys.EncodePublicKey(&c.SenderPubKey) // THESE TWO SEEM TO CAUSE A PROBELM.... WHY!?
-	// recipSlice := keys.EncodePublicKey(&c.RecipPubKey)   // size 178
+	/*
+		0-2 version
+		2-180 spubkey
+		180-181 siglen
+		181 - 181+c.siglen signature
+		181+c.siglen - (181+c.siglen + 32) rpkh
+		(181+c.siglen + 32) - (181+c.siglen + 32+ 8) value
+		(181+c.siglen + 32+ 8) - (181+c.siglen + 32 + 8 + 8) nonce
 
-	fmt.Println("INSIDE SERIALIZE")
+	*/
 
-	// // size of signature VARIES*********************
-	// fmt.Println("SIGN send")
-	//fmt.Println(len(senderSlice))
-	// fmt.Println("rec")
-	// fmt.Println(len(recipSlice))
-	// fmt.Println("sig")
-	// fmt.Println(len(c.Signature))
-	// fmt.Println("sigLen")
-	// fmt.Println(c.SigLen)
+	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
+	totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
+	serializedContract := make([]byte, totalSize)
 
-	// fmt.Printf("********TOTAL")
-	// fmt.Println(len(senderSlice) + len(recipSlice) + int(c.SigLen) + 2 + 16 + 1)
-
-	serializedContract := make([]byte, 447)
-
-	// binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-	// copy(serializedContract[2:180], senderSlice)
-	// serializedContract = append(serializedContract, c.SigLen)	//180:181
-	// copy(serializedContract[181:(181+c.SigLen)], c.Signature)
-	// copy(serializedContract[(181+c.SigLen):430], recipSlice)
-	// binary.LittleEndian.PutUint64(serializedContract[430:438], c.Value)
-	// binary.LittleEndian.PutUint64(serializedContract[438:446], c.Nonce)
+	binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+	copy(serializedContract[2:180], spubkey)
+	serializedContract[180] = c.SigLen
+	copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
+	copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+	binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+	binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
 
 	return serializedContract
 }
 
 // Deserialize into a struct
 func (c Contract) Deserialize(b []byte) Contract {
-	// c2 := Contract{
-	// 	Version:      binary.LittleEndian.Uint16(b[0:2]),
-	// 	SenderPubKey: *(keys.DecodePublicKey(b[2:26])),
-	// 	Signature:    b[26:48],
-	// 	RecipPubKey:  *(keys.DecodePublicKey(b[48:80])),
-	// 	Value:        binary.LittleEndian.Uint64(b[80:88]),
-	// 	Nonce:        binary.LittleEndian.Uint64(b[88:96]),
-	// }
-	return Contract{} //c2
+	spubkeydecoded := keys.DecodePublicKey(b[2:180])
+	siglen := int(b[180])
+
+	fmt.Println("siglen")
+	fmt.Println(siglen)
+	fmt.Println("sig")
+	fmt.Println(b[181 : 181+siglen])
+	fmt.Println("rpkh")
+	fmt.Println(b[181+int(siglen) : 181+int(siglen)+32])
+	fmt.Println("val")
+	fmt.Println(b[181+int(siglen)+32 : 181+int(siglen)+32+8])
+	fmt.Println("nonce")
+	fmt.Println(b[181+int(siglen)+32+8 : 181+int(siglen)+32+8+8])
+
+	c2 := Contract{
+		Version:         binary.LittleEndian.Uint16(b[0:2]),
+		SenderPubKey:    *spubkeydecoded,
+		SigLen:          b[180],
+		Signature:       b[181:(181 + siglen)],
+		RecipPubKeyHash: b[(181 + siglen):(181 + siglen + 32)],
+		Value:           binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)]),
+		Nonce:           binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)]),
+	}
+	fmt.Println(c2.SenderPubKey)
+	fmt.Println(c2.SigLen)
+	fmt.Println(c2.Signature)
+	fmt.Println(c2.RecipPubKeyHash)
+	fmt.Println(c2.Value)
+	fmt.Println(c2.Nonce)
+	return c2
 }
 
 /*
