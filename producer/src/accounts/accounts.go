@@ -1,11 +1,14 @@
 package accounts
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"database/sql"
+	"encoding/asn1"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -113,8 +116,6 @@ check to see that nonce is 1 + table nonce for that account (T)
 If all 3 are true, update table
 */
 func ValidateContract(c Contract, tableName string) bool {
-	// fmt.Println("ABOUT TO VALID")
-
 	table, err := sql.Open("sqlite3", tableName)
 	if err != nil {
 		//"Failed to open sqlite3 table"
@@ -122,6 +123,7 @@ func ValidateContract(c Contract, tableName string) bool {
 	}
 
 	defer table.Close()
+
 	// statement, err := table.Prepare(
 	// 	`CREATE TABLE IF NOT EXISTS account_balances (
 	// 	public_key_hash TEXT,
@@ -149,27 +151,43 @@ func ValidateContract(c Contract, tableName string) bool {
 	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
 
 	hashedContract := block.HashSHA256(preSerial)
-	if ecdsa.Verify(&c.SenderPubKey, hashedContract, c.SenderPubKey.X, c.SenderPubKey.Y) {
+
+	// stores r and s values needed for ecdsa.Verify
+	var esig struct {
+		R, S *big.Int
+	}
+	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
+		fmt.Println(err)
+	}
+
+	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
 		fmt.Println("ecdsa.verify true")
 	}
 
-	// //var pubKey string
-	// rows, err := table.Query("SELECT public_key_hash FROM acccount_balances")
-	// if err != nil {
-	// 	//"Failed to create rows to look for public key"
-	// 	return false
-	// }
+	// 	2. validate amount
+	// check table to see if sender's balance >= contract amount (T)
+	// 3. validate nonce
+	// check to see that nonce is 1 + table nonce for that account (T)
 
-	// var pk string
-	// for rows.Next() {
-	// 	rows.Scan(&pk)
-	// 	if pk == string(keys.EncodePublicKey(&c.SenderPubKey)) {
-	// 		return true
-	// 	}
-	// 	fmt.Printf(pk)
-	// 	fmt.Println(" pubKey")
+	//var pubKey string
+	rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		fmt.Println("Failed to create rows to look for public key")
+	}
 
-	// }
+	var pkh string
+	var tblBal int
+	var tblNonce int
+	for rows.Next() {
+		rows.Scan(&pkh, &tblBal, &tblNonce)
+		if bytes.Equal([]byte(pkh), (block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))) {
+			c.UpdateAccountBalanceTable(tableName)
+			return true
+		}
+		fmt.Println(pkh)
+		fmt.Println(" pubKey")
+
+	}
 	// if true && false {
 	// 	return true
 	// }
@@ -183,7 +201,53 @@ decrease value from sender public key hash account
 increment their nonce by one
 increase value of recipient public key hash account by contract value
 */
-func UpdateAccountBalanceTable(table string) {}
+func (c *Contract) UpdateAccountBalanceTable(table string) {
+	tbl, err := sql.Open("sqlite3", table)
+	if err != nil {
+		fmt.Println("Failed to open sqlite3 table")
+	}
+
+	defer tbl.Close()
+
+	rows, err := tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		fmt.Println("Failed to create rows to look for public key")
+	}
+
+	var pkh string
+	var tblBal int
+	var tblNonce int
+	for rows.Next() {
+		rows.Scan(&pkh, &tblBal, &tblNonce)
+		if bytes.Equal([]byte(pkh), block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))) {
+			fmt.Print("before")
+			fmt.Println(tblBal)
+
+			stmt, err := tbl.Prepare("update account_balances set balance=?, nonce=?")
+
+			_, err = stmt.Exec(int(uint64(tblBal)-c.Value), tblNonce+1)					// STUCK HERE TRYING TO UPDATE
+			if err != nil {
+				fmt.Println(err)
+				// return errors.New("Failed to execute query")
+			}
+		}
+	}
+
+	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		fmt.Println("Failed to create rows to look for public key")
+	}
+
+	for rows.Next() {
+		rows.Scan(&pkh, &tblBal, &tblNonce)
+		if bytes.Equal([]byte(pkh), block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))) {
+			fmt.Print("after")
+			fmt.Println(tblBal)
+		}
+
+	}
+
+}
 
 // Serialize all fields of the contract
 func (c Contract) Serialize() []byte {

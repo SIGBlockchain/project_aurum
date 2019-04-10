@@ -59,7 +59,7 @@ func TestValidateContract(t *testing.T) {
 		t.Errorf("Valid contract regarded as invalid")
 	}
 	if ValidateContract(falseContractInsufficientFunds, table) {
-		t.Errorf("Invalid contract regarded as invalid")
+		t.Errorf("Invalid contract regarded as valid")
 	}
 }
 
