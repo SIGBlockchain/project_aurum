@@ -340,3 +340,17 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) e
 	}
 	return err
 }
+
+/*
+Retrieves Block with the largest height in deserialized form
+*/
+func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
+	return block.Block{}, errors.New("Incomplete function")
+}
+
+/*
+Calls GetYoungestBlock and returns a Header version of the result
+*/
+func GetYoungestBlockHeader(blockchain string, table string) (block.BlockHeader, error) {
+	return block.BlockHeader{}, errors.New("Incomplete function")
+}

@@ -6,6 +6,14 @@ import (
 	"encoding/binary" // for converting to uints to byte slices
 )
 
+type BlockHeader struct {
+	Version        uint16
+	Height         uint64
+	Timestamp      int64
+	PreviousHash   []byte
+	MerkleRootHash []byte
+}
+
 type Block struct {
 	Version        uint16
 	Height         uint64
