@@ -3,6 +3,7 @@ package accounts
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+	"database/sql"
 	"encoding/binary"
 	"fmt"
 
@@ -75,7 +76,7 @@ func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
 
-	fmt.Println(len(c.RecipPubKeyHash))
+	// fmt.Println(len(c.RecipPubKeyHash))
 
 	preSerial := make([]byte, 374)
 
@@ -114,22 +115,50 @@ If all 3 are true, update table
 func ValidateContract(c Contract, tableName string) bool {
 	// fmt.Println("ABOUT TO VALID")
 
-	// table, err := sql.Open("sqlite3", tableName)
-	// if err != nil {
-	// 	//"Failed to open sqlite3 table"
-	// 	return false
-	// }
+	table, err := sql.Open("sqlite3", tableName)
+	if err != nil {
+		//"Failed to open sqlite3 table"
+		return false
+	}
 
-	// defer table.Close()
+	defer table.Close()
+	// statement, err := table.Prepare(
+	// 	`CREATE TABLE IF NOT EXISTS account_balances (
+	// 	public_key_hash TEXT,
+	// 	balance INTEGER,
+	// 	nonce INTEGER);`)
+
+	// if err != nil {
+	// 	return false // error stmt?
+	// }
+	// statement.Exec()
+	// table.Close()
+
+	// 	1. verify signature
+	// hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
+	// verify (hashed contract, spubkey, signature) (T)
+
+	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
+
+	preSerial := make([]byte, 374)
+
+	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
+	copy(preSerial[2:180], spubkey)                            //178
+	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
+	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
+	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
+
+	hashedContract := block.HashSHA256(preSerial)
+	if ecdsa.Verify(&c.SenderPubKey, hashedContract, c.SenderPubKey.X, c.SenderPubKey.Y) {
+		fmt.Println("ecdsa.verify true")
+	}
 
 	// //var pubKey string
-	// rows, err := table.Query("SELECT public_key FROM acccount_balances")
+	// rows, err := table.Query("SELECT public_key_hash FROM acccount_balances")
 	// if err != nil {
 	// 	//"Failed to create rows to look for public key"
 	// 	return false
 	// }
-
-	//fmt.Println("ABOUT TO VALID")
 
 	// var pk string
 	// for rows.Next() {
