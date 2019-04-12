@@ -1,15 +1,15 @@
 package accounts
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"database/sql"
 	"encoding/asn1"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
-	"log"
 	"math/big"
+	"reflect"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -175,23 +175,24 @@ func ValidateContract(c Contract, tableName string) bool {
 	if err != nil {
 		fmt.Println("Failed to create rows to look for public key")
 	}
-
 	var pkh string
 	var tblBal int
 	var tblNonce int
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
-		if bytes.Equal([]byte(pkh), (block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))) {
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
 			c.UpdateAccountBalanceTable(tableName)
 			return true
 		}
-		fmt.Println(pkh)
-		fmt.Println(" pubKey")
-
 	}
+	rows.Close()
+	table.Close()
+	fmt.Println("connections")
+	fmt.Println(table.Stats().OpenConnections)
 	// if true && false {
 	// 	return true
 	// }
+
 	return false
 }
 
@@ -215,25 +216,31 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 		fmt.Println("Failed to create rows to look for public key")
 	}
 
+	fmt.Println("connections")
+	fmt.Println(tbl.Stats().OpenConnections)
+
 	var pkh string
 	var tblBal int
 	var tblNonce int
+	var sqlQuery string
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
-		if bytes.Equal([]byte(pkh), block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))) {
-			compareVal := block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+			compareVal := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))
+
 			fmt.Print("before")
 			fmt.Println(tblBal)
 
-			sqlQuery := fmt.Sprintf("update account_balances set balance=%d, nonce=%d where public_key_hash = %s", tblBal, tblNonce, compareVal)
-			log.Printf("QUERY: %s", sqlQuery)
-			_, err := tbl.Exec(sqlQuery)
-
-			if err != nil {
-				fmt.Println(err)
-				// return errors.New("Failed to execute query")
-			}
+			sqlQuery = fmt.Sprintf("update account_balances set balance=%d, nonce=%d where public_key_hash = \"%s\"", tblBal-int(c.Value), tblNonce+1, compareVal)
+			//fmt.Printf("QUERY: %s", sqlQuery)
 		}
+	}
+	rows.Close()
+	_, err = tbl.Exec(sqlQuery)
+	if err != nil {
+		fmt.Println("searching in rows failed to update")
+		fmt.Println(err)
+		//return errors.New("Failed to execute query")
 	}
 
 	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
@@ -243,10 +250,8 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
-		if bytes.Equal([]byte(pkh), block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))) {
-			fmt.Print("after")
-			fmt.Println(tblBal)
-		}
+		fmt.Println("balances")
+		fmt.Println(tblBal)
 
 	}
 	rows.Close()
@@ -285,32 +290,6 @@ func (c Contract) Deserialize(b []byte) Contract {
 	spubkeydecoded := keys.DecodePublicKey(b[2:180])
 	siglen := int(b[180])
 
-	fmt.Println("siglen")
-	fmt.Println(siglen)
-	fmt.Println("sig")
-	fmt.Println(b[181 : 181+siglen])
-	fmt.Println("rpkh")
-	fmt.Println(b[181+int(siglen) : 181+int(siglen)+32])
-	fmt.Println("val")
-	fmt.Println(b[181+int(siglen)+32 : 181+int(siglen)+32+8])
-	fmt.Println("nonce")
-	fmt.Println(b[181+int(siglen)+32+8 : 181+int(siglen)+32+8+8])
-
-	// c2 := Contract{
-	// 	Version:         binary.LittleEndian.Uint16(b[0:2]),
-	// 	SenderPubKey:    *spubkeydecoded,
-	// 	SigLen:          b[180],
-	// 	Signature:       b[181:(181 + siglen)],
-	// 	RecipPubKeyHash: b[(181 + siglen):(181 + siglen + 32)],
-	// 	Value:           binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)]),
-	// 	Nonce:           binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)]),
-	// }
-	// fmt.Println(c2.SenderPubKey)
-	// fmt.Println(c2.SigLen)
-	// fmt.Println(c2.Signature)
-	// fmt.Println(c2.RecipPubKeyHash)
-	// fmt.Println(c2.Value)
-	// fmt.Println(c2.Nonce)
 	c.Version = binary.LittleEndian.Uint16(b[0:2])
 	c.SenderPubKey = *spubkeydecoded
 	c.SigLen = b[180]
@@ -318,13 +297,6 @@ func (c Contract) Deserialize(b []byte) Contract {
 	c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
 	c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
 	c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
-
-	fmt.Println(c.SenderPubKey)
-	fmt.Println(c.SigLen)
-	fmt.Println(c.Signature)
-	fmt.Println(c.RecipPubKeyHash)
-	fmt.Println(c.Value)
-	fmt.Println(c.Nonce)
 
 	return c
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -67,10 +68,10 @@ func TestValidateContract(t *testing.T) {
 	defer conn.Close()
 
 	table := "testDB.db" */
-	table := "table.dat"
+	table := "table.db"
 	conn, err := sql.Open("sqlite3", table)
 	defer func() {
-		os.Remove(table)
+		//os.Remove(table)
 	}()
 	statement, err := conn.Prepare(
 		`CREATE TABLE IF NOT EXISTS account_balances (
@@ -90,7 +91,7 @@ func TestValidateContract(t *testing.T) {
 	recipient := recipientPrivateKey.PublicKey
 	c := MakeContract(1, *sender, senderPublicKey, 1000, 0)
 	// INSERT ABOVE VALUES INTO TABLE
-	sqlQuery := fmt.Sprintf("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (\"%s\", %d, %d)", block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)), 1000, 0)
+	sqlQuery := fmt.Sprintf("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (\"%s\", %d, %d)", hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))), 1000, 0)
 	log.Printf("Executing query %s", sqlQuery)
 	_, err = conn.Exec(sqlQuery)
 	if err != nil {
