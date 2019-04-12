@@ -225,7 +225,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 			stmt, err := tbl.Prepare("update account_balances set balance=?, nonce=?")
 
-			_, err = stmt.Exec(int(uint64(tblBal)-c.Value), tblNonce+1)					// STUCK HERE TRYING TO UPDATE
+			_, err = stmt.Exec(int(uint64(tblBal)-c.Value), tblNonce+1) // STUCK HERE TRYING TO UPDATE
 			if err != nil {
 				fmt.Println(err)
 				// return errors.New("Failed to execute query")
@@ -293,22 +293,37 @@ func (c Contract) Deserialize(b []byte) Contract {
 	fmt.Println("nonce")
 	fmt.Println(b[181+int(siglen)+32+8 : 181+int(siglen)+32+8+8])
 
-	c2 := Contract{
-		Version:         binary.LittleEndian.Uint16(b[0:2]),
-		SenderPubKey:    *spubkeydecoded,
-		SigLen:          b[180],
-		Signature:       b[181:(181 + siglen)],
-		RecipPubKeyHash: b[(181 + siglen):(181 + siglen + 32)],
-		Value:           binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)]),
-		Nonce:           binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)]),
-	}
-	fmt.Println(c2.SenderPubKey)
-	fmt.Println(c2.SigLen)
-	fmt.Println(c2.Signature)
-	fmt.Println(c2.RecipPubKeyHash)
-	fmt.Println(c2.Value)
-	fmt.Println(c2.Nonce)
-	return c2
+	// c2 := Contract{
+	// 	Version:         binary.LittleEndian.Uint16(b[0:2]),
+	// 	SenderPubKey:    *spubkeydecoded,
+	// 	SigLen:          b[180],
+	// 	Signature:       b[181:(181 + siglen)],
+	// 	RecipPubKeyHash: b[(181 + siglen):(181 + siglen + 32)],
+	// 	Value:           binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)]),
+	// 	Nonce:           binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)]),
+	// }
+	// fmt.Println(c2.SenderPubKey)
+	// fmt.Println(c2.SigLen)
+	// fmt.Println(c2.Signature)
+	// fmt.Println(c2.RecipPubKeyHash)
+	// fmt.Println(c2.Value)
+	// fmt.Println(c2.Nonce)
+	c.Version = binary.LittleEndian.Uint16(b[0:2])
+	c.SenderPubKey = *spubkeydecoded
+	c.SigLen = b[180]
+	c.Signature = b[181:(181 + siglen)]
+	c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
+	c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
+	c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
+
+	fmt.Println(c.SenderPubKey)
+	fmt.Println(c.SigLen)
+	fmt.Println(c.Signature)
+	fmt.Println(c.RecipPubKeyHash)
+	fmt.Println(c.Value)
+	fmt.Println(c.Nonce)
+
+	return c
 }
 
 /*

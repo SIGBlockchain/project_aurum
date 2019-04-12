@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -8,13 +9,12 @@ import (
 	"fmt"
 	"os"
 
+	"testing"
+
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 
-	// "database/sql"
-	// "os"
-	"testing"
-
+	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -63,17 +63,17 @@ func TestValidateContract(t *testing.T) {
 	}
 }
 
-// func TestContractSerialization(t *testing.T) {
-// 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	senderPublicKey := sender.PublicKey
-// 	contract := MakeContract(1, *sender, senderPublicKey, 1000, 20)
-// 	serialized := contract.Serialize()
-// 	deserialized := Contract{}.Deserialize(serialized)
-// 	if !cmp.Equal(contract, deserialized, cmp.AllowUnexported(Contract{})) {
-// 		t.Errorf("Contracts (struct) do not match")
-// 	}
-// 	reserialized := deserialized.Serialize()
-// 	if !bytes.Equal(serialized, reserialized) {
-// 		t.Errorf("Contracts (byte slice) do not match")
-// 	}
-// }
+func TestContractSerialization(t *testing.T) {
+	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPublicKey := sender.PublicKey
+	contract := MakeContract(1, *sender, senderPublicKey, 1000, 20)
+	serialized := contract.Serialize()
+	deserialized := Contract{}.Deserialize(serialized)
+	if !cmp.Equal(contract, deserialized, cmp.AllowUnexported(Contract{})) {
+		t.Errorf("Contracts (struct) do not match")
+	}
+	reserialized := deserialized.Serialize()
+	if !bytes.Equal(serialized, reserialized) {
+		t.Errorf("Contracts (byte slice) do not match")
+	}
+}
