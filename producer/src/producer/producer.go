@@ -1,3 +1,4 @@
+// This contains all necessary tools for the producer to accept connections and process the recieved data
 package producer
 
 import (
@@ -10,13 +11,13 @@ import (
 	"syscall"
 )
 
-// Purpose: stores communication information
+// This stores connection information for the producer
 type BlockProducer struct {
 	Server        net.Listener
 	NewConnection chan net.Conn
 }
 
-// Purpose: Checks to see if there is an internet connection established
+// This checks if the producer is connected to the internet
 func CheckConnectivity() error {
 	conn, err := net.Dial("tcp", "www.google.com:80")
 	if err != nil {
@@ -26,7 +27,7 @@ func CheckConnectivity() error {
 	return nil
 }
 
-// Purpose: Accepts incoming connections
+// This will accept any incoming connections
 func (bp *BlockProducer) AcceptConnections() {
 	for {
 		conn, err := bp.Server.Accept()
@@ -37,10 +38,7 @@ func (bp *BlockProducer) AcceptConnections() {
 	}
 }
 
-// Handles incoming Connections
-// Currently this is simply echoing messages back
-// In the future this will need to support messages of size > 1024
-// This can be done by reading in fragments
+// Handles incoming connections, accepting _ of at most 1024 bytes
 func (bp *BlockProducer) Handle(conn net.Conn) {
 	buf := make([]byte, 1024)
 	_, err := conn.Read(buf)
@@ -51,8 +49,7 @@ func (bp *BlockProducer) Handle(conn net.Conn) {
 	conn.Close()
 }
 
-// The main work loop
-// Handles communication, block production, and ledger maintenance
+// The main work loop which handles communication, block production, and ledger maintenance
 func (bp *BlockProducer) WorkLoop(logger *log.Logger) {
 	// Creates signal
 	signalCh := make(chan os.Signal, 1)

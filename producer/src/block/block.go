@@ -1,3 +1,4 @@
+// Package block contains the block struct and functions to transform a block
 package block
 
 import (
@@ -6,17 +7,27 @@ import (
 	"encoding/binary" // for converting to uints to byte slices
 )
 
+// Block is a struct that represents a block in a blockchain.
 type Block struct {
-	Version        uint32
-	Height         uint64
-	Timestamp      int64
-	PreviousHash   []byte
-	MerkleRootHash []byte
-	DataLen        uint16
-	Data           [][]byte
+	Version        uint16 		// Version is the version of the software this block was created with
+	Height         uint64 		// Height is the distance from the bottom of the tree, with the genesis block starting with height 0
+	Timestamp      int64 		// Timestamp is the time of creation for this block
+	PreviousHash   []byte 		// PreviousHash is the hash of the previous block in the blockchain, 
+	MerkleRootHash []byte 		// MerkleRootHash is the hash of the MerkleRoot of all inputs
+	DataLen        uint16 		// DataLen is the number of objects in the following Data variable
+	Data           [][]byte 	// Data is an abritrary variable, holding the actual contents of this block
 }
 
-// Produces a block based on the struct provided
+// Produces a byte string based on the block struct provided
+//
+// Block Header Structure:
+//
+//      Bytes 0-4   : Version
+//      Bytes 4-12  : Height
+//      Bytes 12-20 : Timestamp
+//      Bytes 20-52 : Previous Hash
+//      Bytes 52-84 : Merkle Root Hash
+//      Bytes 84-86 : Data Length
 func (b *Block) Serialize() []byte { // Vineet
 	//calculate the total length beforehand, to prevent unneccessary appends
 	//NOTE: 32 bit ints are used to hold lengths; unsigned 16 bit int is used for the length of Data
@@ -45,13 +56,15 @@ func (b *Block) Serialize() []byte { // Vineet
 	return serializedBlock
 }
 
-// function hashes data
+// Hashes the given byte slice using SHA256 and returns it
 func HashSHA256(data []byte) []byte {
 	result := sha256.Sum256(data)
 	return result[:]
 }
 
 // Returns the merkle root hash of the list of inputs
+//
+// If there are no inputs a empty slice is returned, otherwise the merkle root is generated recursively
 func GetMerkleRootHash(input [][]byte) []byte {
 	if len(input) == 0 {
 		return []byte{} //return an empty slice
@@ -65,7 +78,12 @@ func GetMerkleRootHash(input [][]byte) []byte {
 	return getMerkleRoot(l)
 }
 
-// recursive helper function
+// Recursive Helper function for GetMerkleRootHash()
+//
+// This will combine every two adjacent values, hash them, and add to the list
+// This is done until the list is half of its original length.
+// If the list originally had an odd length, the last element is duplicated.
+// This will recursively repeat until the list has a length of one
 func getMerkleRoot(l *list.List) []byte {
 	if l.Len() == 1 {
 		return l.Front().Value.([]byte)
@@ -86,8 +104,7 @@ func getMerkleRoot(l *list.List) []byte {
 	return getMerkleRoot(l)
 }
 
-// Concatenate all the fields of the block **header**
-// Return the SHA-256 hash of that concatenation
+// Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlock(b Block) []byte {
 	const blength = 84 // calculate the total length of the slice
 	concatenated := make([]byte, blength)
@@ -101,7 +118,7 @@ func HashBlock(b Block) []byte {
 	return HashSHA256(concatenated)
 }
 
-// Given a block in byte string form, return a block in struct form
+// Converts a block in byte form into a block struct, returns the struct
 func Deserialize(block []byte) Block {
 	dataLen := binary.LittleEndian.Uint16(block[84:86])
 	data := make([][]byte, dataLen)
