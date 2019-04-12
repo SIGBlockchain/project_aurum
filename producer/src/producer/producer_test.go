@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"log"
 	"net"
-	"os"
 	"testing"
 )
 
@@ -19,9 +18,11 @@ func TestCheckConnectivity(t *testing.T) {
 // Tests a single connection
 func TestAcceptConnections(t *testing.T) {
 	ln, _ := net.Listen("tcp", "localhost:10000")
+	var buffer bytes.Buffer
 	bp := BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
+		Logger:        log.New(&buffer, "LOG:", log.Ldate),
 	}
 	go bp.AcceptConnections()
 	conn, err := net.Dial("tcp", ":10000")
@@ -41,12 +42,14 @@ func TestAcceptConnections(t *testing.T) {
 // Sends a message to the listener and checks to see if it echoes back
 func TestHandler(t *testing.T) {
 	ln, _ := net.Listen("tcp", "localhost:10000")
+	var buffer bytes.Buffer
 	bp := BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
+		Logger:        log.New(&buffer, "LOG:", log.Ldate),
 	}
 	go bp.AcceptConnections()
-	go bp.WorkLoop(log.New(os.Stderr, "", log.Lshortfile))
+	go bp.WorkLoop()
 	conn, err := net.Dial("tcp", ":10000")
 	if err != nil {
 		t.Errorf("Failed to connect to server")

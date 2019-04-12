@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"log"
 	"net"
 	"testing"
 	"time"
@@ -42,37 +43,11 @@ func TestSendToProducer(t *testing.T) {
 	}
 	addr := "localhost:8080"
 	ln, err := net.Listen("tcp", addr)
+	var buffer bytes.Buffer
 	bp := producer.BlockProducer{
 		Server:        ln,
 		NewConnection: make(chan net.Conn, 128),
-	}
-	go bp.AcceptConnections()
-	time.Sleep(1)
-	if err != nil {
-		t.Errorf("Failed to set up listener")
-	}
-	n, err := SendToProducer(testbuf, addr)
-	if err != nil {
-		t.Errorf("Failed to send to producer")
-	}
-	if n != sz {
-		t.Errorf("Did not write all bytes to connection")
-	}
-	ln.Close()
-}
-
-// Test send to producer with large message
-func TestSendToProducerWithLargeMessage(t *testing.T) {
-	sz := 4096
-	testbuf := make([]byte, sz)
-	for i, _ := range testbuf {
-		testbuf[i] = 1
-	}
-	addr := "localhost:8080"
-	ln, err := net.Listen("tcp", addr)
-	bp := producer.BlockProducer{
-		Server:        ln,
-		NewConnection: make(chan net.Conn, 128),
+		Logger:        log.New(&buffer, "LOG:", log.Ldate),
 	}
 	go bp.AcceptConnections()
 	time.Sleep(1)
