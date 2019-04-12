@@ -8,6 +8,7 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -220,12 +221,14 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
 		if bytes.Equal([]byte(pkh), block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))) {
+			compareVal := block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))
 			fmt.Print("before")
 			fmt.Println(tblBal)
 
-			stmt, err := tbl.Prepare("update account_balances set balance=?, nonce=?")
+			sqlQuery := fmt.Sprintf("update account_balances set balance=%d, nonce=%d where public_key_hash = %s", tblBal, tblNonce, compareVal)
+			log.Printf("QUERY: %s", sqlQuery)
+			_, err := tbl.Exec(sqlQuery)
 
-			_, err = stmt.Exec(int(uint64(tblBal)-c.Value), tblNonce+1) // STUCK HERE TRYING TO UPDATE
 			if err != nil {
 				fmt.Println(err)
 				// return errors.New("Failed to execute query")
@@ -246,7 +249,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 		}
 
 	}
-
+	rows.Close()
 }
 
 // Serialize all fields of the contract
