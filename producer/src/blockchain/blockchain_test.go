@@ -376,6 +376,6 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 		t.Errorf("Error extracting youngest block")
 	}
 	if !cmp.Equal(actualBlock1Header, block1Header) {
-		t.Errorf("Blocks do not match")
+		t.Errorf("Block Headers do not match")
 	}
 }
