@@ -1,3 +1,6 @@
+// This contains the tools to allow a user to send relevant information off to a producer
+//
+// It also contains the functions for accepting user input and displaying information, a primitive console UI
 package client
 
 import (
@@ -12,12 +15,9 @@ import (
 	"strings"
 )
 
-/*=====================================================================
-Purpose: Checks if the user has an internet connection, this is done by
-	attempting to connect to google, and returning the error message
-Returns: Error message if user has faulty internet connection, nil
-	otherwise
-=====================================================================*/
+// This will check if the client is connected to the internet
+//
+// Will return relevant error if not connected
 func CheckConnection() error {
 	// Creates a connection conn, and stores any errors in err
 	conn, err := net.Dial("tcp", "www.google.com:80")
@@ -30,10 +30,7 @@ func CheckConnection() error {
 	return nil
 }
 
-/*=================================================================================================
-* Purpose: Collects user input from command line, returns as a string                             *
-* Returns: A string, holding the user input                                                       *
-=================================================================================================*/
+// This stores any user input inside of text until a new line is entered
 func GetUserInput(text *string, reader io.Reader) error {
 	// Creates a reader object, using bufio library
 	fmt.Print("[aurum client] >> ")
@@ -46,12 +43,7 @@ func GetUserInput(text *string, reader io.Reader) error {
 	return err
 }
 
-// Establishes connection to addr with Dial
-// Return 0 and err if Dial fails
-// Get the length of buf
-// Write buf to the connection IN 1024 BYTE CHUNKS
-// if any conn write call fails, return how many bytes you wrote and an error
-// if everything works out fine, return how many bytes you wrote and a nil error
+// Establishes connection to addr with Dial and sends data to address, returns number of bytes written and any errors
 func SendToProducer(buf []byte, addr string) (int, error) {
 	// Opens a connection, if connection fails, return 0 and error
 	conn, err:= net.Dial("tcp", addr)
@@ -65,10 +57,9 @@ func SendToProducer(buf []byte, addr string) (int, error) {
 	return n, nil
 }
 
-/*=================================================================================================
-* Purpose: Clears the terminal of all previous text and adds a seperator to the top of the screen *
-* Returns: Nothing                                                                                *
-=================================================================================================*/
+// This clears the console screen of any present text, uses system dependent clear sceen command
+//
+// This will also place a new seperator at the top of the screen
 func ClearScreen() {
 	// On non-windows systems, the clear command clears the screen
 	cmd := exec.Command("clear")
@@ -91,11 +82,7 @@ func ClearScreen() {
 	==========================================================================================*/
 }
 
-/*=================================================================================================
-* Purpose: Prints all avalible commands into the terminal, with a brief description for the usage *
-* of each. In alphabetical order                                                                  *
-* Returns: Nothing																				  *
-=================================================================================================*/
+// This will print all relevant commands into the console
 func PrintHelp() {
 	fmt.Println("\tbalance\t\t\t\tcheck your wallet balance")								// balance
 	fmt.Println("\tclear\t\t\t\tclears the screen of all previous output")            	// clear
@@ -105,9 +92,7 @@ func PrintHelp() {
 	fmt.Println("\tq\t\t\t\tquits the program")                                       	// q
 }
 
-/*=================================================================================================
-* Purpose: Prints link to project github page                                                     *
-=================================================================================================*/
+// This will print a link to the project github page into the console
 func PrintGithubLink() {
 	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
 }

@@ -1,3 +1,4 @@
+// Package contains all the necessary tools to interact with keys
 package keys
 
 import (
@@ -10,6 +11,7 @@ import (
 	"os"
 )
 
+// Stores a key into a given file
 func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 	// Opens the file, if it does not exist the O_CREATE flag tells it to create the file otherwise overwrite file
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
@@ -47,10 +49,7 @@ func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 	return nil
 }
 
-/*=================================================================================================
-* Purpose: Converts encoded strings in a json file into the private key                           *
-* Returns:                                                                                        *
-=================================================================================================*/
+// Gets the key held in a given file
 func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 	privateKey := new(ecdsa.PrivateKey)
 	// Reads json file into b_string, if any errors occur, abort
@@ -74,19 +73,13 @@ func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 	return privateKey, err
 }
 
-/*
-EncodePublicKey encodes given public key and returns its
-PEM-Encoded byte slice form
-*/
+// Returns the PEM-Encoded byte slice from a given public key
 func EncodePublicKey(key *ecdsa.PublicKey) []byte {
 	x509EncodedPub, _ := x509.MarshalPKIXPublicKey(key)
 	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
 }
 
-/*
-DecodePublicKey takes a PEM-Encoded key and returns
-an ecdsa PublicKey Struct
-*/
+// Returns the public key from a given PEM-Encoded byte slice representation of the public key
 func DecodePublicKey(key []byte) *ecdsa.PublicKey {
 	blockPub, _ := pem.Decode(key)
 	x509EncodedPub := blockPub.Bytes
