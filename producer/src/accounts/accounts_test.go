@@ -70,8 +70,10 @@ func TestValidateContract(t *testing.T) {
 	table := "testDB.db" */
 	table := "table.db"
 	conn, err := sql.Open("sqlite3", table)
+	defer conn.Close()
+
 	defer func() {
-		//os.Remove(table)
+		os.Remove(table)
 	}()
 	statement, err := conn.Prepare(
 		`CREATE TABLE IF NOT EXISTS account_balances (
@@ -83,7 +85,6 @@ func TestValidateContract(t *testing.T) {
 		t.Error(err)
 	}
 	statement.Exec()
-	//conn.Close()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	senderPublicKey := sender.PublicKey

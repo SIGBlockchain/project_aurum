@@ -79,9 +79,6 @@ siglen and sig go into respective fields in contract
 func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
-
-	// fmt.Println(len(c.RecipPubKeyHash))
-
 	preSerial := make([]byte, 374)
 
 	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
@@ -89,7 +86,6 @@ func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
 	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
 	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
-
 	preHash := block.HashSHA256(preSerial)
 
 	c.Signature, _ = sender.Sign(rand.Reader, preHash, nil)
@@ -122,27 +118,9 @@ func ValidateContract(c Contract, tableName string) bool {
 		//"Failed to open sqlite3 table"
 		return false
 	}
-
 	defer table.Close()
 
-	// statement, err := table.Prepare(
-	// 	`CREATE TABLE IF NOT EXISTS account_balances (
-	// 	public_key_hash TEXT,
-	// 	balance INTEGER,
-	// 	nonce INTEGER);`)
-
-	// if err != nil {
-	// 	return false // error stmt?
-	// }
-	// statement.Exec()
-	// table.Close()
-
-	// 	1. verify signature
-	// hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
-	// verify (hashed contract, spubkey, signature) (T)
-
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
-
 	preSerial := make([]byte, 374)
 
 	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
@@ -161,38 +139,33 @@ func ValidateContract(c Contract, tableName string) bool {
 		fmt.Println(err)
 	}
 
+	// if the ecdsa.Verify is true then check the rest of the contract against whats in the database
 	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
 		fmt.Println("ecdsa.verify true")
-	}
 
-	// 	2. validate amount
-	// check table to see if sender's balance >= contract amount (T)
-	// 3. validate nonce
-	// check to see that nonce is 1 + table nonce for that account (T)
+		rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+		if err != nil {
+			fmt.Println("Failed to create rows to look for public key")
+		}
+		defer rows.Close()
 
-	//var pubKey string
-	rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	if err != nil {
-		fmt.Println("Failed to create rows to look for public key")
-	}
-	var pkh string
-	var tblBal int
-	var tblNonce int
-	for rows.Next() {
-		rows.Scan(&pkh, &tblBal, &tblNonce)
-		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-			c.UpdateAccountBalanceTable(tableName)
-			return true
+		// look for the public key that pertains to the contract and verify its balance and nonce
+		var pkh string
+		var tblBal int
+		var tblNonce int
+		for rows.Next() {
+			rows.Scan(&pkh, &tblBal, &tblNonce)
+			if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+				if tblBal >= int(c.Value) {
+					if tblNonce+1 == int(c.Nonce) {
+						rows.Close()
+						c.UpdateAccountBalanceTable(tableName)
+						return true
+					}
+				}
+			}
 		}
 	}
-	rows.Close()
-	table.Close()
-	fmt.Println("connections")
-	fmt.Println(table.Stats().OpenConnections)
-	// if true && false {
-	// 	return true
-	// }
-
 	return false
 }
 
@@ -216,9 +189,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 		fmt.Println("Failed to create rows to look for public key")
 	}
 
-	fmt.Println("connections")
-	fmt.Println(tbl.Stats().OpenConnections)
-
+	// search for the senders public key hash that belongs to the contract and update its fields
 	var pkh string
 	var tblBal int
 	var tblNonce int
@@ -226,35 +197,35 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+			rows.Close()
 			compareVal := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))
 
 			fmt.Print("before")
 			fmt.Println(tblBal)
 
-			sqlQuery = fmt.Sprintf("update account_balances set balance=%d, nonce=%d where public_key_hash = \"%s\"", tblBal-int(c.Value), tblNonce+1, compareVal)
-			//fmt.Printf("QUERY: %s", sqlQuery)
+			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(c.Value), tblNonce+1, compareVal)
+			fmt.Printf("QUERY: %s", sqlQuery)
 		}
 	}
-	rows.Close()
+
 	_, err = tbl.Exec(sqlQuery)
 	if err != nil {
-		fmt.Println("searching in rows failed to update")
+		fmt.Println("Failed to update after searching in rows ")
 		fmt.Println(err)
-		//return errors.New("Failed to execute query")
 	}
 
 	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
 		fmt.Println("Failed to create rows to look for public key")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
-		fmt.Println("balances")
+		fmt.Println("balances after update")
 		fmt.Println(tblBal)
 
 	}
-	rows.Close()
 }
 
 // Serialize all fields of the contract
