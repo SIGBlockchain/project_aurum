@@ -181,7 +181,6 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 	if err != nil {
 		fmt.Println("Failed to open sqlite3 table")
 	}
-
 	defer tbl.Close()
 
 	rows, err := tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
