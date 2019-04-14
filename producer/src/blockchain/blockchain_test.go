@@ -364,7 +364,7 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	block1Header := block.BlockHeader{
 		Version:        1,
 		Height:         1,
-		Timestamp:      time.Now().UnixNano(),
+		Timestamp:      block1.Timestamp,
 		PreviousHash:   block.HashSHA256([]byte{'0'}),
 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
 	}
