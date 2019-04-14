@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -375,7 +376,7 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error extracting youngest block")
 	}
-	if !cmp.Equal(actualBlock1Header, block1Header) {
+	if !reflect.DeepEqual(actualBlock1Header, block1Header) {
 		t.Errorf("Blocks Headers do not match")
 	}
 }
