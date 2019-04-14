@@ -1,3 +1,4 @@
+// Package contains all necessary tools to interact with  and store the block chain
 package blockchain
 
 import (
@@ -13,21 +14,9 @@ import (
 	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
 )
 
-// Phase 1:
-// Open file for appending
-// If open fails return and error
-// Serializes the block
-// Gets size of the block string
-// Prepends the size of the block to the serialized block
-// Takes the resulting concatenation and append it to file named filename
-// If the write fails, return an error
-// Close the file
-
-// Phase 2:
-// Open the database
-// Store the height, file position, size, and hash of the block header into a database row
-// If this fails, return an error
-// Close the database connection
+// Adds a block to a given file, also adds metadata file about that block into a database
+//
+// This metadata include height, position, size and hash
 func AddBlock(b block.Block, filename string, databaseName string) error { // Additional parameter is DB connection
 	// open file for appending
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
@@ -78,11 +67,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 	return nil
 }
 
-// Phase 2:
 // Given a height number, opens the file filename and extracts the block of that height
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	//open the file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -139,11 +124,7 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 	return bl, nil
 }
 
-// Phase 2:
 // Given a file position, opens the file filename and extracts the block at that position
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// open file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -199,11 +180,7 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 	return bl, nil
 }
 
-// Phase 2:
 // Given a block hash, opens the file filename and extracts the block that matches that block's hash
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// open file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -259,14 +236,9 @@ func GetBlockByHash(hash []byte, filename string, database string) ([]byte, erro
 	return bl, nil
 }
 
-/*
-Takes in the ledger file's name and the desired name for the metadata file
-Creates the database if it doesn't exist, inserts the appropriate column names
-Moves through the ledger file and extracts blocks, repopulating the metadata file
-Test will check to make sure a ledger populated by AddBlock() will result in the same
-metadata table as would result from here
-Return an error if anything I/O operations fail with detailed message
-*/
+// This is a security feature for the ledger. If the block table gets lost somehow, this function will restore it completely. 
+//
+// Another situation is when a producer in a decentralized system joins the network and wants the full ledger.
 func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) error {
 	_, err := os.Stat(metadataFilename)
 	if err != nil {
