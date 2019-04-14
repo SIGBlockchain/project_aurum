@@ -326,7 +326,7 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	blockchain := "testBlockchain.dat"
 	table := "testTable.dat"
 	setUp(blockchain, table)
-	tearDown(blockchain, table)
+	defer tearDown(blockchain, table)
 	_, err := GetYoungestBlock(blockchain, table)
 	if err == nil {
 		t.Errorf("Should return error if blockchain is empty")
@@ -371,11 +371,11 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to add block")
 	}
-	actualBlock1Header, err := GetYoungestBlock(blockchain, table)
+	actualBlock1Header, err := GetYoungestBlockHeader(blockchain, table)
 	if err != nil {
 		t.Errorf("Error extracting youngest block")
 	}
 	if !cmp.Equal(actualBlock1Header, block1Header) {
-		t.Errorf("Blocks do not match")
+		t.Errorf("Blocks Headers do not match")
 	}
 }
