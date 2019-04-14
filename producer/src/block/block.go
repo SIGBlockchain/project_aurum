@@ -7,15 +7,23 @@ import (
 	"encoding/binary" // for converting to uints to byte slices
 )
 
+type BlockHeader struct {
+	Version        uint16
+	Height         uint64
+	Timestamp      int64
+	PreviousHash   []byte
+	MerkleRootHash []byte
+}
+
 // Block is a struct that represents a block in a blockchain.
 type Block struct {
-	Version        uint16 		// Version is the version of the software this block was created with
-	Height         uint64 		// Height is the distance from the bottom of the tree, with the genesis block starting with height 0
-	Timestamp      int64 		// Timestamp is the time of creation for this block
-	PreviousHash   []byte 		// PreviousHash is the hash of the previous block in the blockchain, 
-	MerkleRootHash []byte 		// MerkleRootHash is the hash of the MerkleRoot of all inputs
-	DataLen        uint16 		// DataLen is the number of objects in the following Data variable
-	Data           [][]byte 	// Data is an abritrary variable, holding the actual contents of this block
+	Version        uint16   // Version is the version of the software this block was created with
+	Height         uint64   // Height is the distance from the bottom of the tree, with the genesis block starting with height 0
+	Timestamp      int64    // Timestamp is the time of creation for this block
+	PreviousHash   []byte   // PreviousHash is the hash of the previous block in the blockchain,
+	MerkleRootHash []byte   // MerkleRootHash is the hash of the MerkleRoot of all inputs
+	DataLen        uint16   // DataLen is the number of objects in the following Data variable
+	Data           [][]byte // Data is an abritrary variable, holding the actual contents of this block
 }
 
 // Produces a byte string based on the block struct provided

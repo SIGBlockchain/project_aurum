@@ -312,3 +312,64 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) e
 	}
 	return err
 }
+
+/*
+Retrieves Block with the largest height in deserialized form
+*/
+func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
+	// open table
+	db, err := sql.Open("sqlite3", table)
+	if err != nil {
+		return block.Block{}, errors.New("Failed to open table")
+	}
+	defer db.Close()
+
+	// create rows to find blocks' height from metadata
+	rows, err := db.Query("SELECT height FROM metadata")
+	if err != nil {
+		return block.Block{}, errors.New("Failed to create rows to find height from metadata")
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		// if there are no rows in the table, return error
+		return block.Block{}, errors.New("Empty blockchain")
+	}
+
+	// find the largest height in the table
+	var maxBlockHeight int
+	rows.Scan(&maxBlockHeight)
+	var blockHeight int
+	for rows.Next() {
+		rows.Scan(&blockHeight)
+		if blockHeight > maxBlockHeight {
+			maxBlockHeight = blockHeight
+		}
+	}
+
+	// get the block with the largest height
+	youngestBlock, err := GetBlockByHeight(maxBlockHeight, blockchain, table)
+	if err != nil {
+		return block.Block{}, err
+	}
+	return block.Deserialize(youngestBlock), nil
+}
+
+/*
+Calls GetYoungestBlock and returns a Header version of the result
+*/
+func GetYoungestBlockHeader(blockchain string, table string) (block.BlockHeader, error) {
+	latestBlock, err := GetYoungestBlock(blockchain, table)
+	if err != nil {
+		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
+	}
+
+	latestBlockHeader := block.BlockHeader{
+		Version:        latestBlock.Version,
+		Height:         latestBlock.Height,
+		Timestamp:      latestBlock.Timestamp,
+		PreviousHash:   latestBlock.PreviousHash,
+		MerkleRootHash: latestBlock.MerkleRootHash,
+	}
+	return latestBlockHeader, nil
+}

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3"
 
 	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -319,5 +319,63 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	}
 	if bytes.Equal(block2.Serialize(), actualBlock2) == false {
 		t.Errorf("Blocks do not match (block 2 by height)")
+	}
+}
+
+func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
+	blockchain := "testBlockchain.dat"
+	table := "testTable.dat"
+	setUp(blockchain, table)
+	defer tearDown(blockchain, table)
+	_, err := GetYoungestBlock(blockchain, table)
+	if err == nil {
+		t.Errorf("Should return error if blockchain is empty")
+	}
+	block0 := block.Block{
+		Version:        1,
+		Height:         0,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte("xoxo"))},
+	}
+	block0.DataLen = uint16(len(block0.Data))
+	err = AddBlock(block0, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to add block")
+	}
+	actualBlock0, err := GetYoungestBlock(blockchain, table)
+	if err != nil {
+		t.Errorf("Error extracting youngest block")
+	}
+	if !cmp.Equal(actualBlock0, block0) {
+		t.Errorf("Blocks do not match")
+	}
+	block1 := block.Block{
+		Version:        1,
+		Height:         1,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		Data:           [][]byte{block.HashSHA256([]byte("xoxo"))},
+	}
+	block1.DataLen = uint16(len(block1.Data))
+	block1Header := block.BlockHeader{
+		Version:        1,
+		Height:         1,
+		Timestamp:      block1.Timestamp,
+		PreviousHash:   block.HashSHA256([]byte{'0'}),
+		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+	}
+	err = AddBlock(block1, blockchain, table)
+	if err != nil {
+		t.Errorf("Failed to add block")
+	}
+	actualBlock1Header, err := GetYoungestBlockHeader(blockchain, table)
+	if err != nil {
+		t.Errorf("Error extracting youngest block")
+	}
+	if !cmp.Equal(actualBlock1Header, block1Header) {
+		t.Errorf("Blocks Headers do not match")
 	}
 }
