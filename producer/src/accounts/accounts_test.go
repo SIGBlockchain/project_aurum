@@ -8,8 +8,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
+	"reflect"
 
 	"testing"
 
@@ -45,7 +45,6 @@ func TestValidateContract(t *testing.T) {
 	c := MakeContract(1, *sender, senderPublicKey, 1000, 0)
 	// INSERT ABOVE VALUES INTO TABLE
 	sqlQuery := fmt.Sprintf("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (\"%s\", %d, %d)", hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))), 1000, 0)
-	log.Printf("Executing query %s", sqlQuery)
 	_, err = conn.Exec(sqlQuery)
 	if err != nil {
 		t.Errorf("Unable to insert values into table: %v", err)
@@ -68,9 +67,12 @@ func TestContractSerialization(t *testing.T) {
 	contract := MakeContract(1, *sender, senderPublicKey, 1000, 20)
 	serialized := contract.Serialize()
 	deserialized := Contract{}.Deserialize(serialized)
-	//if !cmp.Equal(contract, deserialized, cmp.AllowUnexported(Contract{})) {			// could not figure this out
-	//	t.Errorf("Contracts (struct) do not match")										// reflect.DeepEquals...?
-	//}
+	if !reflect.DeepEqual(contract, deserialized) {
+		t.Errorf("Contracts (struct) do not match")
+	}
+	// if !cmp.Equal(contract, deserialized, cmp.AllowUnexported(Contract{})) {
+	// 	t.Errorf("Contracts (struct) do not match")
+	// }
 	reserialized := deserialized.Serialize()
 	if !bytes.Equal(serialized, reserialized) {
 		t.Errorf("Contracts (byte slice) do not match")

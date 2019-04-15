@@ -35,12 +35,6 @@ type Contract struct {
 	Nonce           uint64
 }
 
-// 		CLIENT FUNCTION*************************** PRIVATE KEY IS OKAY
-// Fills struct fields with parameters given
-// (with the exception of the signature field)
-// Calls sign contract
-// Returns contract
-
 /*
 version field comes from version parameter
 sender public key comes from sender private key
@@ -53,9 +47,6 @@ returns contract struct
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) Contract {
 
-	// private key is of size 40 bytes
-	// public key is of size 32 bytes
-	// total size of struct is 112 bytes
 	c := Contract{
 		Version:         version,
 		SenderPubKey:    sender.PublicKey,
@@ -141,8 +132,6 @@ func ValidateContract(c Contract, tableName string) bool {
 
 	// if the ecdsa.Verify is true then check the rest of the contract against whats in the database
 	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
-		fmt.Println("ecdsa.verify true")
-
 		rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 		if err != nil {
 			fmt.Println("Failed to create rows to look for public key")
@@ -198,12 +187,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
 			rows.Close()
 			compareVal := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))
-
-			fmt.Print("before")
-			fmt.Println(tblBal)
-
 			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(c.Value), tblNonce+1, compareVal)
-			fmt.Printf("QUERY: %s", sqlQuery)
 		}
 	}
 
@@ -211,19 +195,6 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 	if err != nil {
 		fmt.Println("Failed to update after searching in rows ")
 		fmt.Println(err)
-	}
-
-	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	if err != nil {
-		fmt.Println("Failed to create rows to look for public key")
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan(&pkh, &tblBal, &tblNonce)
-		fmt.Println("balances after update")
-		fmt.Println(tblBal)
-
 	}
 }
 
@@ -270,14 +241,3 @@ func (c Contract) Deserialize(b []byte) Contract {
 
 	return c
 }
-
-/*
-FOR 1ST TEST... VERIFY
-appears that the account balances are not written so we cannot know if the correct amount is available in an account.
-premade database to use? or add a balance in and use that?
-
-NONCE HAS TO BE 1 + WHATS IN THE TABLE...
-UPDATE TABLE WHEN VALIDATE CONTRACTS IS TRUE (VALIDATE CONTRACTS)		// PASS CONTRACT INTO UPDATE FUNCTION
-
-
-*/
