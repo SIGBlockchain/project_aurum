@@ -50,15 +50,22 @@ func TestValidateContract(t *testing.T) {
 		t.Errorf("Unable to insert values into table: %v", err)
 	}
 
+	// Query database here, make sure that the sender has 1000 aurum
+
 	validContract := MakeContract(1, *sender, recipient, 1000, 1)
 	falseContractInsufficientFunds := MakeContract(1, *recipientPrivateKey, senderPublicKey, 2000, 0)
 	if !ValidateContract(validContract, table) {
 		t.Errorf("Valid contract regarded as invalid")
 	}
+
+	// Query the database here, make sure the sender has 0 aurum
+	// and the recipient has 1000 aurum
+
 	if ValidateContract(falseContractInsufficientFunds, table) {
 		t.Errorf("Invalid contract regarded as valid")
 	}
 
+	// Query the database again and make sure everything is still the same
 }
 
 func TestContractSerialization(t *testing.T) {
