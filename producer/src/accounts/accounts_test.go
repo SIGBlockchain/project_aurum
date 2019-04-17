@@ -152,7 +152,7 @@ func TestMakeContract(t *testing.T) {
 				nonce:     0,
 			},
 			want: Contract{
-				Version:         1,
+				Version:         0,
 				SenderPubKey:    senderPrivateKey.PublicKey,
 				SigLen:          0,
 				Signature:       nil,

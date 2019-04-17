@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"reflect"
+    "errors"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -45,7 +46,7 @@ returns contract struct
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) (Contract, error) {
 
-	c := Contract{
+	c:= Contract{
 		Version:         version,
 		SenderPubKey:    sender.PublicKey,
 		SigLen:          0,
@@ -55,7 +56,11 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 		Nonce:           nonce,
 	}
 
-	return c, nil
+    if version == 0 {
+        return c, errors.New("Invalid version; must be >= 1")
+    }
+    
+    return c, nil
 }
 
 // Serialize all fields of the contract
