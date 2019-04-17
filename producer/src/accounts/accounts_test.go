@@ -200,29 +200,26 @@ func TestContract_Deserialize(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.c.Deserialize(tt.args.b)
-			// if !reflect.DeepEqual(tt.c, testContract) {
-			// 	t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
-			// }
 			if !reflect.DeepEqual(tt.c.Version, testContract.Version) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract versions do not match; c = %v, testContract = %v", tt.c.Version, testContract.Version)
 			}
 			if !reflect.DeepEqual(tt.c.SenderPubKey, testContract.SenderPubKey) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract sender public keys do not match; c = %v, testContract = %v", tt.c.SenderPubKey, testContract.SenderPubKey)
 			}
 			if !reflect.DeepEqual(tt.c.SigLen, testContract.SigLen) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract signature lengths do not match; c = %v, testContract = %v", tt.c.SigLen, testContract.SigLen)
 			}
-			// if tt.c.Signature != nil {
-			// 	t.Errorf("Contract signatures do not match; c = %v, testContract = %v", *tt.c, testContract)
-			// }
+			if reflect.DeepEqual(tt.c.Signature, testContract.Signature) {
+				t.Errorf("Contract signatures do not match; c = %v, testContract = %v", tt.c.Signature, testContract.Signature)
+			}
 			if !reflect.DeepEqual(tt.c.RecipPubKeyHash, testContract.RecipPubKeyHash) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract recipient public key hashes do not match; c = %v, testContract = %v", tt.c.RecipPubKeyHash, testContract.RecipPubKeyHash)
 			}
 			if !reflect.DeepEqual(tt.c.Value, testContract.Value) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract values do not match; c = %v, testContract = %v", tt.c.Value, testContract.Value)
 			}
 			if !reflect.DeepEqual(tt.c.Nonce, testContract.Nonce) {
-				t.Errorf("Contracts do not match; c = %v, testContract = %v", *tt.c, testContract)
+				t.Errorf("Contract nonces do not match; c = %v, testContract = %v", tt.c.Nonce, testContract.Nonce)
 			}
 
 		})
