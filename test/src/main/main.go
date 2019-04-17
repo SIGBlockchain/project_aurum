@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	// The uint32 `n` should be retrieved as an command line argument
 	helpFlag := getopt.Bool('?', "display help")
 	logFile := getopt.StringLong("log", 'l', "", "log file location")
@@ -19,6 +20,7 @@ func main() {
 		getopt.Usage()
 		os.Exit(0)
 	}
+
 	// Setup logger
 	logger := log.New(os.Stdout, "LOG:", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if getopt.CommandLine.Lookup('l').Count() > 0 {

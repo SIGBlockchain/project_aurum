@@ -1,4 +1,4 @@
-package test_functions
+package testfunctions
 
 import (
 	"crypto/ecdsa"
@@ -43,11 +43,11 @@ func TestGenerateNRandomKeys(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateNRandomKeys() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.name == "Test with N = 0" && err != errors.New("Must generate at least one private key") {
+			if tt.args.n == 0 && err != errors.New("Must generate at least one private key") {
 				t.Errorf("Wrong error message generated. Should say: %s, instead says: %s", "Must generate at least one private key", err)
 			}
 			if _, err := os.Stat(tt.args.filename); os.IsNotExist(err) {
-				t.Errorf("Failed to generate test file for keys")
+				t.Errorf("Test file for keys not detected: %s", err)
 			}
 			if tt.args.n > 0 {
 				jsonFile, err := os.Open(tt.args.filename)
