@@ -1,3 +1,4 @@
+// Package contains all necessary tools to interact with  and store the block chain
 package blockchain
 
 import (
@@ -13,21 +14,9 @@ import (
 	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
 )
 
-// Phase 1:
-// Open file for appending
-// If open fails return and error
-// Serializes the block
-// Gets size of the block string
-// Prepends the size of the block to the serialized block
-// Takes the resulting concatenation and append it to file named filename
-// If the write fails, return an error
-// Close the file
-
-// Phase 2:
-// Open the database
-// Store the height, file position, size, and hash of the block header into a database row
-// If this fails, return an error
-// Close the database connection
+// Adds a block to a given file, also adds metadata file about that block into a database
+//
+// This metadata include height, position, size and hash
 func AddBlock(b block.Block, filename string, databaseName string) error { // Additional parameter is DB connection
 	// open file for appending
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
@@ -78,11 +67,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 	return nil
 }
 
-// Phase 2:
 // Given a height number, opens the file filename and extracts the block of that height
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	//open the file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -139,11 +124,7 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 	return bl, nil
 }
 
-// Phase 2:
 // Given a file position, opens the file filename and extracts the block at that position
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// open file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -199,11 +180,7 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 	return bl, nil
 }
 
-// Phase 2:
 // Given a block hash, opens the file filename and extracts the block that matches that block's hash
-// Use a database query to find block's position and size in the file
-// If this fails, return an error
-// Make sure to close file and database connection before returning
 func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
 	// open file
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
@@ -257,4 +234,142 @@ func GetBlockByHash(hash []byte, filename string, database string) ([]byte, erro
 	}
 
 	return bl, nil
+}
+
+// This is a security feature for the ledger. If the block table gets lost somehow, this function will restore it completely. 
+//
+// Another situation is when a producer in a decentralized system joins the network and wants the full ledger.
+func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string) error {
+	_, err := os.Stat(metadataFilename)
+	if err != nil {
+		// create database
+		f, err := os.Create(metadataFilename)
+		f.Close()
+
+		// open database
+		db, err := sql.Open("sqlite3", metadataFilename)
+		if err != nil {
+			return errors.New("Failed to open newly created database")
+		}
+		defer db.Close()
+
+		// create metadata table in database
+		statement, _ := db.Prepare("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		statement.Exec()
+		statement.Close()
+
+		// create a prepared statement to insert into metadata
+		statement, err = db.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+		if err != nil {
+			return errors.New("Failed to prepare a statement for further executes")
+		}
+		defer statement.Close()
+
+		// open ledger file
+		file, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
+		if err != nil {
+			return errors.New("Failed to open ledger file")
+		}
+		defer file.Close()
+
+		// loop that adds blocks' metadata into database
+		bPosition := int64(0)
+		for {
+			length := make([]byte, 4)
+
+			// read 4 bytes for blocks' length
+			_, err = file.Read(length)
+			if err == io.EOF {
+				// if reader reaches EOF, exit loop
+				break
+			} else if err != nil {
+				return errors.New("Failed to read ledger file")
+			}
+			bLen := binary.LittleEndian.Uint32(length)
+
+			// set offset for next read to get to the position of the block
+			file.Seek(bPosition+int64(len(length)), 0)
+			serialized := make([]byte, bLen)
+			_, err = io.ReadAtLeast(file, serialized, int(bLen))
+			if err != nil {
+				return errors.New("Failed to retrieve serialized block")
+			}
+
+			// need to deserialize block for block's height and hash
+			deserializedBlock := block.Deserialize(serialized)
+			bHeight := deserializedBlock.Height
+			bHash := block.HashBlock(deserializedBlock)
+
+			// execute statement
+			_, err = statement.Exec(bHeight, bPosition, bLen, bHash)
+			if err != nil {
+				return errors.New("Failed to execute statement")
+			}
+
+			// position of next block
+			bPosition += int64(len(length) + len(serialized))
+		}
+	}
+	return err
+}
+
+/*
+Retrieves Block with the largest height in deserialized form
+*/
+func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
+	// open table
+	db, err := sql.Open("sqlite3", table)
+	if err != nil {
+		return block.Block{}, errors.New("Failed to open table")
+	}
+	defer db.Close()
+
+	// create rows to find blocks' height from metadata
+	rows, err := db.Query("SELECT height FROM metadata")
+	if err != nil {
+		return block.Block{}, errors.New("Failed to create rows to find height from metadata")
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		// if there are no rows in the table, return error
+		return block.Block{}, errors.New("Empty blockchain")
+	}
+
+	// find the largest height in the table
+	var maxBlockHeight int
+	rows.Scan(&maxBlockHeight)
+	var blockHeight int
+	for rows.Next() {
+		rows.Scan(&blockHeight)
+		if blockHeight > maxBlockHeight {
+			maxBlockHeight = blockHeight
+		}
+	}
+
+	// get the block with the largest height
+	youngestBlock, err := GetBlockByHeight(maxBlockHeight, blockchain, table)
+	if err != nil {
+		return block.Block{}, err
+	}
+	return block.Deserialize(youngestBlock), nil
+}
+
+/*
+Calls GetYoungestBlock and returns a Header version of the result
+*/
+func GetYoungestBlockHeader(blockchain string, table string) (block.BlockHeader, error) {
+	latestBlock, err := GetYoungestBlock(blockchain, table)
+	if err != nil {
+		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
+	}
+
+	latestBlockHeader := block.BlockHeader{
+		Version:        latestBlock.Version,
+		Height:         latestBlock.Height,
+		Timestamp:      latestBlock.Timestamp,
+		PreviousHash:   latestBlock.PreviousHash,
+		MerkleRootHash: latestBlock.MerkleRootHash,
+	}
+	return latestBlockHeader, nil
 }
