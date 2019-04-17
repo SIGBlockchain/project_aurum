@@ -209,7 +209,6 @@ func TestContract_Deserialize(t *testing.T) {
 }
 
 func TestContract_SignContract(t *testing.T) {
-
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	testContract, _ := MakeContract(1, *senderPrivateKey, senderPrivateKey.PublicKey, 25, 0)
 	type args struct {
@@ -226,11 +225,11 @@ func TestContract_SignContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("Recovered from panic: %s", r)
-				}
-			}()
+			// defer func() {
+			// 	if r := recover(); r != nil {
+			// 		t.Errorf("Recovered from panic: %s", r)
+			// 	}
+			// }()
 			tt.c.SignContract(tt.args.sender)
 			hashedContract := block.HashSHA256(testContract.Serialize())
 			var esig struct {
@@ -262,16 +261,11 @@ func TestContract_UpdateAccountBalanceTable(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Recovered from panic: %s", r)
-		}
-	}()
 	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
 	statement.Exec()
-	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?)")
+	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
-	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?)")
+	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
 	testContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
 	type args struct {
@@ -288,6 +282,11 @@ func TestContract_UpdateAccountBalanceTable(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// defer func() {
+			// 	if r := recover(); r != nil {
+			// 		t.Errorf("Recovered from panic: %s", r)
+			// 	}
+			// }()
 			tt.c.UpdateAccountBalanceTable(tt.args.table)
 			var pkhash string
 			var balance uint64
@@ -333,11 +332,14 @@ func TestValidateContract(t *testing.T) {
 			t.Errorf("Recovered from panic: %s", r)
 		}
 	}()
-	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
 	statement.Exec()
-	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?)")
+	statement, err = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
+	if err != nil {
+		t.Errorf("Insertion statement failed: %s", err)
+	}
 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
-	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?)")
+	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
 	validContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
 	validContract.SignContract(*senderPrivateKey)
