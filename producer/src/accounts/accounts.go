@@ -54,7 +54,6 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 		Value:           value,
 		Nonce:           nonce,
 	}
-	c.SignContract(sender) // passing in the senders private key to get sig
 
 	return c, nil
 }
