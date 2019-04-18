@@ -86,6 +86,8 @@ func (c Contract) Serialize() []byte {
 	    copy(serializedContract[2:180], spubkey)
         binary.LittleEndian.PutUint64(serializedContract[180:212], c.Value)
         binary.LittleEndian.PutUint64(serializedContract[212:228], c.Nonce)
+
+        return serializedContract
     } else { //signed contract
 	    totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
 	    serializedContract := make([]byte, totalSize)
@@ -96,8 +98,9 @@ func (c Contract) Serialize() []byte {
 	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+
+    return serializedContract
     }
-	return serializedContract
 }
 
 // Deserialize into a struct
