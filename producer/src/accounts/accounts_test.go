@@ -1,11 +1,15 @@
 package accounts
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"database/sql"
 	"encoding/asn1"
+	"encoding/hex"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 
@@ -261,71 +265,74 @@ func TestContract_SignContract(t *testing.T) {
 	}
 }
 
-// func TestContract_UpdateAccountBalanceTable(t *testing.T) {
-// 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	dbName := "test.db"
-// 	database, _ := sql.Open("sqlite3", dbName)
-// 	defer func() {
-// 		database.Close()
-// 		err := os.Remove(dbName)
-// 		if err != nil {
-// 			t.Errorf("Failed to remove database: %s", err)
-// 		}
-// 	}()
-// 	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
-// 	statement.Exec()
-// 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
-// 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
-// 	testContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
-// 	type args struct {
-// 		table string
-// 	}
-// 	tests := []struct {
-// 		name string
-// 		c    *Contract
-// 		args args
-// 	}{
-// 		{
-// 			c: &testContract,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			// defer func() {
-// 			// 	if r := recover(); r != nil {
-// 			// 		t.Errorf("Recovered from panic: %s", r)
-// 			// 	}
-// 			// }()
-// 			tt.c.UpdateAccountBalanceTable(tt.args.table)
-// 			var pkhash string
-// 			var balance uint64
-// 			var nonce uint64
-// 			rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-// 			for rows.Next() {
-// 				rows.Scan(&pkhash, &balance, &nonce)
-// 				decodedPkhash, _ := hex.DecodeString(pkhash)
-// 				if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
-// 					if balance != 0 {
-// 						t.Errorf("Invalid sender balance: %d", balance)
-// 					}
-// 					if nonce != 4 {
-// 						t.Errorf("Invalid sender nonce: %d", nonce)
-// 					}
-// 				} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
-// 					if balance != 550 {
-// 						t.Errorf("Invalid recipient balance: %d", balance)
-// 					}
-// 					if nonce != 3 {
-// 						t.Errorf("Invalid recipient nonce: %d", nonce)
-// 					}
-// 				}
-// 			}
-// 		})
-// 	}
-// }
+func TestContract_UpdateAccountBalanceTable(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	dbName := "test.db"
+	database, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		database.Close()
+		err := os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
+	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
+	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
+	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
+	testContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
+	type args struct {
+		table string
+	}
+	tests := []struct {
+		name string
+		c    *Contract
+		args args
+	}{
+		{
+			c: &testContract,
+			args: args{
+				table: dbName,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// defer func() {
+			// 	if r := recover(); r != nil {
+			// 		t.Errorf("Recovered from panic: %s", r)
+			// 	}
+			// }()
+			tt.c.UpdateAccountBalanceTable(tt.args.table)
+			var pkhash string
+			var balance uint64
+			var nonce uint64
+			rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			for rows.Next() {
+				rows.Scan(&pkhash, &balance, &nonce)
+				decodedPkhash, _ := hex.DecodeString(pkhash)
+				if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
+					if balance != 0 {
+						t.Errorf("Invalid sender balance: %d", balance)
+					}
+					if nonce != 4 {
+						t.Errorf("Invalid sender nonce: %d", nonce)
+					}
+				} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
+					if balance != 550 {
+						t.Errorf("Invalid recipient balance: %d", balance)
+					}
+					if nonce != 3 {
+						t.Errorf("Invalid recipient nonce: %d", nonce)
+					}
+				}
+			}
+		})
+	}
+}
 
 // func TestValidateContract(t *testing.T) {
 // 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
