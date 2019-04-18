@@ -5,6 +5,7 @@ package client
 
 import (
 	"bufio"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"io"
@@ -46,7 +47,7 @@ func GetUserInput(text *string, reader io.Reader) error {
 // Establishes connection to addr with Dial and sends data to address, returns number of bytes written and any errors
 func SendToProducer(buf []byte, addr string) (int, error) {
 	// Opens a connection, if connection fails, return 0 and error
-	conn, err:= net.Dial("tcp", addr)
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		conn.Close()
 		return 0, err
@@ -84,15 +85,36 @@ func ClearScreen() {
 
 // This will print all relevant commands into the console
 func PrintHelp() {
-	fmt.Println("\tbalance\t\t\t\tcheck your wallet balance")								// balance
-	fmt.Println("\tclear\t\t\t\tclears the screen of all previous output")            	// clear
-	fmt.Println("\thelp\t\t\t\tprints all avalible commands and description of each") 	// help
-	fmt.Println("\tmoreinfo\t\t\tprints link to project_aurum github page")           	// moreinfo
-	fmt.Println("\tsend [recipient] [value]\tsend aurum to using their public key")	// send
-	fmt.Println("\tq\t\t\t\tquits the program")                                       	// q
+	fmt.Println("\tbalance\t\t\t\tcheck your wallet balance")                         // balance
+	fmt.Println("\tclear\t\t\t\tclears the screen of all previous output")            // clear
+	fmt.Println("\thelp\t\t\t\tprints all avalible commands and description of each") // help
+	fmt.Println("\tmoreinfo\t\t\tprints link to project_aurum github page")           // moreinfo
+	fmt.Println("\tsend [recipient] [value]\tsend aurum to using their public key")   // send
+	fmt.Println("\tq\t\t\t\tquits the program")                                       // q
 }
 
 // This will print a link to the project github page into the console
 func PrintGithubLink() {
 	fmt.Println("https://github.com/SIGBlockchain/project_aurum for more info")
+}
+
+// This will initialize a JSON file called "aurum_wallet.json"
+// with the hex encoded privatekey, balance, and nonce
+func SetupWallet() error {
+	return errors.New("Incomplete function")
+}
+
+// Opens the wallet file and prints out the balance
+func CheckBalance() error {
+	return errors.New("Incomplete function")
+}
+
+// Opens the wallet and prints out the public key and its hash in hex encoded form
+func PrintPublicKeyAndHash() error {
+	return errors.New("Incomplete function")
+}
+
+// Opens the wallet and returns the private key
+func GetPrivateKey() (*ecdsa.PrivateKey, error) {
+	return nil, errors.New("Incomplete function")
 }

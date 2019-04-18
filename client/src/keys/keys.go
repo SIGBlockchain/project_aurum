@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io/ioutil"
 	"os"
 )
@@ -87,4 +88,12 @@ func DecodePublicKey(key []byte) *ecdsa.PublicKey {
 	x509EncodedPub := blockPub.Bytes
 	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
 	return genericPublicKey.(*ecdsa.PublicKey)
+}
+
+func EncodePrivateKey(key *ecdsa.PrivateKey) ([]byte, error) {
+	return []byte{}, errors.New("Incomplete function")
+}
+
+func DecodePrivateKey(key []byte) (*ecdsa.PrivateKey, error) {
+	return nil, errors.New("Incomplete function")
 }
