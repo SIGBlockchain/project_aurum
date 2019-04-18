@@ -80,13 +80,14 @@ func (c Contract) Serialize() []byte {
 
 	//unsigned contract
 	if c.SigLen == 0 {
-		totalSize := (2 + 178 + 1 +  32 + 16)
+		totalSize := (2 + 178 + 1 + 32 + 16)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
 		serializedContract[180] = c.SigLen
-		binary.LittleEndian.PutUint64(serializedContract[181:213], c.Value)
-		binary.LittleEndian.PutUint64(serializedContract[213:229], c.Nonce)
+		copy(serializedContract[181:213], c.RecipPubKeyHash)
+		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[221:229], c.Nonce)
 
 		return serializedContract
 	} else { //signed contract
