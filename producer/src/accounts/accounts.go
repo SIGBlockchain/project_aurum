@@ -84,9 +84,8 @@ func (c Contract) Serialize() []byte {
     if c.SigLen == 0 {
 	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 	    copy(serializedContract[2:180], spubkey)
-	    serializedContract[180] = c.SigLen
-	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
-	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+        binary.LittleEndian.PutUint64(serializedContract[180:212], c.Value)
+        binary.LittleEndian.PutUint64(serializedContract[212:228], c.Nonce)
     } else { //signed contract
 	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 	    copy(serializedContract[2:180], spubkey)
