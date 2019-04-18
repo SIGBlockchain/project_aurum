@@ -257,16 +257,16 @@ func TestContract_SignContract(t *testing.T) {
 			tt.c.Signature = r.Bytes()
 			tt.c.Signature = append(tt.c.Signature, s.Bytes()...)
 			tt.c.SigLen = uint8(len(tt.c.Signature))
-			// hashedContract := block.HashSHA256(testContract.Serialize())
+			hashedContract := block.HashSHA256(testContract.Serialize())
 			// var esig struct {
 			// 	R, S *big.Int
 			// }
 			// if _, err := asn1.Unmarshal(tt.c.Signature, &esig); err != nil {
 			// 	t.Errorf("Failed to unmarshall signature")
 			// }
-			// if !ecdsa.Verify(&tt.c.SenderPubKey, hashedContract, esig.R, esig.S) {
-			// 	t.Errorf("Failed to verify valid signature")
-			// }
+			if !ecdsa.Verify(&tt.c.SenderPubKey, hashedContract, r, s) {
+				t.Errorf("Failed to verify valid signature")
+			}
 			// maliciousPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 			// if ecdsa.Verify(&maliciousPrivateKey.PublicKey, hashedContract, esig.R, esig.S) {
 			// 	t.Errorf("Failed to reject invalid signature")
