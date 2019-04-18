@@ -205,7 +205,7 @@ func TestContract_Deserialize(t *testing.T) {
 			if !reflect.DeepEqual(tt.c.SigLen, testContract.SigLen) {
 				t.Errorf("Contract signature lengths do not match; c = %v, testContract = %v", tt.c.SigLen, testContract.SigLen)
 			}
-			if reflect.DeepEqual(tt.c.Signature, testContract.Signature) {
+			if tt.c.Signature != nil {
 				t.Errorf("Contract signatures do not match; c = %v, testContract = %v", tt.c.Signature, testContract.Signature)
 			}
 			if !reflect.DeepEqual(tt.c.RecipPubKeyHash, testContract.RecipPubKeyHash) {
@@ -243,41 +243,7 @@ func TestContract_SignContract(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			copyOfContract := testContract
 			tt.c.SignContract(&tt.args.sender)
-
-			/*
-				tt.c.SignContract(&tt.args.sender) should do everything from
-				HERE
-			*/
-			// spubkey := keys.EncodePublicKey(&tt.c.SenderPubKey)
-			// preSerial := make([]byte, 374)
-
-			// binary.LittleEndian.PutUint16(preSerial[0:2], tt.c.Version)   // 2
-			// copy(preSerial[2:180], spubkey)                               //178
-			// copy(preSerial[180:212], tt.c.RecipPubKeyHash)                //32
-			// binary.LittleEndian.PutUint64(preSerial[212:220], tt.c.Value) //8
-			// binary.LittleEndian.PutUint64(preSerial[220:228], tt.c.Nonce) //8
-
 			serializedTestContract := block.HashSHA256(copyOfContract.Serialize())
-			// preHash := block.HashSHA256(testContract.Serialize())
-
-			// r := big.NewInt(0)
-			// s := big.NewInt(0)
-
-			// r, s, _ = ecdsa.Sign(rand.Reader, senderPrivateKey, preHash)
-			// tt.c.Signature, _ = senderPrivateKey.Sign(rand.Reader, serializedTestContract, nil)
-			// tt.c.Signature = r.Bytes()
-			// tt.c.Signature = append(tt.c.Signature, s.Bytes()...)
-			// tt.c.SigLen = uint8(len(tt.c.Signature))
-			// hashedContract := block.HashSHA256(testContract.Serialize())
-
-			/*
-				TO HERE
-				serializedTestContract needs to be return from
-				testContract.Serialize.
-				This means Serialize needs to handle two cases:
-				signed contracts and unsigned contracts
-
-			*/
 			var esig struct {
 				R, S *big.Int
 			}
@@ -287,10 +253,10 @@ func TestContract_SignContract(t *testing.T) {
 			if !ecdsa.Verify(&tt.c.SenderPubKey, serializedTestContract, esig.R, esig.S) {
 				t.Errorf("Failed to verify valid signature")
 			}
-			// maliciousPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-			// if ecdsa.Verify(&maliciousPrivateKey.PublicKey, preHash, esig.R, esig.S) {
-			// 	t.Errorf("Failed to reject invalid signature")
-			// }
+			maliciousPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			if ecdsa.Verify(&maliciousPrivateKey.PublicKey, serializedTestContract, esig.R, esig.S) {
+				t.Errorf("Failed to reject invalid signature")
+			}
 		})
 	}
 }
