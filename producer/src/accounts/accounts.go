@@ -80,12 +80,13 @@ func (c Contract) Serialize() []byte {
 
 	//unsigned contract
 	if c.SigLen == 0 {
-		totalSize := (2 + 178 + 32 + 16)
+		totalSize := (2 + 178 + 1 +  32 + 16)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
-		binary.LittleEndian.PutUint64(serializedContract[180:212], c.Value)
-		binary.LittleEndian.PutUint64(serializedContract[212:228], c.Nonce)
+		serializedContract[180] = c.SigLen
+		binary.LittleEndian.PutUint64(serializedContract[181:213], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[213:229], c.Nonce)
 
 		return serializedContract
 	} else { //signed contract
@@ -107,14 +108,24 @@ func (c Contract) Serialize() []byte {
 func (c *Contract) Deserialize(b []byte) {
 	spubkeydecoded := keys.DecodePublicKey(b[2:180])
 	siglen := int(b[180])
-
-	c.Version = binary.LittleEndian.Uint16(b[0:2])
-	c.SenderPubKey = *spubkeydecoded
-	c.SigLen = b[180]
-	c.Signature = b[181:(181 + siglen)]
-	c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
-	c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
-	c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
+    
+    // unsigned contract
+    if siglen == 0 {
+	    c.Version = binary.LittleEndian.Uint16(b[0:2])
+	    c.SenderPubKey = *spubkeydecoded
+	    c.SigLen = b[180]
+	    c.RecipPubKeyHash = b[181:213]
+	    c.Value = binary.LittleEndian.Uint64(b[213:221])
+	    c.Nonce = binary.LittleEndian.Uint64(b[221:229])
+    } else {
+	    c.Version = binary.LittleEndian.Uint16(b[0:2])
+	    c.SenderPubKey = *spubkeydecoded
+	    c.SigLen = b[180]
+	    c.Signature = b[181:(181 + siglen)]
+	    c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
+	    c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
+	    c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
+    }
 }
 
 /*
