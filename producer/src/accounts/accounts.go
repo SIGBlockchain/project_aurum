@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"reflect"
     "errors"
-    "math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -84,11 +83,17 @@ func (c Contract) Serialize() []byte {
 	binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 	copy(serializedContract[2:180], spubkey)
 	serializedContract[180] = c.SigLen
-	copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
-	copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
-	binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
-	binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
-
+    //signed contract
+    if c.SigLen != 0 {
+	    copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
+	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+    } else { 
+	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+    }
 	return serializedContract
 }
 
@@ -124,18 +129,20 @@ func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
 	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
 	preHash := block.HashSHA256(preSerial)
 
-    r := big.NewInt(0)
-    s := big.NewInt(0)
 
-    r, s, err := ecdsa.Sign(rand.Reader, sender, preHash)
 
-    //c.Signature, err = sender.Sign(rand.Reader, preHash, nil) // this is causing a SegFault
-    if err != nil {
-        fmt.Println(err)
-    }
+    //r := big.NewInt(0)
+    //s := big.NewInt(0)
 
-    c.Signature = r.Bytes()
-    c.Signature = append(c.Signature, s.Bytes()...)
+   // r, s, err := ecdsa.Sign(rand.Reader, sender, preHash)
+
+    c.Signature, _ = sender.Sign(rand.Reader, preHash, nil) // this is causing a SegFault
+   // if err != nil {
+     //   fmt.Println(err)
+   // }
+
+   // c.Signature = r.Bytes()
+   // c.Signature = append(c.Signature, s.Bytes()...)
 
 	c.SigLen = uint8(len(c.Signature))
 }
