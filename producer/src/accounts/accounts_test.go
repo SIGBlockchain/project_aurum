@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/asn1"
 	"encoding/binary"
 	"math/big"
 	"reflect"
@@ -239,6 +240,11 @@ func TestContract_SignContract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// tt.c.SignContract(&tt.args.sender)
+
+			/*
+				tt.c.SignContract(&tt.args.sender) should do everything from
+				HERE
+			*/
 			spubkey := keys.EncodePublicKey(&tt.c.SenderPubKey)
 			preSerial := make([]byte, 374)
 
@@ -249,22 +255,34 @@ func TestContract_SignContract(t *testing.T) {
 			binary.LittleEndian.PutUint64(preSerial[220:228], tt.c.Nonce) //8
 
 			preHash := block.HashSHA256(preSerial)
+			// preHash := block.HashSHA256(testContract.Serialize())
 
-			r := big.NewInt(0)
-			s := big.NewInt(0)
+			// r := big.NewInt(0)
+			// s := big.NewInt(0)
 
-			r, s, _ = ecdsa.Sign(rand.Reader, senderPrivateKey, preHash)
-			tt.c.Signature = r.Bytes()
-			tt.c.Signature = append(tt.c.Signature, s.Bytes()...)
+			// r, s, _ = ecdsa.Sign(rand.Reader, senderPrivateKey, preHash)
+			tt.c.Signature, _ = senderPrivateKey.Sign(rand.Reader, preHash, nil)
+			// tt.c.Signature = r.Bytes()
+			// tt.c.Signature = append(tt.c.Signature, s.Bytes()...)
 			tt.c.SigLen = uint8(len(tt.c.Signature))
 			// hashedContract := block.HashSHA256(testContract.Serialize())
-			// var esig struct {
-			// 	R, S *big.Int
-			// }
-			// if _, err := asn1.Unmarshal(tt.c.Signature, &esig); err != nil {
-			// 	t.Errorf("Failed to unmarshall signature")
-			// }
-			if !ecdsa.Verify(&tt.c.SenderPubKey, preHash, r, s) {
+
+			/*
+				TO HERE
+				serializedTestContract needs to be return from
+				testContract.Serialize.
+				This means Serialize needs to handle two cases:
+				signed contracts and unsigned contracts
+
+			*/
+			var esig struct {
+				R, S *big.Int
+			}
+			serializedTestContract := preHash
+			if _, err := asn1.Unmarshal(tt.c.Signature, &esig); err != nil {
+				t.Errorf("Failed to unmarshall signature")
+			}
+			if !ecdsa.Verify(&tt.c.SenderPubKey, serializedTestContract, esig.R, esig.S) {
 				t.Errorf("Failed to verify valid signature")
 			}
 			// maliciousPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
