@@ -80,16 +80,18 @@ func (c Contract) Serialize() []byte {
 	totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
 	serializedContract := make([]byte, totalSize)
 
-	binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-	copy(serializedContract[2:180], spubkey)
-	serializedContract[180] = c.SigLen
-    //signed contract
-    if c.SigLen != 0 {
-	    copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
-	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+    //unsigned contract
+    if c.SigLen == 0 {
+	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+	    copy(serializedContract[2:180], spubkey)
+	    serializedContract[180] = c.SigLen
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
-    } else { 
+    } else { //signed contract
+	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+	    copy(serializedContract[2:180], spubkey)
+	    serializedContract[180] = c.SigLen
+	    copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
 	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
 	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
