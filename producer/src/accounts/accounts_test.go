@@ -241,6 +241,7 @@ func TestContract_SignContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			copyOfContract := testContract
 			tt.c.SignContract(&tt.args.sender)
 
 			/*
@@ -256,7 +257,7 @@ func TestContract_SignContract(t *testing.T) {
 			// binary.LittleEndian.PutUint64(preSerial[212:220], tt.c.Value) //8
 			// binary.LittleEndian.PutUint64(preSerial[220:228], tt.c.Nonce) //8
 
-			serializedTestContract := block.HashSHA256(testContract.Serialize())
+			serializedTestContract := block.HashSHA256(copyOfContract.Serialize())
 			// preHash := block.HashSHA256(testContract.Serialize())
 
 			// r := big.NewInt(0)
