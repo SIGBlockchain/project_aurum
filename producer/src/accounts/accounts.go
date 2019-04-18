@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
     "errors"
+    "math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -111,7 +112,7 @@ signature = Sign ( hashed contract, sender private key )
 sig len = signature length
 siglen and sig go into respective fields in contract
 */
-func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
+func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
 
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
 	preSerial := make([]byte, 374)
@@ -123,7 +124,19 @@ func (c *Contract) SignContract(sender ecdsa.PrivateKey) {
 	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
 	preHash := block.HashSHA256(preSerial)
 
-	c.Signature, _ = sender.Sign(rand.Reader, preHash, nil) // this is causing a SegFault
+    r := big.NewInt(0)
+    s := big.NewInt(0)
+
+    r, s, err := ecdsa.Sign(rand.Reader, sender, preHash)
+
+    //c.Signature, err = sender.Sign(rand.Reader, preHash, nil) // this is causing a SegFault
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    c.Signature = r.Bytes()
+    c.Signature = append(c.Signature, s.Bytes()...)
+
 	c.SigLen = uint8(len(c.Signature))
 }
 

@@ -244,14 +244,14 @@ func TestContract_SignContract(t *testing.T) {
 			c: &testContract,
 		},
 	}
-	for _, tt := range tests {
+    for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// defer func() {
 			// 	if r := recover(); r != nil {
 			// 		t.Errorf("Recovered from panic: %s", r)
 			// 	}
 			// }()
-			tt.c.SignContract(tt.args.sender)
+			tt.c.SignContract(&tt.args.sender)
 			hashedContract := block.HashSHA256(testContract.Serialize())
 			var esig struct {
 				R, S *big.Int
