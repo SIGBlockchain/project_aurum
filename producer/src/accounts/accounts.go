@@ -6,9 +6,9 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"reflect"
-    "errors"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -46,7 +46,7 @@ returns contract struct
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) (Contract, error) {
 
-	c:= Contract{
+	c := Contract{
 		Version:         version,
 		SenderPubKey:    sender.PublicKey,
 		SigLen:          0,
@@ -56,11 +56,11 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 		Nonce:           nonce,
 	}
 
-    if version == 0 {
-        return c, errors.New("Invalid version; must be >= 1")
-    }
-    
-    return c, nil
+	if version == 0 {
+		return c, errors.New("Invalid version; must be >= 1")
+	}
+
+	return c, nil
 }
 
 // Serialize all fields of the contract
@@ -78,29 +78,29 @@ func (c Contract) Serialize() []byte {
 
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
 
-    //unsigned contract
-    if c.SigLen == 0 {
-	    totalSize := (2 + 178 + 32 + 16)
-	    serializedContract := make([]byte, totalSize)
-	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-	    copy(serializedContract[2:180], spubkey)
-        binary.LittleEndian.PutUint64(serializedContract[180:212], c.Value)
-        binary.LittleEndian.PutUint64(serializedContract[212:228], c.Nonce)
+	//unsigned contract
+	if c.SigLen == 0 {
+		totalSize := (2 + 178 + 32 + 16)
+		serializedContract := make([]byte, totalSize)
+		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+		copy(serializedContract[2:180], spubkey)
+		binary.LittleEndian.PutUint64(serializedContract[180:212], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[212:228], c.Nonce)
 
-        return serializedContract
-    } else { //signed contract
-	    totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
-	    serializedContract := make([]byte, totalSize)
-	    binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-	    copy(serializedContract[2:180], spubkey)
-	    serializedContract[180] = c.SigLen
-	    copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
-	    copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
-	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
-	    binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+		return serializedContract
+	} else { //signed contract
+		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
+		serializedContract := make([]byte, totalSize)
+		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+		copy(serializedContract[2:180], spubkey)
+		serializedContract[180] = c.SigLen
+		copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
+		copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
 
-    return serializedContract
-    }
+		return serializedContract
+	}
 }
 
 // Deserialize into a struct
@@ -124,32 +124,8 @@ sig len = signature length
 siglen and sig go into respective fields in contract
 */
 func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
-
-	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
-	preSerial := make([]byte, 374)
-
-	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
-	copy(preSerial[2:180], spubkey)                            //178
-	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
-	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
-	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
-	preHash := block.HashSHA256(preSerial)
-
-
-
-    //r := big.NewInt(0)
-    //s := big.NewInt(0)
-
-   // r, s, err := ecdsa.Sign(rand.Reader, sender, preHash)
-
-    c.Signature, _ = sender.Sign(rand.Reader, preHash, nil) // this is causing a SegFault
-   // if err != nil {
-     //   fmt.Println(err)
-   // }
-
-   // c.Signature = r.Bytes()
-   // c.Signature = append(c.Signature, s.Bytes()...)
-
+	serializedTestContract := block.HashSHA256(c.Serialize())
+	c.Signature, _ = sender.Sign(rand.Reader, serializedTestContract, nil)
 	c.SigLen = uint8(len(c.Signature))
 }
 
