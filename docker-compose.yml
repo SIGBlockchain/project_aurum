@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  producer:
+    build: producer
+    ports:
+     - "13131:13131"
+    command:
+      ./main
