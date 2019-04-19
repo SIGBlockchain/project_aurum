@@ -118,3 +118,6 @@ func PrintPublicKeyAndHash() error {
 func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return nil, errors.New("Incomplete function")
 }
+
+// NOT READY TO BE IMPLEMENTED YET
+func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
