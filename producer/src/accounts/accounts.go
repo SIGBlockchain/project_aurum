@@ -109,24 +109,24 @@ func (c Contract) Serialize() []byte {
 func (c *Contract) Deserialize(b []byte) {
 	spubkeydecoded := keys.DecodePublicKey(b[2:180])
 	siglen := int(b[180])
-    
-    // unsigned contract
-    if siglen == 0 {
-	    c.Version = binary.LittleEndian.Uint16(b[0:2])
-	    c.SenderPubKey = *spubkeydecoded
-	    c.SigLen = b[180]
-	    c.RecipPubKeyHash = b[181:213]
-	    c.Value = binary.LittleEndian.Uint64(b[213:221])
-	    c.Nonce = binary.LittleEndian.Uint64(b[221:229])
-    } else {
-	    c.Version = binary.LittleEndian.Uint16(b[0:2])
-	    c.SenderPubKey = *spubkeydecoded
-	    c.SigLen = b[180]
-	    c.Signature = b[181:(181 + siglen)]
-	    c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
-	    c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
-	    c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
-    }
+
+	// unsigned contract
+	if siglen == 0 {
+		c.Version = binary.LittleEndian.Uint16(b[0:2])
+		c.SenderPubKey = *spubkeydecoded
+		c.SigLen = b[180]
+		c.RecipPubKeyHash = b[181:213]
+		c.Value = binary.LittleEndian.Uint64(b[213:221])
+		c.Nonce = binary.LittleEndian.Uint64(b[221:229])
+	} else {
+		c.Version = binary.LittleEndian.Uint16(b[0:2])
+		c.SenderPubKey = *spubkeydecoded
+		c.SigLen = b[180]
+		c.Signature = b[181:(181 + siglen)]
+		c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
+		c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
+		c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
+	}
 }
 
 /*
@@ -232,7 +232,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 	rows, err := tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		fmt.Println("Failed to create rows to look for public key")
+		fmt.Println("Failed to create rows to look for sender's public key")
 	}
 
 	// search for the senders public key hash that belongs to the contract and update its fields
@@ -251,7 +251,28 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 	_, err = tbl.Exec(sqlQuery)
 	if err != nil {
-		fmt.Println("Failed to update after searching in rows ")
+		fmt.Println("Failed to update sender after searching in rows ")
+		fmt.Println(err)
+	}
+
+	// new query to update the receiver
+	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		fmt.Println("Failed to create rows to look for recipient's public key")
+	}
+
+	for rows.Next() {
+		rows.Scan(&pkh, &tblBal, &tblNonce)
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(c.RecipPubKeyHash))) {
+			rows.Close()
+			compareVal := hex.EncodeToString(c.RecipPubKeyHash)
+			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(c.Value), tblNonce+1, compareVal)
+		}
+	}
+
+	_, err = tbl.Exec(sqlQuery)
+	if err != nil {
+		fmt.Println("Failed to update recipient after searching in rows ")
 		fmt.Println(err)
 	}
 }
