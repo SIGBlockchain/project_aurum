@@ -9,4 +9,6 @@ RUN cd $GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main && g
 
 EXPOSE 13131
 
-ENTRYPOINT ["src/main/main"]
+WORKDIR $GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main
+
+CMD [ "./main" ] 
