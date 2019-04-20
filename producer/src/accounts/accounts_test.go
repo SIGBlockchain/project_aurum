@@ -294,9 +294,9 @@ func TestValidateContract(t *testing.T) {
 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
 	validContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
-	validContract.SignContract(*senderPrivateKey)
+	validContract.SignContract(senderPrivateKey)
 	invalidContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 5)
-	invalidContract.SignContract(*senderPrivateKey)
+	invalidContract.SignContract(senderPrivateKey)
 	type args struct {
 		c         Contract
 		tableName string
