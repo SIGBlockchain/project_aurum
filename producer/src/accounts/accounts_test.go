@@ -290,13 +290,17 @@ func TestValidateContract(t *testing.T) {
 	if err != nil {
 		t.Errorf("Insertion statement failed: %s", err)
 	}
-	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
+	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3) // give sender initially 350
 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
+	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2) // give recip initially 200
 	validContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
 	validContract.SignContract(senderPrivateKey)
 	invalidContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 5)
 	invalidContract.SignContract(senderPrivateKey)
+	invalidNonceContract, _ := MakeContract(1, *recipientPrivateKey, senderPrivateKey.PublicKey, 250, 3)
+	invalidNonceContract.SignContract(recipientPrivateKey)
+	zeroValueContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 0, 5)
+	zeroValueContract.SignContract(senderPrivateKey)
 	type args struct {
 		c         Contract
 		tableName string
@@ -317,6 +321,20 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid contract by value",
 			args: args{
 				c: invalidContract,
+			},
+			want: false,
+		},
+		{
+			name: "Invalid contract by nonce",
+			args: args{
+				c: invalidNonceContract,
+			},
+			want: false,
+		},
+		{
+			name: "Zero value contract (spam control)",
+			args: args{
+				c: zeroValueContract,
 			},
 			want: false,
 		},
