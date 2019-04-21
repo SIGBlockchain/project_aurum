@@ -6,9 +6,11 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
+    "encoding/asn1"
 	"errors"
 	"fmt"
 	"reflect"
+    "math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -162,57 +164,59 @@ check to see that nonce is 1 + table nonce for that account (T)
 If all 3 are true, update table
 */
 func ValidateContract(c Contract, tableName string) bool {
-	// table, err := sql.Open("sqlite3", tableName)
-	// if err != nil {
-	// 	//"Failed to open sqlite3 table"
-	// 	return false
-	// }
-	// defer table.Close()
+	table, err := sql.Open("sqlite3", tableName)
+	if err != nil {
+		//"Failed to open sqlite3 table"
+		return false
+	}
+	defer table.Close()
 
-	// spubkey := keys.EncodePublicKey(&c.SenderPubKey)
-	// preSerial := make([]byte, 374)
+	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
+	preSerial := make([]byte, 374)
 
-	// binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
-	// copy(preSerial[2:180], spubkey)                            //178
-	// copy(preSerial[180:212], c.RecipPubKeyHash)                //32
-	// binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
-	// binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
+	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
+	copy(preSerial[2:180], spubkey)                            //178
+	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
+	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
+	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
 
-	// hashedContract := block.HashSHA256(preSerial)
+	hashedContract := block.HashSHA256(preSerial)
 
-	// // stores r and s values needed for ecdsa.Verify
-	// var esig struct {
-	// 	R, S *big.Int
-	// }
-	// if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
-	// 	fmt.Println(err)
-	// }
+	// stores r and s values needed for ecdsa.Verify
+	var esig struct {
+		R, S *big.Int
+	}
+	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
+		fmt.Println(err)
+	}
 
-	// // if the ecdsa.Verify is true then check the rest of the contract against whats in the database
-	// if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
-	// 	rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	// 	if err != nil {
-	// 		fmt.Println("Failed to create rows to look for public key")
-	// 	}
-	// 	defer rows.Close()
+	// if the ecdsa.Verify is true then check the rest of the contract against whats in the database
+    fmt.Println("Before Verify")
+	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
+        fmt.Println("Inside Verify true")
+		rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+		if err != nil {
+			fmt.Println("Failed to create rows to look for public key")
+		}
+		defer rows.Close()
 
-	// 	// look for the public key that pertains to the contract and verify its balance and nonce
-	// 	var pkh string
-	// 	var tblBal int
-	// 	var tblNonce int
-	// 	for rows.Next() {
-	// 		rows.Scan(&pkh, &tblBal, &tblNonce)
-	// 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-	// 			if tblBal >= int(c.Value) {
-	// 				if tblNonce+1 == int(c.Nonce) {
-	// 					rows.Close()
-	// 					c.UpdateAccountBalanceTable(tableName)
-	// 					return true
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+		// look for the public key that pertains to the contract and verify its balance and nonce
+		var pkh string
+		var tblBal int
+		var tblNonce int
+		for rows.Next() {
+			rows.Scan(&pkh, &tblBal, &tblNonce)
+			if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+				if tblBal >= int(c.Value) {
+					if tblNonce+1 == int(c.Nonce) {
+						rows.Close()
+						c.UpdateAccountBalanceTable(tableName)
+						return true
+					}
+				}
+			}
+		}
+	}
 	return false
 }
 
