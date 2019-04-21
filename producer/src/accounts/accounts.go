@@ -4,13 +4,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"database/sql"
+	"encoding/asn1"
 	"encoding/binary"
 	"encoding/hex"
-    "encoding/asn1"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
-    "math/big"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 
@@ -163,11 +163,11 @@ check to see that nonce is 1 + table nonce for that account (T)
 
 If all 3 are true, update table
 */
-func ValidateContract(c Contract, tableName string) bool {
+func ValidateContract(c Contract, tableName string) (bool, error) {
 	table, err := sql.Open("sqlite3", tableName)
 	if err != nil {
 		//"Failed to open sqlite3 table"
-		return false
+		return false, errors.New("Failed to validate contract")
 	}
 	defer table.Close()
 
@@ -191,9 +191,9 @@ func ValidateContract(c Contract, tableName string) bool {
 	}
 
 	// if the ecdsa.Verify is true then check the rest of the contract against whats in the database
-    fmt.Println("Before Verify")
+	fmt.Println("Before Verify")
 	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
-        fmt.Println("Inside Verify true")
+		fmt.Println("Inside Verify true")
 		rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 		if err != nil {
 			fmt.Println("Failed to create rows to look for public key")
@@ -211,13 +211,13 @@ func ValidateContract(c Contract, tableName string) bool {
 					if tblNonce+1 == int(c.Nonce) {
 						rows.Close()
 						c.UpdateAccountBalanceTable(tableName)
-						return true
+						return true, nil
 					}
 				}
 			}
 		}
 	}
-	return false
+	return false, errors.New("couldn't validate")
 }
 
 /*

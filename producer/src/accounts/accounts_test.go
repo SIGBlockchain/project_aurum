@@ -341,8 +341,8 @@ func TestValidateContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
-				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
+			if got, err := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
+				t.Errorf("ValidateContract() = %v, want %v. Error: %s", got, tt.want, err)
 			}
 			var pkhash string
 			var balance uint64
