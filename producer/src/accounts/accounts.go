@@ -66,7 +66,7 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 }
 
 // Serialize all fields of the contract
-func (c Contract) Serialize() []byte {
+func (c Contract) Serialize(withSignature bool) []byte {
 	/*
 		0-2 version
 		2-180 spubkey
@@ -81,7 +81,7 @@ func (c Contract) Serialize() []byte {
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
 
 	//unsigned contract
-	if c.SigLen == 0 {
+	if c.SigLen == 0 || withSignature == false {
 		totalSize := (2 + 178 + 1 + 32 + 16)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
@@ -138,7 +138,7 @@ sig len = signature length
 siglen and sig go into respective fields in contract
 */
 func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
-	serializedTestContract := block.HashSHA256(c.Serialize())
+	serializedTestContract := block.HashSHA256(c.Serialize(false))
 	c.Signature, _ = sender.Sign(rand.Reader, serializedTestContract, nil)
 	c.SigLen = uint8(len(c.Signature))
 }
@@ -171,16 +171,7 @@ func ValidateContract(c Contract, tableName string) (bool, error) {
 	}
 	defer table.Close()
 
-	spubkey := keys.EncodePublicKey(&c.SenderPubKey)
-	preSerial := make([]byte, 374)
-
-	binary.LittleEndian.PutUint16(preSerial[0:2], c.Version)   // 2
-	copy(preSerial[2:180], spubkey)                            //178
-	copy(preSerial[180:212], c.RecipPubKeyHash)                //32
-	binary.LittleEndian.PutUint64(preSerial[212:220], c.Value) //8
-	binary.LittleEndian.PutUint64(preSerial[220:228], c.Nonce) //8
-
-	hashedContract := block.HashSHA256(preSerial)
+	serializedContract := block.HashSHA256(c.Serialize(false))
 
 	// stores r and s values needed for ecdsa.Verify
 	var esig struct {
@@ -190,10 +181,8 @@ func ValidateContract(c Contract, tableName string) (bool, error) {
 		fmt.Println(err)
 	}
 
-	// if the ecdsa.Verify is true then check the rest of the contract against whats in the database
-	fmt.Println("Before Verify")
-	if ecdsa.Verify(&c.SenderPubKey, hashedContract, esig.R, esig.S) {
-		fmt.Println("Inside Verify true")
+	// if the ecdsa.Verify is true then check the rest of the contract against whats in the databasei
+	if ecdsa.Verify(&c.SenderPubKey, serializedContract, esig.R, esig.S) {
 		rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 		if err != nil {
 			fmt.Println("Failed to create rows to look for public key")

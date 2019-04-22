@@ -126,7 +126,7 @@ func TestContract_Deserialize(t *testing.T) {
 		{
 			c: &Contract{},
 			args: args{
-				testContract.Serialize(),
+				testContract.Serialize(false),
 			},
 		},
 	}
@@ -180,7 +180,7 @@ func TestContract_SignContract(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			copyOfContract := testContract
 			tt.c.SignContract(&tt.args.sender)
-			serializedTestContract := block.HashSHA256(copyOfContract.Serialize())
+			serializedTestContract := block.HashSHA256(copyOfContract.Serialize(false))
 			var esig struct {
 				R, S *big.Int
 			}
