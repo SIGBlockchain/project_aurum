@@ -62,7 +62,8 @@ func main() {
 
 	// Spin up server
 	// NOTE: If this doesn't work, try deleting `localhost`
-	ln, err := net.Listen("tcp", "localhost:"+*port)
+	logger.Println("Listening on all IP addresses")
+	ln, err := net.Listen("tcp", ":"+*port)
 	if err != nil {
 		logger.Fatalln("Failed to start server.")
 	}
@@ -75,7 +76,7 @@ func main() {
 	}
 
 	// Start listening for connections
-	logger.Printf("Server listening on port %s.\n", *port)
+	logger.Printf("Server listening on port %s.\n on all ip addresses", *port)
 	go bp.AcceptConnections()
 
 	// Main loop
