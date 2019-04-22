@@ -3,7 +3,13 @@ version: '3'
 services:
   producer:
     build: producer
+    networks:
+      - aurum_net
     ports:
      - "13131:13131"
     command:
       ./main
+
+
+networks: 
+  aurum_net:
