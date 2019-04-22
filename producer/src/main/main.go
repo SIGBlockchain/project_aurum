@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -14,6 +15,7 @@ func main() {
 	// Command line parsing
 	help := getopt.Bool('?', "Display Valid Flags")
 	debug := getopt.BoolLong("debug", 'd', "Enable Debug Mode")
+	testNet := getopt.BoolLong("testnet", 't', "Disable `localhost`")
 	logFile := getopt.StringLong("log", 'l', "", "Log File Location")
 	port := getopt.StringLong("port", 'p', "13131", "Port Number")
 	getopt.CommandLine.Lookup('l').SetOptional()
@@ -62,8 +64,17 @@ func main() {
 
 	// Spin up server
 	// NOTE: If this doesn't work, try deleting `localhost`
-	logger.Println("Listening on all IP addresses")
-	ln, err := net.Listen("tcp", ":"+*port)
+
+	var addr string
+	if *testNet {
+		addr = fmt.Sprintf(":")
+		logger.Println("Listening on all IP addresses")
+	} else {
+		addr = fmt.Sprintf("localhost:")
+		logger.Println("Listening on local IP addresses")
+
+	}
+	ln, err := net.Listen("tcp", addr+*port)
 	if err != nil {
 		logger.Fatalln("Failed to start server.")
 	}
