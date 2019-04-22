@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	test_functions "github.com/SIGBlockchain/project_aurum/test/src/testfunctions"
+	testfunctions "github.com/SIGBlockchain/project_aurum/test/src/testfunctions"
 	"github.com/pborman/getopt"
 )
 
@@ -40,7 +40,7 @@ func main() {
 		}
 	}
 	// Run GenerateNRandomKeys
-	if err := test_functions.GenerateNRandomKeys("keys.json", *n); err != nil {
+	if err := testfunctions.GenerateNRandomKeys("keys.json", *n); err != nil {
 		logger.Fatalln("Failed to generate random private keys: %s", err)
 	}
 	// Run AirdropNContracts
