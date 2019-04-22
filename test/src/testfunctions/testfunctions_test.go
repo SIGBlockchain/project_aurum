@@ -2,7 +2,6 @@ package testfunctions
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
