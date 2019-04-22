@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -34,15 +35,14 @@ func main() {
 		f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
 		defer f.Close()
 		if err != nil {
-			logger.Fatalln(err)
+			logger.Fatalln(fmt.Errorf("Failed to open file: %s", err))
 		} else {
 			logger = log.New(f, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 		}
 	}
 	// Run GenerateNRandomKeys
 	if err := testfunctions.GenerateNRandomKeys("keys.json", *n); err != nil {
-
-		logger.Fatalln(err)
+		logger.Fatalln(fmt.Errorf("Failed to generate random private keys: %s", err))
 	}
 	// Run AirdropNContracts
 	// Run GenerateGenesisBlock
