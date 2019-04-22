@@ -34,16 +34,15 @@ func main() {
 		f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
 		defer f.Close()
 		if err != nil {
-			logger.Println("Failed to open file: %s", err)
-			os.Exit(0)
+			logger.Fatalln(err)
 		} else {
 			logger = log.New(f, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 		}
 	}
 	// Run GenerateNRandomKeys
 	if err := testfunctions.GenerateNRandomKeys("keys.json", *n); err != nil {
-		logger.Println("Failed to generate random private keys: %s", err)
-		os.Exit(0)
+
+		logger.Fatalln(err)
 	}
 	// Run AirdropNContracts
 	// Run GenerateGenesisBlock
