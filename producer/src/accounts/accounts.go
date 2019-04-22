@@ -81,12 +81,12 @@ func (c Contract) Serialize(withSignature bool) []byte {
 	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
 
 	//unsigned contract
-	if withSignature == false || c.SigLen == 0 {
+	if withSignature == false {
 		totalSize := (2 + 178 + 1 + 32 + 16)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
-		serializedContract[180] = c.SigLen
+		serializedContract[180] = 0
 		copy(serializedContract[181:213], c.RecipPubKeyHash)
 		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
 		binary.LittleEndian.PutUint64(serializedContract[221:229], c.Nonce)
@@ -198,7 +198,6 @@ func ValidateContract(c Contract, tableName string) (bool, error) {
 			if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
 				if tblBal >= int(c.Value) {
 					if tblNonce+1 == int(c.Nonce) {
-						rows.Close()
 						c.UpdateAccountBalanceTable(tableName)
 						return true, nil
 					}

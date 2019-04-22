@@ -140,6 +140,7 @@ func TestContract_Serialize(t *testing.T) {
 			if got := tt.c.Serialize(tt.args.withSignature); !bytes.Equal(got, tt.want) {
 				t.Errorf("Contract.Serialize() = %v, want %v", got, tt.want)
 			}
+
 		})
 	}
 }
@@ -328,12 +329,12 @@ func TestValidateContract(t *testing.T) {
 	validContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
 	copyOfContract := validContract
 	validContract.SignContract(senderPrivateKey)
-	// invalidContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 5)
-	// invalidContract.SignContract(senderPrivateKey)
-	// invalidNonceContract, _ := MakeContract(1, *recipientPrivateKey, senderPrivateKey.PublicKey, 250, 3)
-	// invalidNonceContract.SignContract(recipientPrivateKey)
-	// zeroValueContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 0, 5)
-	// zeroValueContract.SignContract(senderPrivateKey)
+	invalidContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 5)
+	invalidContract.SignContract(senderPrivateKey)
+	invalidNonceContract, _ := MakeContract(1, *recipientPrivateKey, senderPrivateKey.PublicKey, 250, 3)
+	invalidNonceContract.SignContract(recipientPrivateKey)
+	zeroValueContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 0, 5)
+	zeroValueContract.SignContract(senderPrivateKey)
 	type args struct {
 		c         Contract
 		tableName string
@@ -350,62 +351,62 @@ func TestValidateContract(t *testing.T) {
 			},
 			want: true,
 		},
-		// {
-		// 	name: "Invalid contract by value",
-		// 	args: args{
-		// 		c: invalidContract,
-		// 	},
-		// 	want: false,
-		// },
-		// {
-		// 	name: "Invalid contract by nonce",
-		// 	args: args{
-		// 		c: invalidNonceContract,
-		// 	},
-		// 	want: false,
-		// },
-		// {
-		// 	name: "Zero value contract (spam control)",
-		// 	args: args{
-		// 		c: zeroValueContract,
-		// 	},
-		// 	want: false,
-		// },
+		{
+			name: "Invalid contract by value",
+			args: args{
+				c: invalidContract,
+			},
+			want: false,
+		},
+		{
+			name: "Invalid contract by nonce",
+			args: args{
+				c: invalidNonceContract,
+			},
+			want: false,
+		},
+		{
+			name: "Zero value contract (spam control)",
+			args: args{
+				c: zeroValueContract,
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// if got, err := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
-			// 	t.Errorf("ValidateContract() = %v, want %v. Error: %s", got, tt.want, err)
-			// }
+			if got, err := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
+				t.Errorf("ValidateContract() = %v, want %v. Error: %s", got, tt.want, err)
+			}
 			serializedCopy := block.HashSHA256(copyOfContract.Serialize(false))
 			signaturelessValidContract := block.HashSHA256(validContract.Serialize(false))
 			if !reflect.DeepEqual(serializedCopy, signaturelessValidContract) {
 				t.Errorf("Contracts do not match. Wanted: %v, got %v", serializedCopy, signaturelessValidContract)
 			}
 
-			// var pkhash string
-			// var balance uint64
-			// var nonce uint64
-			// rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-			// for rows.Next() {
-			// 	rows.Scan(&pkhash, &balance, &nonce)
-			// 	decodedPkhash, _ := hex.DecodeString(pkhash)
-			// 	if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
-			// 		if balance != 0 {
-			// 			t.Errorf("Invalid sender balance: %d", balance)
-			// 		}
-			// 		if nonce != 4 {
-			// 			t.Errorf("Invalid sender nonce: %d", nonce)
-			// 		}
-			// 	} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
-			// 		if balance != 550 {
-			// 			t.Errorf("Invalid recipient balance: %d", balance)
-			// 		}
-			// 		if nonce != 3 {
-			// 			t.Errorf("Invalid recipient nonce: %d", nonce)
-			// 		}
-			// 	}
-			// }
+			var pkhash string
+			var balance uint64
+			var nonce uint64
+			rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			for rows.Next() {
+				rows.Scan(&pkhash, &balance, &nonce)
+				decodedPkhash, _ := hex.DecodeString(pkhash)
+				if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
+					if balance != 0 {
+						t.Errorf("Invalid sender balance: %d", balance)
+					}
+					if nonce != 4 {
+						t.Errorf("Invalid sender nonce: %d", nonce)
+					}
+				} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
+					if balance != 550 {
+						t.Errorf("Invalid recipient balance: %d", balance)
+					}
+					if nonce != 3 {
+						t.Errorf("Invalid recipient nonce: %d", nonce)
+					}
+				}
+			}
 		})
 	}
 }
