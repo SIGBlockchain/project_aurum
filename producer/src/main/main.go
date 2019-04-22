@@ -15,7 +15,7 @@ func main() {
 	// Command line parsing
 	help := getopt.Bool('?', "Display Valid Flags")
 	debug := getopt.BoolLong("debug", 'd', "Enable Debug Mode")
-	testNet := getopt.BoolLong("testnet", 't', "Disable `localhost`")
+	globalhost := getopt.BoolLong("global", 'h', "Disable `localhost`")
 	logFile := getopt.StringLong("log", 'l', "", "Log File Location")
 	port := getopt.StringLong("port", 'p', "13131", "Port Number")
 	getopt.CommandLine.Lookup('l').SetOptional()
@@ -66,7 +66,7 @@ func main() {
 	// NOTE: If this doesn't work, try deleting `localhost`
 
 	var addr string
-	if *testNet {
+	if *globalhost {
 		addr = fmt.Sprintf(":")
 		logger.Println("Listening on all IP addresses")
 	} else {
