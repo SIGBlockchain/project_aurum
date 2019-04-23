@@ -36,6 +36,8 @@ type Contract struct {
 	Nonce           uint64
 }
 
+const TableName string = "account_balances"
+
 /*
 version field comes from version parameter
 sender public key comes from sender private key
@@ -163,8 +165,7 @@ check to see that nonce is 1 + table nonce for that account (T)
 
 If all 3 are true, update table
 */
-func ValidateContract(c Contract, tableName string) (bool, error) {
-
+func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 	// Serialize the Contract
 	serializedContract := block.HashSHA256(c.Serialize(false))
 
@@ -181,19 +182,9 @@ func ValidateContract(c Contract, tableName string) (bool, error) {
 		return false, errors.New("failed to verify signature")
 	}
 
-	// // If every condition is satisfied
-	// return true, nil
-
-	table, err := sql.Open("sqlite3", tableName)
+	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		//"Failed to open sqlite3 table"
-		return false, errors.New("Failed to validate contract")
-	}
-	defer table.Close()
-
-	rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	if err != nil {
-		return false, errors.New("Failed to create rows to look for public key")
+		return false, err
 	}
 
 	defer rows.Close()
@@ -225,16 +216,17 @@ decrease value from sender public key hash account
 increment their nonce by one
 increase value of recipient public key hash account by contract value
 */
-func (c *Contract) UpdateAccountBalanceTable(table string) {
+func (c *Contract) UpdateAccountBalanceTable(table string) (bool, error) {
 	tbl, err := sql.Open("sqlite3", table)
 	if err != nil {
-		fmt.Println("Failed to open sqlite3 table")
+		//"Failed to open sqlite3 table"
+		return false, errors.New("Failed to open sqlite3")
 	}
 	defer tbl.Close()
 
 	rows, err := tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		fmt.Println("Failed to create rows to look for sender's public key")
+		return false, errors.New("Failed to create rows to look for public key")
 	}
 
 	// search for the senders public key hash that belongs to the contract and update its fields
@@ -253,14 +245,13 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 	_, err = tbl.Exec(sqlQuery)
 	if err != nil {
-		fmt.Println("Failed to update sender after searching in rows ")
-		fmt.Println(err)
+		return false, errors.New("Failed to execute sql query")
 	}
 
 	// new query to update the receiver
 	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		fmt.Println("Failed to create rows to look for recipient's public key")
+		return false, errors.New("Failed the update the receiver query")
 	}
 
 	for rows.Next() {
@@ -274,7 +265,8 @@ func (c *Contract) UpdateAccountBalanceTable(table string) {
 
 	_, err = tbl.Exec(sqlQuery)
 	if err != nil {
-		fmt.Println("Failed to update recipient after searching in rows ")
-		fmt.Println(err)
+		return false, errors.New("Failed to update recipient after searching in rows")
 	}
+
+	return true, nil
 }

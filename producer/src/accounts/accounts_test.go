@@ -318,6 +318,9 @@ func TestValidateContract(t *testing.T) {
 		}
 	}()
 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 	statement.Exec()
 	statement, err = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
 	if err != nil {
@@ -349,6 +352,7 @@ func TestValidateContract(t *testing.T) {
 			name: "Valid contract",
 			args: args{
 				c: validContract,
+				tableName: "account_balances",
 			},
 			want:    true,
 			wantErr: false,
@@ -357,6 +361,7 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid contract by value",
 			args: args{
 				c: invalidContract,
+				tableName: "account_balances",
 			},
 			want:    false,
 			wantErr: true,
@@ -365,6 +370,8 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid contract by nonce",
 			args: args{
 				c: invalidNonceContract,
+				tableName: "account_balances",
+
 			},
 			want:    false,
 			wantErr: true,
@@ -373,6 +380,8 @@ func TestValidateContract(t *testing.T) {
 			name: "Zero value contract (spam control)",
 			args: args{
 				c: zeroValueContract,
+				tableName: "account_balances",
+
 			},
 			want:    false,
 			wantErr: true,
