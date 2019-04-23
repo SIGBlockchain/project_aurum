@@ -28,7 +28,7 @@ Run `go test -v` at project root.
 ## Docker
 To build an image of the producer:
 - change current directory to project_aurum/producer
-- run `docker build -t <name:tag> .`
+- run `docker build -t aurum_producer:0.1 .`
 
 To run an instance of the producer: 
 - `docker run -p 13131:13131 <what ever you named the image>`
