@@ -100,7 +100,6 @@ func TestMakeContract(t *testing.T) {
 			got, err := MakeContract(tt.args.version, tt.args.sender, tt.args.recipient, tt.args.value, tt.args.nonce)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MakeContract() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MakeContract() = %v, want %v", got, tt.want)
@@ -272,7 +271,7 @@ func TestContract_UpdateAccountBalanceTable(t *testing.T) {
 			// 		t.Errorf("Recovered from panic: %s", r)
 			// 	}
 			// }()
-			tt.c.UpdateAccountBalanceTable(tt.args.table)
+			tt.c.UpdateAccountBalanceTable(database)
 			var pkhash string
 			var balance uint64
 			var nonce uint64
@@ -397,12 +396,12 @@ func TestValidateContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, err := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
+			got, err := ValidateContract(tt.args.c, database)
+			if got != tt.want {
 				t.Errorf("ValidateContract() = %v, want %v. Error: %v", got, tt.want, err)
 			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			serializedCopy := block.HashSHA256(copyOfContract.Serialize(false))
 			signaturelessValidContract := block.HashSHA256(validContract.Serialize(false))

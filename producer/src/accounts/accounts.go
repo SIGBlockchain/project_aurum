@@ -166,6 +166,11 @@ check to see that nonce is 1 + table nonce for that account (T)
 If all 3 are true, update table
 */
 func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
+	// check for zero value transaction
+	if(c.Value == 0) {
+		return false, errors.New("the transaction was zero value")
+	}
+
 	// Serialize the Contract
 	serializedContract := block.HashSHA256(c.Serialize(false))
 
@@ -174,7 +179,7 @@ func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 		R, S *big.Int
 	}
 	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
-		fmt.Println(err)
+		return false, errors.New("Failed to unmarshal signature")
 	}
 
 	// if the ecdsa.Verify is true then check the rest of the contract against whats in the databasei
@@ -186,7 +191,6 @@ func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	defer rows.Close()
 
 	//look for the public key that pertains to the contract and verify its balance and nonce
@@ -195,18 +199,18 @@ func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 	var tblNonce int
 	for rows.Next() {
 		rows.Scan(&pkh, &tblBal, &tblNonce)
-		if !reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-			return false, errors.New("pkh not equal to hashed SenderPubKey")
-		}
-		if !(tblBal >= int(c.Value)) {
-			return false, errors.New("tblBal is less than c.Value")
-		}
-		if tblNonce+1 == int(c.Nonce) {
-			c.UpdateAccountBalanceTable(tableName)
-			return true, nil
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+			if !(tblBal >= int(c.Value)) {
+				return false, errors.New("tblBal is less than c.Value")
+			}
+			if !(tblNonce+1 == int(c.Nonce)) {
+				return false, errors.New("couldn't validate")
+			}
 		}
 	}
-	return false, errors.New("couldn't validate")
+
+	c.UpdateAccountBalanceTable(dbConnection)
+	return true, nil
 }
 
 /*
@@ -216,15 +220,8 @@ decrease value from sender public key hash account
 increment their nonce by one
 increase value of recipient public key hash account by contract value
 */
-func (c *Contract) UpdateAccountBalanceTable(table string) (bool, error) {
-	tbl, err := sql.Open("sqlite3", table)
-	if err != nil {
-		//"Failed to open sqlite3 table"
-		return false, errors.New("Failed to open sqlite3")
-	}
-	defer tbl.Close()
-
-	rows, err := tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) (bool, error) {
+	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
 		return false, errors.New("Failed to create rows to look for public key")
 	}
@@ -243,13 +240,13 @@ func (c *Contract) UpdateAccountBalanceTable(table string) (bool, error) {
 		}
 	}
 
-	_, err = tbl.Exec(sqlQuery)
+	_, err = dbConnection.Exec(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to execute sql query")
 	}
 
 	// new query to update the receiver
-	rows, err = tbl.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	rows, err = dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
 		return false, errors.New("Failed the update the receiver query")
 	}
@@ -263,7 +260,7 @@ func (c *Contract) UpdateAccountBalanceTable(table string) (bool, error) {
 		}
 	}
 
-	_, err = tbl.Exec(sqlQuery)
+	_, err = dbConnection.Exec(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to update recipient after searching in rows")
 	}
