@@ -12,4 +12,4 @@ EXPOSE 13131
 
 WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main
 
-CMD [ "./main", "-d", "-h"] 
+CMD [ "./main", "-d", "-g"] 
