@@ -181,40 +181,41 @@ func ValidateContract(c Contract, tableName string) (bool, error) {
 		return false, errors.New("failed to verify signature")
 	}
 
-	// If every condition is satisfied
-	return true, nil
+	// // If every condition is satisfied
+	// return true, nil
 
-	// table, err := sql.Open("sqlite3", tableName)
-	// if err != nil {
-	// 	//"Failed to open sqlite3 table"
-	// 	return false, errors.New("Failed to validate contract")
-	// }
-	// defer table.Close()
+	table, err := sql.Open("sqlite3", tableName)
+	if err != nil {
+		//"Failed to open sqlite3 table"
+		return false, errors.New("Failed to validate contract")
+	}
+	defer table.Close()
 
-	// rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	// if err != nil {
-	// 	fmt.Println("Failed to create rows to look for public key")
-	// }
-	// defer rows.Close()
+	rows, err := table.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		return false, errors.New("Failed to create rows to look for public key")
+	}
 
-	// look for the public key that pertains to the contract and verify its balance and nonce
-	// var pkh string
-	// var tblBal int
-	// var tblNonce int
-	// for rows.Next() {
-	// 	rows.Scan(&pkh, &tblBal, &tblNonce)
-	// 	if !reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-	// 		return false, errors.New("pkh not equal to hashed SenderPubKey")
-	// 	}
-	// 	if !(tblBal >= int(c.Value)) {
-	// 		return false, errors.New("tblBal is less than c.Value")
-	// 	}
-	// 	if tblNonce+1 == int(c.Nonce) {
-	// 		c.UpdateAccountBalanceTable(tableName)
-	// 		return true, nil
-	// 	}
-	// }
-	// return false, errors.New("couldn't validate")
+	defer rows.Close()
+
+	//look for the public key that pertains to the contract and verify its balance and nonce
+	var pkh string
+	var tblBal int
+	var tblNonce int
+	for rows.Next() {
+		rows.Scan(&pkh, &tblBal, &tblNonce)
+		if !reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
+			return false, errors.New("pkh not equal to hashed SenderPubKey")
+		}
+		if !(tblBal >= int(c.Value)) {
+			return false, errors.New("tblBal is less than c.Value")
+		}
+		if tblNonce+1 == int(c.Nonce) {
+			c.UpdateAccountBalanceTable(tableName)
+			return true, nil
+		}
+	}
+	return false, errors.New("couldn't validate")
 }
 
 /*

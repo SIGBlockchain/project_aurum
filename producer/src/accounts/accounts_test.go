@@ -392,7 +392,7 @@ func TestValidateContract(t *testing.T) {
 				t.Errorf("ValidateContract() = %v, want %v. Error: %v", got, tt.want, err)
 			}
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateContract() error = %v, wantErr %v", err.Error(), tt.wantErr)
+				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			serializedCopy := block.HashSHA256(copyOfContract.Serialize(false))
