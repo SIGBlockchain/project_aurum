@@ -2,6 +2,7 @@ FROM golang:alpine
 
 RUN apk add --no-cache git gcc musl-dev \
     && go get github.com/SIGBlockchain/project_aurum/... \
+    && cd /$GOPATH/src/github.com/SIGBlockchain/project_aurum && git pull && git checkout Docker\
     && apk del git gcc musl-dev
 
 
@@ -11,4 +12,4 @@ EXPOSE 13131
 
 WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main
 
-CMD [ "./main" ] 
+CMD [ "./main", "-d", "-h"] 
