@@ -7,9 +7,6 @@ services:
       - aurum_net
     ports:
      - "13131:13131"
-     container_name: aurpro
-
-
 
 networks: 
   aurum_net:
