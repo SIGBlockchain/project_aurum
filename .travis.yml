@@ -1,3 +1,5 @@
+gobuild_args: `go list ./... | grep -v main` -v
+
 language: go
 
 go:
