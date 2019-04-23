@@ -31,7 +31,7 @@ To build an image of the producer:
 - run `docker build -t aurum_producer:0.1 .`
 
 To run an instance of the producer: 
-- `docker run -p 13131:13131 <what ever you named the image>`
+- `docker run -p 13131:13131 aurum_producer:0.1`
 
 To run the compose file:
 - `docker-compose run --service-ports producer`
