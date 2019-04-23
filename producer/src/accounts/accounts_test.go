@@ -340,37 +340,42 @@ func TestValidateContract(t *testing.T) {
 		tableName string
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name    string
+		args    args
+		want    bool
+		wantErr bool
 	}{
 		{
 			name: "Valid contract",
 			args: args{
 				c: validContract,
 			},
-			want: true,
+			want:    true,
+			wantErr: false,
 		},
 		{
 			name: "Invalid contract by value",
 			args: args{
 				c: invalidContract,
 			},
-			want: false,
+			want:    false,
+			wantErr: true,
 		},
 		{
 			name: "Invalid contract by nonce",
 			args: args{
 				c: invalidNonceContract,
 			},
-			want: false,
+			want:    false,
+			wantErr: true,
 		},
 		{
 			name: "Zero value contract (spam control)",
 			args: args{
 				c: zeroValueContract,
 			},
-			want: false,
+			want:    false,
+			wantErr: true,
 		},
 		// {
 		// 	name: "Same sender and recipient",
@@ -378,12 +383,17 @@ func TestValidateContract(t *testing.T) {
 
 		// 	},
 		// 	want: false,
+		// wantErr: true,
 		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got, err := ValidateContract(tt.args.c, tt.args.tableName); got != tt.want {
-				t.Errorf("ValidateContract() = %v, want %v. Error: %s", got, tt.want, err)
+				t.Errorf("ValidateContract() = %v, want %v. Error: %v", got, tt.want, err)
+			}
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 			serializedCopy := block.HashSHA256(copyOfContract.Serialize(false))
 			signaturelessValidContract := block.HashSHA256(validContract.Serialize(false))
