@@ -15,7 +15,7 @@ func main() {
 	// Command line parsing
 	help := getopt.Bool('?', "Display Valid Flags")
 	debug := getopt.BoolLong("debug", 'd', "Enable Debug Mode")
-	globalhost := getopt.BoolLong("global", 'h', "Disable `localhost`")
+	globalhost := getopt.BoolLong("global", 'g', "Enable globalhost")
 	logFile := getopt.StringLong("log", 'l', "", "Log File Location")
 	port := getopt.StringLong("port", 'p', "13131", "Port Number")
 	getopt.CommandLine.Lookup('l').SetOptional()
@@ -87,7 +87,7 @@ func main() {
 	}
 
 	// Start listening for connections
-	logger.Printf("Server listening on port %s.\n on all ip addresses", *port)
+	logger.Printf("Server listening on port %s.", *port)
 	go bp.AcceptConnections()
 
 	// Main loop
