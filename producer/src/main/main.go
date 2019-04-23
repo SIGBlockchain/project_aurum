@@ -87,7 +87,7 @@ func main() {
 	}
 
 	// Start listening for connections
-	logger.Printf("Server listening on port %s.\n on all ip addresses", *port)
+	logger.Printf("Server listening on port %s.", *port)
 	go bp.AcceptConnections()
 
 	// Main loop
