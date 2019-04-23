@@ -1,6 +1,6 @@
-gobuild_args: `go list ./... | grep -v main` -v
-
 language: go
 
 go:
 - master
+
+gobuild_args: `go list ./... | grep -v main` -v
