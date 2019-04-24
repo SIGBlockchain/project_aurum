@@ -220,10 +220,10 @@ decrease value from sender public key hash account
 increment their nonce by one
 increase value of recipient public key hash account by contract value
 */
-func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) (bool, error) {
+func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) ( error) {
 	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		return false, errors.New("Failed to create rows to look for public key")
+		return errors.New("Failed to create rows to look for public key")
 	}
 
 	// search for the senders public key hash that belongs to the contract and update its fields
@@ -242,13 +242,13 @@ func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) (bool, error)
 
 	_, err = dbConnection.Exec(sqlQuery)
 	if err != nil {
-		return false, errors.New("Failed to execute sql query")
+		return errors.New("Failed to execute sql query")
 	}
 
 	// new query to update the receiver
 	rows, err = dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
-		return false, errors.New("Failed the update the receiver query")
+		return errors.New("Failed the update the receiver query")
 	}
 
 	for rows.Next() {
@@ -262,8 +262,8 @@ func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) (bool, error)
 
 	_, err = dbConnection.Exec(sqlQuery)
 	if err != nil {
-		return false, errors.New("Failed to update recipient after searching in rows")
+		return errors.New("Failed to update recipient after searching in rows")
 	}
 
-	return true, nil
+	return  nil
 }
