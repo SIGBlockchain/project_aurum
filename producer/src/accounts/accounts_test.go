@@ -75,7 +75,7 @@ func TestMakeContract(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Normal contract",
+			name: "Version 0 contract",
 			args: args{
 				version:   0,
 				sender:    *senderPrivateKey,
@@ -83,15 +83,7 @@ func TestMakeContract(t *testing.T) {
 				value:     1000000000,
 				nonce:     0,
 			},
-			want: Contract{
-				Version:         0,
-				SenderPubKey:    senderPrivateKey.PublicKey,
-				SigLen:          0,
-				Signature:       nil,
-				RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
-				Value:           1000000000,
-				Nonce:           0,
-			},
+			want:    Contract{},
 			wantErr: true,
 		},
 	}
@@ -350,7 +342,7 @@ func TestValidateContract(t *testing.T) {
 		{
 			name: "Valid contract",
 			args: args{
-				c: validContract,
+				c:         validContract,
 				tableName: "account_balances",
 			},
 			want:    true,
@@ -359,7 +351,7 @@ func TestValidateContract(t *testing.T) {
 		{
 			name: "Invalid contract by value",
 			args: args{
-				c: invalidContract,
+				c:         invalidContract,
 				tableName: "account_balances",
 			},
 			want:    false,
@@ -368,9 +360,8 @@ func TestValidateContract(t *testing.T) {
 		{
 			name: "Invalid contract by nonce",
 			args: args{
-				c: invalidNonceContract,
+				c:         invalidNonceContract,
 				tableName: "account_balances",
-
 			},
 			want:    false,
 			wantErr: true,
@@ -378,9 +369,8 @@ func TestValidateContract(t *testing.T) {
 		{
 			name: "Zero value contract (spam control)",
 			args: args{
-				c: zeroValueContract,
+				c:         zeroValueContract,
 				tableName: "account_balances",
-
 			},
 			want:    false,
 			wantErr: true,

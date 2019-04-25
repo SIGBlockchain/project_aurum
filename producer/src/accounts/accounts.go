@@ -48,6 +48,10 @@ returns contract struct
 */
 func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.PublicKey, value uint64, nonce uint64) (Contract, error) {
 
+	if version == 0 {
+		return Contract{}, errors.New("Invalid version; must be >= 1")
+	}
+
 	c := Contract{
 		Version:         version,
 		SenderPubKey:    sender.PublicKey,
@@ -56,10 +60,6 @@ func MakeContract(version uint16, sender ecdsa.PrivateKey, recipient ecdsa.Publi
 		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipient)), // size 32 bytes
 		Value:           value,
 		Nonce:           nonce,
-	}
-
-	if version == 0 {
-		return c, errors.New("Invalid version; must be >= 1")
 	}
 
 	return c, nil
@@ -165,7 +165,7 @@ If all 3 are true, update table
 */
 func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 	// check for zero value transaction
-	if(c.Value == 0) {
+	if c.Value == 0 {
 		return false, errors.New("the transaction was zero value")
 	}
 
@@ -196,7 +196,10 @@ func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 	var tblBal int
 	var tblNonce int
 	for rows.Next() {
-		rows.Scan(&pkh, &tblBal, &tblNonce)
+		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+		if err != nil {
+			return false, errors.New("Failed ot scan rows")
+		}
 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
 			if !(tblBal >= int(c.Value)) {
 				return false, errors.New("tblBal is less than c.Value")
@@ -207,7 +210,10 @@ func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
 		}
 	}
 
-	c.UpdateAccountBalanceTable(dbConnection)
+	err = c.UpdateAccountBalanceTable(dbConnection)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -218,7 +224,7 @@ decrease value from sender public key hash account
 increment their nonce by one
 increase value of recipient public key hash account by contract value
 */
-func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) ( error) {
+func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) error {
 	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
 	if err != nil {
 		return errors.New("Failed to create rows to look for public key")
@@ -250,7 +256,10 @@ func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) ( error) {
 	}
 
 	for rows.Next() {
-		rows.Scan(&pkh, &tblBal, &tblNonce)
+		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+		if err != nil {
+			return errors.New("Failed to scan rows")
+		}
 		if reflect.DeepEqual(pkh, (hex.EncodeToString(c.RecipPubKeyHash))) {
 			rows.Close()
 			compareVal := hex.EncodeToString(c.RecipPubKeyHash)
@@ -263,5 +272,5 @@ func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) ( error) {
 		return errors.New("Failed to update recipient after searching in rows")
 	}
 
-	return  nil
+	return nil
 }
