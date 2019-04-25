@@ -36,8 +36,6 @@ type Contract struct {
 	Nonce           uint64
 }
 
-const TableName string = "account_balances"
-
 /*
 version field comes from version parameter
 sender public key comes from sender private key
