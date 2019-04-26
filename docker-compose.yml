@@ -9,7 +9,5 @@ services:
      - "13131:13131"
     container_name: "producer"
 
-
-
 networks: 
   aurum_net:
