@@ -25,6 +25,19 @@ Aurum Phase One is a centralized private blockchain that provides users with the
 ## Tests
 Run `go test -v` at project root.
 
+## Docker
+To build an image of the producer:
+- change current directory to project_aurum/producer
+- run `docker build -t aurum_producer:0.1 .`
+
+To run an instance of the producer: 
+- `docker run -p 13131:13131 aurum_producer:0.1`
+
+To run the compose file:
+- `docker-compose run --service-ports prod`
+Or 
+- `docker-compose up prod`
+
 ## How to use?
 `under development`
 

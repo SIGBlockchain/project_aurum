@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  prod:
+    build: producer
+    networks:
+      - aurum_net
+    ports:
+     - "13131:13131"
+    container_name: "producer"
+
+networks: 
+  aurum_net:
