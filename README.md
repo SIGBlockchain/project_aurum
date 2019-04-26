@@ -34,7 +34,9 @@ To run an instance of the producer:
 - `docker run -p 13131:13131 aurum_producer:0.1`
 
 To run the compose file:
-- `docker-compose run --service-ports producer`
+- `docker-compose run --service-ports prod`
+Or 
+- `docker-compose up prod`
 
 ## How to use?
 `under development`
