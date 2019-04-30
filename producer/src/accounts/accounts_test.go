@@ -157,6 +157,89 @@ func TestContract_Serialize(t *testing.T) {
 	}
 }
 
+func TestContract_Deserialize(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
+	nullSenderContractSerialized := nullSenderContract.Serialize(false)
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
+	unsignedContractSerialized := unsignedContract.Serialize(false)
+	type args struct {
+		b []byte
+	}
+	tests := []struct {
+		name string
+		c    *Contract
+		args args
+	}{
+		{
+			name: "Minting contract",
+			c:    &Contract{},
+			args: args{
+				nullSenderContractSerialized,
+			},
+		},
+		{
+			name: "Unsigned contract",
+			c:    &Contract{},
+			args: args{
+				unsignedContractSerialized,
+			},
+		},
+		// {
+		// 	name: "Signed contract",
+		// },
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.c.Deserialize(tt.args.b)
+			switch tt.name {
+			case "Minting contract":
+				if tt.c.Version != nullSenderContract.Version {
+					t.Errorf("Invalid field on nullSender contract: version")
+				}
+				if tt.c.SigLen != nullSenderContract.SigLen {
+					t.Errorf("Invalid field on nullSender contract: signature length")
+				}
+				if tt.c.Value != nullSenderContract.Value {
+					t.Errorf("Invalid field on nullSender contract: value")
+				}
+				if tt.c.Nonce != nullSenderContract.Nonce {
+					t.Errorf("Invalid field on nullSender contract: nonce")
+				}
+				if tt.c.Signature != nil {
+					t.Errorf("Invalid field on nullSender contract: signature")
+				}
+				if tt.c.SenderPubKey != nil {
+					t.Errorf("Invalid field on nullSender contract: sender public key")
+				}
+				break
+			case "Unsigned contract":
+				if tt.c.Version != unsignedContract.Version {
+					t.Errorf("Invalid field on unsigned contract: version")
+				}
+				if tt.c.SigLen != unsignedContract.SigLen {
+					t.Errorf("Invalid field on unsigned contract: signature length")
+				}
+				if tt.c.Value != unsignedContract.Value {
+					t.Errorf("Invalid field on unsigned contract: value")
+				}
+				if tt.c.Nonce != unsignedContract.Nonce {
+					t.Errorf("Invalid field on unsigned contract: nonce")
+				}
+				if tt.c.Signature != nil {
+					t.Errorf("Invalid field on unsigned contract: signature")
+				}
+				if tt.c.SenderPubKey != &senderPrivateKey.PublicKey {
+					t.Errorf("Invalid field on unsigned contract: sender public key")
+				}
+				break
+			default:
+			}
+		})
+	}
+}
+
 // func TestContract_Deserialize(t *testing.T) {
 // 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 // 	testContract, _ := MakeContract(1, *senderPrivateKey, senderPrivateKey.PublicKey, 25, 0)
