@@ -2,7 +2,10 @@ package accounts
 
 import (
 	"crypto/ecdsa"
+	"encoding/binary"
 	"errors"
+
+	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 )
 
 /*
@@ -59,46 +62,46 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 }
 
 // // Serialize all fields of the contract
-// func (c *Contract) Serialize(withSignature bool) []byte {
-// 	/*
-// 		0-2 version
-// 		2-180 spubkey
-// 		180-181 siglen
-// 		181 - 181+c.siglen signature
-// 		181+c.siglen - (181+c.siglen + 32) rpkh
-// 		(181+c.siglen + 32) - (181+c.siglen + 32+ 8) value
-// 		(181+c.siglen + 32+ 8) - (181+c.siglen + 32 + 8 + 8) nonce
+func (c *Contract) Serialize(withSignature bool) []byte {
+	/*
+		0-2 version
+		2-180 spubkey
+		180-181 siglen
+		181 - 181+c.siglen signature
+		181+c.siglen - (181+c.siglen + 32) rpkh
+		(181+c.siglen + 32) - (181+c.siglen + 32+ 8) value
+		(181+c.siglen + 32+ 8) - (181+c.siglen + 32 + 8 + 8) nonce
 
-// 	*/
+	*/
 
-// 	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
+	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
 
-// 	//unsigned contract
-// 	if withSignature == false {
-// 		totalSize := (2 + 178 + 1 + 32 + 16)
-// 		serializedContract := make([]byte, totalSize)
-// 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-// 		copy(serializedContract[2:180], spubkey)
-// 		serializedContract[180] = 0
-// 		copy(serializedContract[181:213], c.RecipPubKeyHash)
-// 		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
-// 		binary.LittleEndian.PutUint64(serializedContract[221:229], c.Nonce)
+	//unsigned contract
+	if withSignature == false {
+		totalSize := (2 + 178 + 1 + 32 + 16)
+		serializedContract := make([]byte, totalSize)
+		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+		copy(serializedContract[2:180], spubkey)
+		serializedContract[180] = 0
+		copy(serializedContract[181:213], c.RecipPubKeyHash)
+		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[221:229], c.Nonce)
 
-// 		return serializedContract
-// 	} else { //signed contract
-// 		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
-// 		serializedContract := make([]byte, totalSize)
-// 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
-// 		copy(serializedContract[2:180], spubkey)
-// 		serializedContract[180] = c.SigLen
-// 		copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
-// 		copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
-// 		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
-// 		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
+		return serializedContract
+	} else { //signed contract
+		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
+		serializedContract := make([]byte, totalSize)
+		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
+		copy(serializedContract[2:180], spubkey)
+		serializedContract[180] = c.SigLen
+		copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
+		copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
+		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
 
-// 		return serializedContract
-// 	}
-// }
+		return serializedContract
+	}
+}
 
 // // Deserialize into a struct
 // func (c *Contract) Deserialize(b []byte) {
