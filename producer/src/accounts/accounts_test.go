@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -94,71 +95,67 @@ func TestMakeContract(t *testing.T) {
 	}
 }
 
-// func TestContract_Serialize(t *testing.T) {
-// 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	// mintingContract, := MakeContract(1, nil, )
-// 	unsignedContract, _ := MakeContract(1, *senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 5)
-// 	type args struct {
-// 		withSignature bool
-// 	}
-// 	tests := []struct {
-// 		name string
-// 		c    *Contract
-// 		args args
-// 		want []byte
-// 	}{
-// 		{
-// 			name: "Minting contract",
-// 		},
-// 		{
-// 			name: "Unsigned contract",
-// 		},
-// 		{
-// 			name: "Signed contract",
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			if got := tt.c.Serialize(tt.args.withSignature); !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("Contract.Serialize() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
-
-// func _TestContract_Serialize(t *testing.T) {
-// 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	testContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 1000, 5)
-// 	copyOfContract := testContract
-// 	testContract.SignContract(senderPrivateKey)
-// 	type args struct {
-// 		withSignature bool
-// 	}
-// 	tests := []struct {
-// 		name string
-// 		c    Contract
-// 		args args
-// 		want []byte
-// 	}{
-// 		{
-// 			c: testContract,
-// 			args: args{
-// 				withSignature: false,
-// 			},
-// 			want: copyOfContract.Serialize(false),
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			if got := tt.c.Serialize(tt.args.withSignature); !bytes.Equal(got, tt.want) {
-// 				t.Errorf("Contract.Serialize() = %v, want %v", got, tt.want)
-// 			}
-
-// 		})
-// 	}
-// }
+func TestContract_Serialize(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
+	type args struct {
+		withSignature bool
+	}
+	tests := []struct {
+		name string
+		c    *Contract
+		args args
+	}{
+		{
+			name: "Minting contract",
+			c:    nullSenderContract,
+			args: args{
+				withSignature: false,
+			},
+		},
+		{
+			name: "Unsigned contract",
+			c:    unsignedContract,
+			args: args{
+				withSignature: false,
+			},
+		},
+		// {
+		// 	name: "Signed contract", // WILL IMPLEMENT AFTER SIGN CONTRACT FUNCTION
+		// },
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.c.Serialize(tt.args.withSignature)
+			switch tt.name {
+			case "Minting contract":
+				if !bytes.Equal(got[2:180], make([]byte, 178)) {
+					t.Errorf("Non null sender public key for minting contract")
+				}
+				if got[180] != 0 {
+					t.Errorf("Non-zero signature length in minting contract: %v", got[180])
+				}
+				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
+					t.Errorf("Invalid recipient public key hash in minting contract")
+				}
+				break
+			case "Unsigned contract":
+				if got[180] != 0 {
+					t.Errorf("Non-zero signature length in unsigned contract: %v", got[180])
+				}
+				if !bytes.Equal(got[2:180], keys.EncodePublicKey(tt.c.SenderPubKey)) {
+					t.Errorf("Invalid encoded public key for unsigned contract")
+				}
+				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
+					t.Errorf("Invalid recipient public key hash in unsigned contract")
+				}
+			default:
+			}
+		})
+	}
+}
 
 // func TestContract_Deserialize(t *testing.T) {
 // 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
