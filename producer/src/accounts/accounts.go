@@ -42,12 +42,17 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 
 	c := Contract{
 		Version:         version,
-		SenderPubKey:    sender.PublicKey,
 		SigLen:          0,
 		Signature:       nil,
 		RecipPubKeyHash: recipient,
 		Value:           value,
 		Nonce:           nonce,
+	}
+
+	if sender == nil {
+		c.SenderPubKey = nil
+	} else {
+		c.SenderPubKey = &(sender.PublicKey)
 	}
 
 	return &c, nil
