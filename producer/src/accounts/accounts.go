@@ -74,7 +74,13 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 
 	*/
 
-	spubkey := keys.EncodePublicKey(&c.SenderPubKey) //size 178
+	// if contract's sender pubkey is nil, make 178 zeros in its place instead
+	var spubkey []byte
+	if c.SenderPubKey == nil {
+		spubkey = make([]byte, 178)
+	} else {
+		spubkey = keys.EncodePublicKey(c.SenderPubKey) //size 178
+	}
 
 	//unsigned contract
 	if withSignature == false {

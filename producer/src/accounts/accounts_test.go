@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -132,11 +131,11 @@ func TestContract_Serialize(t *testing.T) {
 			got := tt.c.Serialize(tt.args.withSignature)
 			switch tt.name {
 			case "Minting contract":
-				if !bytes.Equal(got[2:180], bytes.Repeat([]byte(strconv.Itoa(0)), 178)) {
+				if !bytes.Equal(got[2:180], make([]byte, 178)) {
 					t.Errorf("Non null sender public key for minting contract")
 				}
 				if got[180] != 0 {
-					t.Errorf("Non-zero signature length in minting contract: %s", got[180])
+					t.Errorf("Non-zero signature length in minting contract: %v", got[180])
 				}
 				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
 					t.Errorf("Invalid recipient public key hash in minting contract")
@@ -144,7 +143,7 @@ func TestContract_Serialize(t *testing.T) {
 				break
 			case "Unsigned contract":
 				if got[180] != 0 {
-					t.Errorf("Non-zero signature length in unsigned contract: %s", got[180])
+					t.Errorf("Non-zero signature length in unsigned contract: %v", got[180])
 				}
 				if !bytes.Equal(got[2:180], keys.EncodePublicKey(tt.c.SenderPubKey)) {
 					t.Errorf("Invalid encoded public key for unsigned contract")
