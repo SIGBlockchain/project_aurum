@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
@@ -109,29 +110,36 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 	}
 }
 
-// // Deserialize into a struct
-// func (c *Contract) Deserialize(b []byte) {
-// 	spubkeydecoded := keys.DecodePublicKey(b[2:180])
-// 	siglen := int(b[180])
+// Deserialize into a struct
+func (c *Contract) Deserialize(b []byte) {
+	var spubkeydecoded *ecdsa.PublicKey
 
-// 	// unsigned contract
-// 	if siglen == 0 {
-// 		c.Version = binary.LittleEndian.Uint16(b[0:2])
-// 		c.SenderPubKey = *spubkeydecoded
-// 		c.SigLen = b[180]
-// 		c.RecipPubKeyHash = b[181:213]
-// 		c.Value = binary.LittleEndian.Uint64(b[213:221])
-// 		c.Nonce = binary.LittleEndian.Uint64(b[221:229])
-// 	} else {
-// 		c.Version = binary.LittleEndian.Uint16(b[0:2])
-// 		c.SenderPubKey = *spubkeydecoded
-// 		c.SigLen = b[180]
-// 		c.Signature = b[181:(181 + siglen)]
-// 		c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
-// 		c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
-// 		c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
-// 	}
-// }
+	// if serialized sender public key contains only zeros, sender public key is nil
+	if bytes.Equal(b[2:180], make([]byte, 178)) {
+		spubkeydecoded = nil
+	} else {
+		spubkeydecoded = keys.DecodePublicKey(b[2:180])
+	}
+	siglen := int(b[180])
+
+	// unsigned contract
+	if siglen == 0 {
+		c.Version = binary.LittleEndian.Uint16(b[0:2])
+		c.SenderPubKey = spubkeydecoded
+		c.SigLen = b[180]
+		c.RecipPubKeyHash = b[181:213]
+		c.Value = binary.LittleEndian.Uint64(b[213:221])
+		c.Nonce = binary.LittleEndian.Uint64(b[221:229])
+	} else {
+		c.Version = binary.LittleEndian.Uint16(b[0:2])
+		c.SenderPubKey = spubkeydecoded
+		c.SigLen = b[180]
+		c.Signature = b[181:(181 + siglen)]
+		c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
+		c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
+		c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
+	}
+}
 
 // /*
 // hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
