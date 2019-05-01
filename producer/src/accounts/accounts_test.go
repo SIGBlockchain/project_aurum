@@ -230,7 +230,7 @@ func TestContract_Deserialize(t *testing.T) {
 				if tt.c.Signature != nil {
 					t.Errorf("Invalid field on unsigned contract: signature")
 				}
-				if tt.c.SenderPubKey != &senderPrivateKey.PublicKey {
+				if !reflect.DeepEqual(tt.c.SenderPubKey, &senderPrivateKey.PublicKey) {
 					t.Errorf("Invalid field on unsigned contract: sender public key")
 				}
 				break
