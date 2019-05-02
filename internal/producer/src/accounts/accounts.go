@@ -182,11 +182,20 @@ func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, v
 	return nil
 }
 
-func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB) error {
+/*
+Deduct value from sender's balance
+Add value to recipient's balance
+Increment both nonces by 1
+*/
+func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
 	return errors.New("Incomplete function")
 }
 
-func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB) error {
+/*
+Add value to pkhash's balanace
+Increment nonce by 1
+*/
+func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
 	return errors.New("Incomplete function")
 }
 
