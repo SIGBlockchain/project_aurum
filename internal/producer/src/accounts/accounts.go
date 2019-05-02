@@ -3,10 +3,14 @@ package accounts
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/rand"
+	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
 )
 
 /*
@@ -141,17 +145,50 @@ func (c *Contract) Deserialize(b []byte) {
 	}
 }
 
-// /*
-// hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
-// signature = Sign ( hashed contract, sender private key )
-// sig len = signature length
-// siglen and sig go into respective fields in contract
-// */
-// func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
-// 	serializedTestContract := block.HashSHA256(c.Serialize(false))
-// 	c.Signature, _ = sender.Sign(rand.Reader, serializedTestContract, nil)
-// 	c.SigLen = uint8(len(c.Signature))
-// }
+/*
+hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
+signature = Sign ( hashed contract, sender private key )
+sig len = signature length
+siglen and sig go into respective fields in contract
+*/
+func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
+	serializedTestContract := block.HashSHA256(c.Serialize(false))
+	c.Signature, _ = sender.Sign(rand.Reader, serializedTestContract, nil)
+	c.SigLen = uint8(len(c.Signature))
+}
+
+/*
+Insert into account balance table
+Value set to value paramter
+Nonce set to zero
+Public Key Hash insert into pkhash column
+
+Return every error possible with an explicit message
+*/
+func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
+	// create a prepared statement to insert into account_balances
+	statement, err := dbConnection.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES(?, ?, ?)")
+	if err != nil {
+		return errors.New("Failed to prepare statement to insert account into table")
+	}
+	defer statement.Close()
+
+	// execute the prepared statement to insert into account_balances
+	_, err = statement.Exec(hex.EncodeToString(pkhash), value, 0)
+	if err != nil {
+		return errors.New("Failed to execute statement to insert account into table")
+	}
+
+	return nil
+}
+
+func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB) error {
+	return errors.New("Incomplete function")
+}
+
+func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB) error {
+	return errors.New("Incomplete function")
+}
 
 // /*
 // Check balance (ideal scenario):
