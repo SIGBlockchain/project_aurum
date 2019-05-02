@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 )
 
 func main() {
@@ -32,11 +32,11 @@ func main() {
 	}
 	// If the log flag is on, it will send the logs to a file in client/logs
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/client/logs"
+		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/logs"
 		os.Mkdir(filepath, 0777)
 		// If no filename is given, logs.txt
 		if *logFile == "" {
-			filepath += "/logs.txt"
+			filepath += "/client_logs.txt"
 		// Otherwise the custom filename is used
 		} else {
 			filepath += "/" + *logFile

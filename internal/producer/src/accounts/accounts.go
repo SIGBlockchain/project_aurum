@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 /*

@@ -1,4 +1,4 @@
-// Package contains all the necessary tools to interact with keys
+// Package contains all the necessary tools to interact with and store keys
 package keys
 
 import (
@@ -15,6 +15,8 @@ import (
 func StoreKey(p *ecdsa.PrivateKey, filename string) error {
 	// Opens the file, if it does not exist the O_CREATE flag tells it to create the file otherwise overwrite file
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+
+	defer file.Close()
 
 	// Checks if the opening was successful
 	if err != nil {
@@ -85,4 +87,20 @@ func DecodePublicKey(key []byte) *ecdsa.PublicKey {
 	x509EncodedPub := blockPub.Bytes
 	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
 	return genericPublicKey.(*ecdsa.PublicKey)
+}
+
+// Returns the PEM-Encoded byte slice from a given private key
+func EncodePrivateKey(key *ecdsa.PrivateKey) ([]byte, error) {
+	x509EncodedPriv, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return []byte{}, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509EncodedPriv}), nil
+}
+
+// Returns the private key from a given PEM-Encoded byte slice representation of the private key
+func DecodePrivateKey(key []byte) (*ecdsa.PrivateKey, error) {
+	keyBlock, _ := pem.Decode(key)
+	x509EncodedPriv := keyBlock.Bytes
+	return x509.ParseECPrivateKey(x509EncodedPriv)
 }

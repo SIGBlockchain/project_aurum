@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 	_ "github.com/mattn/go-sqlite3"
 )
 

@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/client/src/keys"
-	"github.com/SIGBlockchain/project_aurum/producer/src/block"
-	producer "github.com/SIGBlockchain/project_aurum/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
