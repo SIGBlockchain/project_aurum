@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
+	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 )
 
 // Adds a block to a given file, also adds metadata file about that block into a database

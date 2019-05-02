@@ -9,8 +9,13 @@ import (
 	"encoding/hex"
 	"errors"
 
+<<<<<<< HEAD:producer/src/accounts/accounts.go
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/producer/src/keys"
+=======
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+>>>>>>> 8ac9d8192ead844a2044284c152bda636949f51f:internal/producer/src/accounts/accounts.go
 )
 
 /*

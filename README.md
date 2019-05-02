@@ -1,4 +1,4 @@
-<img src = "media/aurum_logo_readme.jpg"  alt="drawing" width="200"/>
+<img src = "assets/aurum_logo_readme.jpg"  alt="drawing" width="200"/>
 
 Project Aurum
 =============

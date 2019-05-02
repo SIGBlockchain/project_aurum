@@ -25,10 +25,10 @@ func main() {
 	// Setup logger
 	logger := log.New(os.Stdout, "LOG:", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/test/logs"
+		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/logs"
 		os.Mkdir(filepath, 0777)
 		if *logFile == "" {
-			filepath += "/logs.txt"
+			filepath += "/test_logs.txt"
 		} else {
 			filepath += "/" + *logFile
 		}

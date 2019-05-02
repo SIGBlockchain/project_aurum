@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3"
 
-	block "github.com/SIGBlockchain/project_aurum/producer/src/block"
+	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 )
 
 func setUp(filename string, database string) {

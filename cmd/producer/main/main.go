@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 
-	producer "github.com/SIGBlockchain/project_aurum/producer/src/producer"
+	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
 )
 
@@ -35,11 +35,11 @@ func main() {
 	}
 
 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/producer/logs"
+		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/logs"
 		os.Mkdir(filepath, 0777)
 		// If no filename is given, logs.txt
 		if *logFile == "" {
-			filepath += "/logs.txt"
+			filepath += "/producer_logs.txt"
 			// Otherwise the custom filename is used
 		} else {
 			filepath += "/" + *logFile
