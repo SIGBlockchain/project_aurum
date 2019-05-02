@@ -9,10 +9,10 @@ RUN rm -rf /var/cache/apk/* \
     && apk del git gcc musl-dev
 
 
-RUN cd /$GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main && go build -o main
+RUN cd /$GOPATH/src/github.com/SIGBlockchain/project_aurum/internal/producer/main && go build -o main
 
 EXPOSE 13131
 
-WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/producer/src/main
+WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/internal/producer/main
 
 CMD [ "./main", "-d", "-g"] 
