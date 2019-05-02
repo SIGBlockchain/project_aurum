@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 
 	"github.com/SIGBlockchain/project_aurum/producer/src/block"
@@ -165,7 +166,20 @@ Public Key Hash insert into pkhash column
 Return every error possible with an explicit message
 */
 func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
-	return errors.New("Incomplete function")
+	// create a prepared statement to insert into account_balances
+	statement, err := dbConnection.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES(?, ?, ?)")
+	if err != nil {
+		return errors.New("Failed to prepare statement to insert account into table")
+	}
+	defer statement.Close()
+
+	// execute the prepared statement to insert into account_balances
+	_, err = statement.Exec(hex.EncodeToString(pkhash), value, 0)
+	if err != nil {
+		return errors.New("Failed to execute statement to insert account into table")
+	}
+
+	return nil
 }
 
 func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB) error {
