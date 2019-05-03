@@ -588,20 +588,22 @@ func TestValidateContract(t *testing.T) {
 	minterPKH := block.HashSHA256(keys.EncodePublicKey(&minter.PublicKey))
 	authMinters := [][]byte{minterPKH}
 
-	zeroValueSender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	zeroSPKH := block.HashSHA256(keys.EncodePublicKey(&zeroValueSender.PublicKey))
-	zeroValueRecip, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	zeroRPKH := block.HashSHA256(keys.EncodePublicKey(&zeroValueRecip.PublicKey))
-	err := InsertAccountIntoAccountBalanceTable(dbc, zeroSPKH, 1000)
+	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPKH := block.HashSHA256(keys.EncodePublicKey(&sender.PublicKey))
+	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
+	err := InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
-	err = InsertAccountIntoAccountBalanceTable(dbc, zeroRPKH, 1000)
+	err = InsertAccountIntoAccountBalanceTable(dbc, recipientPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
-	zeroValueContract, _ := MakeContract(1, zeroValueSender, zeroRPKH, 0, 1)
-	zeroValueContract.SignContract(zeroValueSender)
+	zeroValueContract, _ := MakeContract(1, sender, recipientPKH, 0, 1)
+	zeroValueContract.SignContract(sender)
+
+	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
 
 	type args struct {
 		c                 *Contract
@@ -624,6 +626,16 @@ func TestValidateContract(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		{
+			name: "Unauthorized minting",
+			args: args{
+				c:                 falseMintingContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
 		// {
 		// 	name: "Authorized minting",
 		// 	args: args{
@@ -632,16 +644,6 @@ func TestValidateContract(t *testing.T) {
 		// 		authorizedMinters: authMinters,
 		// 	},
 		// 	want:    true,
-		// 	wantErr: false,
-		// },
-		// {
-		// 	name: "Unauthorized minting",
-		// 	args: args{
-		// 		c:                 falseMintingContract,
-		// 		table:             dbName,
-		// 		authorizedMinters: authMinters,
-		// 	},
-		// 	want:    false,
 		// 	wantErr: false,
 		// },
 		// {
@@ -700,7 +702,7 @@ func TestValidateContract(t *testing.T) {
 						t.Errorf("failed to scan rows: %s", err)
 					}
 					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if !bytes.Equal(decodedPkhash, zeroSPKH) {
+					if !bytes.Equal(decodedPkhash, senderPKH) {
 						if balance != 1000 {
 							t.Errorf("Invalid balance on zero value sender")
 						}
@@ -708,7 +710,7 @@ func TestValidateContract(t *testing.T) {
 							t.Error("Invalid nonce on zero value sender")
 						}
 					}
-					if !bytes.Equal(decodedPkhash, zeroRPKH) {
+					if !bytes.Equal(decodedPkhash, recipientPKH) {
 						if balance != 1000 {
 							t.Errorf("Invalid balance on zero value recipient")
 						}
@@ -718,8 +720,23 @@ func TestValidateContract(t *testing.T) {
 					}
 
 				}
+			case "Unauthorized minting":
+				for rows.Next() {
+					err = rows.Scan(&pkhash, &balance, &nonce)
+					if err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, _ := hex.DecodeString(pkhash)
+					if !bytes.Equal(decodedPkhash, senderPKH) {
+						if balance != 1000 {
+							t.Errorf("Invalid balance on false minting")
+						}
+						if nonce != 0 {
+							t.Error("Invalid nonce on false minting")
+						}
+					}
+				}
 			default:
-
 			}
 		})
 	}
