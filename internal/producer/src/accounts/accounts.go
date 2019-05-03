@@ -277,6 +277,10 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
+func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
+	return false, errors.New("Incomplete function")
+}
+
 // /*
 // Check balance (ideal scenario):
 // Open table

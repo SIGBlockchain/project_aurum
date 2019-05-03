@@ -560,74 +560,138 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 	}
 }
 
-// func TestContract_UpdateAccountBalanceTable(t *testing.T) {
-// 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	dbName := "test.db"
-// 	database, _ := sql.Open("sqlite3", dbName)
-// 	defer func() {
-// 		database.Close()
-// 		err := os.Remove(dbName)
-// 		if err != nil {
-// 			t.Errorf("Failed to remove database: %s", err)
-// 		}
-// 	}()
-// 	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
-// 	statement.Exec()
-// 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3)
-// 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2)
-// 	testContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
-// 	type args struct {
-// 		table string
-// 	}
-// 	tests := []struct {
-// 		name string
-// 		c    *Contract
-// 		args args
-// 	}{
-// 		{
-// 			c: &testContract,
-// 			args: args{
-// 				table: dbName,
-// 			},
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			// defer func() {
-// 			// 	if r := recover(); r != nil {
-// 			// 		t.Errorf("Recovered from panic: %s", r)
-// 			// 	}
-// 			// }()
-// 			tt.c.UpdateAccountBalanceTable(database)
-// 			var pkhash string
-// 			var balance uint64
-// 			var nonce uint64
-// 			rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-// 			for rows.Next() {
-// 				rows.Scan(&pkhash, &balance, &nonce)
-// 				decodedPkhash, _ := hex.DecodeString(pkhash)
-// 				if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
-// 					if balance != 0 {
-// 						t.Errorf("Invalid sender balance: %d", balance)
-// 					}
-// 					if nonce != 4 {
-// 						t.Errorf("Invalid sender nonce: %d", nonce)
-// 					}
-// 				} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
-// 					if balance != 550 {
-// 						t.Errorf("Invalid recipient balance: %d", balance)
-// 					}
-// 					if nonce != 3 {
-// 						t.Errorf("Invalid recipient nonce: %d", nonce)
-// 					}
-// 				}
-// 			}
-// 		})
-// 	}
-// }
+// Test cases for validation (next issue)
+//// Zero value contracts
+//// Minting contracts
+//// Invalid signature contracts
+//// Insufficient balance contracts
+//// Invalid nonce contracts
+//// Completely valid contract
+
+func TestValidateContract(t *testing.T) {
+	dbName := "accountBalanceTable.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+
+	zeroValueSender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	zeroSPKH := block.HashSHA256(keys.EncodePublicKey(&zeroValueSender.PublicKey))
+	zeroValueRecip, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	zeroRPKH := block.HashSHA256(keys.EncodePublicKey(&zeroValueRecip.PublicKey))
+	err := InsertAccountIntoAccountBalanceTable(dbc, zeroSPKH, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert zero Sender account")
+	}
+	err = InsertAccountIntoAccountBalanceTable(dbc, zeroRPKH, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert zero Sender account")
+	}
+	zeroValueContract, _ := MakeContract(1, zeroValueSender, zeroRPKH, 0, 1)
+	zeroValueContract.SignContract(zeroValueSender)
+
+	minter, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	minterPKH := block.HashSHA256(keys.EncodePublicKey(&minter.PublicKey))
+	authMinters := [][]byte{minterPKH}
+	err = InsertAccountIntoAccountBalanceTable(dbc, minterPKH, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert minter account")
+	}
+	mintingContract, _ := MakeContract(1, nil, minterPKH, 1000, 1)
+
+	falseMinter, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	falseMinterPKH := block.HashSHA256(keys.EncodePublicKey(&falseMinter.PublicKey))
+	falseMintingContract, _ := MakeContract(1, nil, falseMinterPKH, 1000, 1)
+
+	type args struct {
+		c                 *Contract
+		table             string
+		authorizedMinters [][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "Zero value",
+			args: args{
+				c:                 zeroValueContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Authorized minting",
+			args: args{
+				c:                 mintingContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Unauthorized minting",
+			args: args{
+				c:                 falseMintingContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid signature",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Insufficient funds",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid nonce",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Totally valid with old accounts",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "Totally valid with a new account",
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ValidateContract(tt.args.c, tt.args.table, tt.args.authorizedMinters)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 // func TestValidateContract(t *testing.T) {
 // 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -762,11 +826,3 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 // 		})
 // 	}
 // }
-
-// Test cases for validation (next issue)
-//// Zero value contracts
-//// Minting contracts
-//// Invalid signature contracts
-//// Insufficient balance contracts
-//// Invalid nonce contracts
-//// Completely valid contract
