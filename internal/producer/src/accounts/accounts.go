@@ -278,6 +278,16 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 }
 
 func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
+	db, err := sql.Open("sqlite3", table)
+	if err != nil {
+		return false, errors.New("Failed to open table")
+	}
+	defer db.Close()
+
+	if c.Value == 0 {
+		return false, nil
+	}
+
 	return false, errors.New("Incomplete function")
 }
 
