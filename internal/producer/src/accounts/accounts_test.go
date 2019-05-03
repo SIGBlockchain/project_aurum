@@ -612,6 +612,31 @@ func TestValidateContract(t *testing.T) {
 	falseMinterPKH := block.HashSHA256(keys.EncodePublicKey(&falseMinter.PublicKey))
 	falseMintingContract, _ := MakeContract(1, nil, falseMinterPKH, 1000, 1)
 
+	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	someOtherPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	somepkh := block.HashSHA256(keys.EncodePublicKey(&falseMinter.PublicKey))
+	err = InsertAccountIntoAccountBalanceTable(dbc, somepkh, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert some account")
+	}
+	invalidSigContract, _ := MakeContract(1, somePrivateKey, somepkh, 1000, 1)
+	invalidSigContract.SignContract(someOtherPrivateKey)
+
+	brokeSender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	brokeSenderPKH := block.HashSHA256(keys.EncodePublicKey(&brokeSender.PublicKey))
+	err = InsertAccountIntoAccountBalanceTable(dbc, brokeSenderPKH, 10)
+	if err != nil {
+		t.Errorf("Failed to insert some account")
+	}
+	someRecipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	someRecipientPKH := block.HashSHA256(keys.EncodePublicKey(&someRecipient.PublicKey))
+	err = InsertAccountIntoAccountBalanceTable(dbc, someRecipientPKH, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert some account")
+	}
+	brokeContract, _ := MakeContract(1, brokeSender, someRecipientPKH, 50000, 1)
+	brokeContract.SignContract(brokeSender)
+
 	type args struct {
 		c                 *Contract
 		table             string
@@ -653,31 +678,36 @@ func TestValidateContract(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
-		{
-			name:    "Invalid signature",
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name:    "Insufficient funds",
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name:    "Invalid nonce",
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name:    "Totally valid with old accounts",
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name:    "Totally valid with a new account",
-			want:    true,
-			wantErr: false,
-		},
+		// {
+		// 	name: "Invalid signature",
+		// 	args: args{
+		// 		c:                 invalidSigContract,
+		// 		table:             dbName,
+		// 		authorizedMinters: authMinters,
+		// 	},
+		// 	want:    false,
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name:    "Insufficient funds",
+		// 	want:    false,
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name:    "Invalid nonce",
+		// 	want:    false,
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name:    "Totally valid with old accounts",
+		// 	want:    true,
+		// 	wantErr: false,
+		// },
+		// {
+		// 	name:    "Totally valid with a new account",
+		// 	want:    true,
+		// 	wantErr: false,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -688,6 +718,21 @@ func TestValidateContract(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
+			}
+			var pkhash string
+			var balance uint64
+			var nonce uint64
+			rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			if err != nil {
+				t.Errorf("Failed to acquire rows from table")
+			}
+			for rows.Next() {
+				err = rows.Scan(&pkhash, &balance, &nonce)
+				if err != nil {
+					t.Errorf("failed to scan rows: %s", err)
+				}
+				decodedPkhash, err := hex.DecodeString(pkhash)
+
 			}
 		})
 	}
