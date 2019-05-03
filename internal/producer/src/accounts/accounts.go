@@ -284,10 +284,18 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	}
 	defer db.Close()
 
+	// check for zero value transaction
 	if c.Value == 0 {
 		return false, nil
 	}
 
+	// check for unauthorized minting contracts
+	if c.SenderPubKey == nil {
+		return false, nil
+	}
+
+	//sqlQuery := fmt.Sprintf("SELECT * FROM account_balances WHERE public")
+	//db.Prepare("SELECT * FROM account_balances WHERE ")
 	return false, errors.New("Incomplete function")
 }
 
