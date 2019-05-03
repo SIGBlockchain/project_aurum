@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
@@ -182,12 +184,97 @@ func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, v
 	return nil
 }
 
-func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB) error {
-	return errors.New("Incomplete function")
+/*
+Deduct value from sender's balance
+Add value to recipient's balance
+Increment both nonces by 1
+*/
+func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
+	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		return errors.New("Failed to create rows to look for public key")
+	}
+
+	// search for the senders public key hash that belongs to the contract and update its fields
+	var pkh string
+	var tblBal int
+	var tblNonce int
+	var sqlQuery string
+	for rows.Next() {
+		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+		if err != nil {
+			return errors.New("Failed to scan rows")
+		}
+
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(senderPKH))) {
+			rows.Close()
+			compareVal := hex.EncodeToString(senderPKH)
+			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(value), tblNonce+1, compareVal)
+		}
+	}
+	_, err = dbConnection.Exec(sqlQuery)
+	if err != nil {
+		return errors.New("Failed to execute sql query")
+	}
+
+	// new query to update the receiver
+	rows, err = dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	if err != nil {
+		return errors.New("Failed the update the receiver query")
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+		if err != nil {
+			return errors.New("Failed to scan rows")
+		}
+
+		if reflect.DeepEqual(pkh, (hex.EncodeToString(recipPKH))) {
+			rows.Close()
+			compareVal := hex.EncodeToString(recipPKH)
+			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(value), tblNonce+1, compareVal)
+		}
+	}
+	_, err = dbConnection.Exec(sqlQuery)
+	if err != nil {
+		return errors.New("Failed to update recipient after searching in rows")
+	}
+
+	return nil
 }
 
-func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB) error {
-	return errors.New("Incomplete function")
+/*
+Add value to pkhash's balanace
+Increment nonce by 1
+*/
+func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
+	// create a query for the row that contains the pkhash in the table
+	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(pkhash))
+	row, err := dbConnection.Query(sqlQuery)
+	if err != nil {
+		return errors.New("Failed to create rows for query")
+	}
+
+	var balance int
+	var nonce int
+	if row.Next() {
+		// if row is found, retrieve balance and nonce and close the query
+		err = row.Scan(&balance, &nonce)
+		if err != nil {
+			return errors.New("Failed to scan row")
+		}
+		row.Close()
+
+		// update pkhash's balance by adding the amount indicated by value, and add one to nonce
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances SET balance= %d, nonce= %d WHERE public_key_hash= \"%s\"", balance+int(value), nonce+1, hex.EncodeToString(pkhash))
+		_, err = dbConnection.Exec(sqlUpdate)
+		if err != nil {
+			return errors.New("Failed to update phash's balance")
+		}
+		return nil
+	}
+
+	return errors.New("Failed to find row")
 }
 
 // /*
