@@ -7,6 +7,9 @@ Aurum is a proprietary UIC ACM blockchain project. The current planned use case 
 ## Motivation
 To create a working blockchain and learn about the technology behind it. SIG Blockchain Developers use software engineering techniques to construct a complex, collaborative, and efficient product.
 
+## Build status
+[![Build Status](https://travis-ci.org/SIGBlockchain/project_aurum.svg?branch=master)](https://travis-ci.org/SIGBlockchain/project_aurum)
+
 ## Tech/framework used
 
 <b>Built with</b>
