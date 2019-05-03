@@ -438,9 +438,10 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	}{
 		{
 			args: args{
-				senderPKH: spkh,
-				recipPKH:  rpkh,
-				value:     250,
+				dbConnection: dbc,
+				senderPKH:    spkh,
+				recipPKH:     rpkh,
+				value:        250,
 			},
 			wantErr: false,
 		},
