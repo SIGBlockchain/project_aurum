@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/asn1"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"os"
 	"reflect"
@@ -586,13 +587,17 @@ func TestValidateContract(t *testing.T) {
 
 	minter, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	minterPKH := block.HashSHA256(keys.EncodePublicKey(&minter.PublicKey))
+	err := InsertAccountIntoAccountBalanceTable(dbc, minterPKH, 1000)
+	if err != nil {
+		t.Errorf("Failed to insert minter account")
+	}
 	authMinters := [][]byte{minterPKH}
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	senderPKH := block.HashSHA256(keys.EncodePublicKey(&sender.PublicKey))
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
-	err := InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
+	err = InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
@@ -604,6 +609,8 @@ func TestValidateContract(t *testing.T) {
 	zeroValueContract.SignContract(sender)
 
 	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
+
+	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500, 1)
 
 	type args struct {
 		c                 *Contract
@@ -636,16 +643,16 @@ func TestValidateContract(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
-		// {
-		// 	name: "Authorized minting",
-		// 	args: args{
-		// 		c:                 mintingContract,
-		// 		table:             dbName,
-		// 		authorizedMinters: authMinters,
-		// 	},
-		// 	want:    true,
-		// 	wantErr: false,
-		// },
+		{
+			name: "Authorized minting",
+			args: args{
+				c:                 validMintingContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    true,
+			wantErr: false,
+		},
 		// {
 		// 	name: "Invalid signature",
 		// 	args: args{
@@ -697,42 +704,37 @@ func TestValidateContract(t *testing.T) {
 			switch tt.name {
 			case "Zero value":
 				for rows.Next() {
-					err = rows.Scan(&pkhash, &balance, &nonce)
-					if err != nil {
+					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
 						t.Errorf("failed to scan rows: %s", err)
 					}
 					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if !bytes.Equal(decodedPkhash, senderPKH) {
-						if balance != 1000 {
-							t.Errorf("Invalid balance on zero value sender")
-						}
-						if nonce != 0 {
-							t.Error("Invalid nonce on zero value sender")
+					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
+						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+							t.Errorf(err.Error())
 						}
 					}
-					if !bytes.Equal(decodedPkhash, recipientPKH) {
-						if balance != 1000 {
-							t.Errorf("Invalid balance on zero value recipient")
-						}
-						if nonce != 0 {
-							t.Error("Invalid nonce on zero value recipient")
-						}
-					}
-
 				}
 			case "Unauthorized minting":
 				for rows.Next() {
-					err = rows.Scan(&pkhash, &balance, &nonce)
-					if err != nil {
+					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
 						t.Errorf("failed to scan rows: %s", err)
 					}
 					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if !bytes.Equal(decodedPkhash, senderPKH) {
-						if balance != 1000 {
-							t.Errorf("Invalid balance on false minting")
+					if bytes.Equal(decodedPkhash, senderPKH) {
+						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+							t.Errorf(err.Error())
 						}
-						if nonce != 0 {
-							t.Error("Invalid nonce on false minting")
+					}
+				}
+			case "Authorized minting":
+				for rows.Next() {
+					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, _ := hex.DecodeString(pkhash)
+					if bytes.Equal(decodedPkhash, minterPKH) {
+						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
+							t.Errorf(err.Error())
 						}
 					}
 				}
@@ -740,6 +742,16 @@ func TestValidateContract(t *testing.T) {
 			}
 		})
 	}
+}
+
+func checkBalanceAndNonce(queryBalance uint64, wantBalance uint64, queryNonce uint64, wantNonce uint64) error {
+	if queryBalance != wantBalance {
+		return errors.New("balance does not match")
+	}
+	if queryNonce != wantNonce {
+		return errors.New("nonce does not match")
+	}
+	return nil
 }
 
 // func TestValidateContract(t *testing.T) {
