@@ -612,6 +612,9 @@ func TestValidateContract(t *testing.T) {
 
 	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500, 1)
 
+	invalidSignatureContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
+	invalidSignatureContract.SignContract(recipient)
+
 	type args struct {
 		c                 *Contract
 		table             string
@@ -653,16 +656,16 @@ func TestValidateContract(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
-		// {
-		// 	name: "Invalid signature",
-		// 	args: args{
-		// 		c:                 invalidSigContract,
-		// 		table:             dbName,
-		// 		authorizedMinters: authMinters,
-		// 	},
-		// 	want:    false,
-		// 	wantErr: false,
-		// },
+		{
+			name: "Invalid signature",
+			args: args{
+				c:                 invalidSignatureContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
 		// {
 		// 	name:    "Insufficient funds",
 		// 	want:    false,
@@ -702,18 +705,6 @@ func TestValidateContract(t *testing.T) {
 				t.Errorf("Failed to acquire rows from table")
 			}
 			switch tt.name {
-			case "Zero value":
-				for rows.Next() {
-					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
-						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
 			case "Unauthorized minting":
 				for rows.Next() {
 					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
@@ -726,6 +717,7 @@ func TestValidateContract(t *testing.T) {
 						}
 					}
 				}
+				break
 			case "Authorized minting":
 				for rows.Next() {
 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
@@ -738,6 +730,21 @@ func TestValidateContract(t *testing.T) {
 						}
 					}
 				}
+				break
+			case "Zero value":
+			case "Invalid signature":
+				for rows.Next() {
+					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, _ := hex.DecodeString(pkhash)
+					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
+						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+							t.Errorf(err.Error())
+						}
+					}
+				}
+				break
 			default:
 			}
 		})
