@@ -299,8 +299,17 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 			}
 		}
 		if !validMinting {
+			// unauthorized minting
 			return false, nil
 		}
+
+		// authorized minting
+		err = MintAurumUpdateAccountBalanceTable(db, c.RecipPubKeyHash, c.Value)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
 	}
 	return false, errors.New("Incomplete function")
 }
