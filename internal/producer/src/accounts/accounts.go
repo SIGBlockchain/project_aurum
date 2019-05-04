@@ -290,12 +290,17 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	}
 
 	// check for unauthorized minting contracts
-	if c.SenderPubKey == nil {
+	validMinting := false
+	for _, mintersPubKeys := range authorizedMinters {
+		if bytes.Equal(c.RecipPubKeyHash, mintersPubKeys) {
+			validMinting = true
+			break
+		}
+	}
+	if !validMinting {
 		return false, nil
 	}
 
-	//sqlQuery := fmt.Sprintf("SELECT * FROM account_balances WHERE public")
-	//db.Prepare("SELECT * FROM account_balances WHERE ")
 	return false, errors.New("Incomplete function")
 }
 
