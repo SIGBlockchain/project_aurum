@@ -291,8 +291,8 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// check for unauthorized minting contracts
 	validMinting := false
-	for _, mintersPubKeys := range authorizedMinters {
-		if bytes.Equal(c.RecipPubKeyHash, mintersPubKeys) {
+	for _, mintersPubKHash := range authorizedMinters {
+		if bytes.Equal(c.RecipPubKeyHash, mintersPubKHash) && c.SenderPubKey == nil {
 			validMinting = true
 			break
 		}
