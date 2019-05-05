@@ -670,7 +670,12 @@ func TestValidateContract(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "Insufficient funds",
+			name: "Insufficient funds",
+			args: args{
+				c:                 insufficentFundsContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
 			want:    false,
 			wantErr: false,
 		},
