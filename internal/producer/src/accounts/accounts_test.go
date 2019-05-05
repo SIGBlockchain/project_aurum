@@ -636,7 +636,7 @@ func TestValidateContract(t *testing.T) {
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	anotherKeyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
 
-	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 2)
+	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.SignContract(keyNotInTable)
 
 	type args struct {
