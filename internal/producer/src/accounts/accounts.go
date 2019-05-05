@@ -227,6 +227,7 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 		return errors.New("Failed to create row to look for recipient")
 	}
 
+	var updatedNonce, updatedBal int
 	if row.Next() {
 		// if recipient's account is found, retrieve the balance and nonce and close the query
 		err = row.Scan(&tblBal, &tblNonce)
@@ -234,17 +235,24 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 			return errors.New("Failed to scan row")
 		}
 		row.Close()
-
-		// update recipient's balance by adding the amount indicated by value and adding one to nonce
-		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(value), tblNonce+1, hex.EncodeToString(recipPKH))
-		_, err = dbConnection.Exec(sqlUpdate)
-		if err != nil {
-			return errors.New("Failed to execute sqlUpdate for recipient")
-		}
-
+		updatedBal = tblBal + int(value)
+		updatedNonce = tblNonce + 1
 	} else {
+		// if recipient's account is not found, close the query and insert recipient's account into table
 		row.Close()
-		return errors.New("Cannot find recipient's account")
+		err = InsertAccountIntoAccountBalanceTable(dbConnection, recipPKH, 0)
+		if err != nil {
+			return errors.New("Failed to insert recipient's account into table: " + err.Error())
+		}
+		updatedBal = int(value)
+		updatedNonce = 0
+	}
+
+	// update recipient's balance by adding the amount indicated by value, and nonce
+	sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
+	_, err = dbConnection.Exec(sqlUpdate)
+	if err != nil {
+		return errors.New("Failed to execute sqlUpdate for recipient")
 	}
 
 	return nil
@@ -332,8 +340,8 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	}
 
 	// create a query for the row that contains the sender's pkhash in the table
-	pubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
-	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", pubKeyStr)
+	senderPubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
+	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
 	row, err := db.Query(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to create row for query")
@@ -356,13 +364,14 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 			return false, nil
 		}
 
-		// valid contract
-		pubKeyHash, err := hex.DecodeString(pubKeyStr)
+		// V--- valid contract ---V
+		senderPubKeyHash, err := hex.DecodeString(senderPubKeyStr)
 		if err != nil {
-			return false, errors.New("Failed to decode pubKey string")
+			return false, errors.New("Failed to decode senderPubKeyStr")
 		}
-		// update both the sender's and recipient's account
-		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, pubKeyHash, c.RecipPubKeyHash, c.Value)
+
+		// update both the sender's and recipient's accounts
+		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, senderPubKeyHash, c.RecipPubKeyHash, c.Value)
 		if err != nil {
 			return false, errors.New("Failed to exchange between acccounts: " + err.Error())
 		}
