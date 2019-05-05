@@ -624,6 +624,9 @@ func TestValidateContract(t *testing.T) {
 	invalidNonceContract2, _ := MakeContract(1, sender, recipientPKH, 50, 2)
 	invalidNonceContract2.SignContract(sender)
 
+	validContractTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
+	validContractTwoExistingAccountsContract.SignContract(sender)
+
 	type args struct {
 		c                 *Contract
 		table             string
@@ -705,11 +708,16 @@ func TestValidateContract(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
-		// {
-		// 	name:    "Totally valid with old accounts",
-		// 	want:    true,
-		// 	wantErr: false,
-		// },
+		{
+			name: "Totally valid with old accounts",
+			args: args{
+				c:                 validContractTwoExistingAccountsContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    true,
+			wantErr: false,
+		},
 		// {
 		// 	name:    "Totally valid with a new account",
 		// 	want:    true,
@@ -773,6 +781,23 @@ func TestValidateContract(t *testing.T) {
 					decodedPkhash, _ := hex.DecodeString(pkhash)
 					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
 						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+							t.Errorf(err.Error())
+						}
+					}
+				}
+			case "Totally valid with old accounts":
+				for rows.Next() {
+					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, _ := hex.DecodeString(pkhash)
+					if bytes.Equal(decodedPkhash, senderPKH) {
+						if err := checkBalanceAndNonce(balance, 500, nonce, 1); err != nil {
+							t.Errorf(err.Error())
+						}
+					}
+					if bytes.Equal(decodedPkhash, recipientPKH) {
+						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
 							t.Errorf(err.Error())
 						}
 					}
