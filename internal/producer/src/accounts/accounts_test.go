@@ -624,8 +624,14 @@ func TestValidateContract(t *testing.T) {
 	invalidNonceContract2, _ := MakeContract(1, sender, recipientPKH, 50, 2)
 	invalidNonceContract2.SignContract(sender)
 
-	validContractTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
-	validContractTwoExistingAccountsContract.SignContract(sender)
+	validTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
+	validTwoExistingAccountsContract.SignContract(sender)
+
+	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	keyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&keyNotInTable.PublicKey))
+
+	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 2)
+	validOneExistingAccountsContract.SignContract(sender)
 
 	type args struct {
 		c                 *Contract
@@ -711,18 +717,23 @@ func TestValidateContract(t *testing.T) {
 		{
 			name: "Totally valid with old accounts",
 			args: args{
-				c:                 validContractTwoExistingAccountsContract,
+				c:                 validTwoExistingAccountsContract,
 				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    true,
 			wantErr: false,
 		},
-		// {
-		// 	name:    "Totally valid with a new account",
-		// 	want:    true,
-		// 	wantErr: false,
-		// },
+		{
+			name: "Totally valid with a new account",
+			args: args{
+				c:                 validOneExistingAccountsContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -803,6 +814,26 @@ func TestValidateContract(t *testing.T) {
 					}
 				}
 				break
+
+			case "Totally valid with a new account":
+				for rows.Next() {
+					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, _ := hex.DecodeString(pkhash)
+					if bytes.Equal(decodedPkhash, senderPKH) {
+						if err := checkBalanceAndNonce(balance, 0, nonce, 2); err != nil {
+							t.Errorf(err.Error())
+						}
+					}
+					if bytes.Equal(decodedPkhash, keyNotInTablePKH) {
+						if err := checkBalanceAndNonce(balance, 500, nonce, 0); err != nil {
+							t.Errorf(err.Error())
+						}
+					}
+				}
+				break
+
 			default:
 			}
 		})
@@ -818,137 +849,3 @@ func checkBalanceAndNonce(queryBalance uint64, wantBalance uint64, queryNonce ui
 	}
 	return nil
 }
-
-// func TestValidateContract(t *testing.T) {
-// 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-// 	dbName := "test.db"
-// 	database, _ := sql.Open("sqlite3", dbName)
-// 	defer func() {
-// 		database.Close()
-// 		err := os.Remove(dbName)
-// 		if err != nil {
-// 			t.Errorf("Failed to remove database: %s", err)
-// 		}
-// 	}()
-// 	defer func() {
-// 		if r := recover(); r != nil {
-// 			t.Errorf("Recovered from panic: %s", r)
-// 		}
-// 	}()
-// 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
-// 	if err != nil {
-// 		t.Errorf(err.Error())
-// 	}
-// 	statement.Exec()
-// 	statement, err = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	if err != nil {
-// 		t.Errorf("Insertion statement failed: %s", err)
-// 	}
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))), 350, 3) // give sender initially 350
-// 	statement, _ = database.Prepare("INSERT INTO account_balances (public_key_hash, balance, nonce) VALUES (?, ?, ?)")
-// 	statement.Exec(hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))), 200, 2) // give recip initially 200
-// 	validContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 4)
-// 	copyOfContract := validContract
-// 	validContract.SignContract(senderPrivateKey)
-// 	invalidContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 350, 5)
-// 	invalidContract.SignContract(senderPrivateKey)
-// 	invalidNonceContract, _ := MakeContract(1, *recipientPrivateKey, senderPrivateKey.PublicKey, 250, 3)
-// 	invalidNonceContract.SignContract(recipientPrivateKey)
-// 	zeroValueContract, _ := MakeContract(1, *senderPrivateKey, recipientPrivateKey.PublicKey, 0, 5)
-// 	zeroValueContract.SignContract(senderPrivateKey)
-// 	type args struct {
-// 		c         Contract
-// 		tableName string
-// 	}
-// 	tests := []struct {
-// 		name    string
-// 		args    args
-// 		want    bool
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "Valid contract",
-// 			args: args{
-// 				c:         validContract,
-// 				tableName: "account_balances",
-// 			},
-// 			want:    true,
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "Invalid contract by value",
-// 			args: args{
-// 				c:         invalidContract,
-// 				tableName: "account_balances",
-// 			},
-// 			want:    false,
-// 			wantErr: true,
-// 		},
-// 		{
-// 			name: "Invalid contract by nonce",
-// 			args: args{
-// 				c:         invalidNonceContract,
-// 				tableName: "account_balances",
-// 			},
-// 			want:    false,
-// 			wantErr: true,
-// 		},
-// 		{
-// 			name: "Zero value contract (spam control)",
-// 			args: args{
-// 				c:         zeroValueContract,
-// 				tableName: "account_balances",
-// 			},
-// 			want:    false,
-// 			wantErr: true,
-// 		},
-// 		// {
-// 		// 	name: "Same sender and recipient",
-// 		// 	args: args {
-
-// 		// 	},
-// 		// 	want: false,
-// 		// wantErr: true,
-// 		// },
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := ValidateContract(tt.args.c, database)
-// 			if got != tt.want {
-// 				t.Errorf("ValidateContract() = %v, want %v. Error: %v", got, tt.want, err)
-// 			}
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
-// 			}
-// 			serializedCopy := block.HashSHA256(copyOfContract.Serialize(false))
-// 			signaturelessValidContract := block.HashSHA256(validContract.Serialize(false))
-// 			if !reflect.DeepEqual(serializedCopy, signaturelessValidContract) {
-// 				t.Errorf("Contracts do not match. Wanted: %v, got %v", serializedCopy, signaturelessValidContract)
-// 			}
-// 			var pkhash string
-// 			var balance uint64
-// 			var nonce uint64
-// 			rows, _ := database.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-// 			for rows.Next() {
-// 				rows.Scan(&pkhash, &balance, &nonce)
-// 				decodedPkhash, _ := hex.DecodeString(pkhash)
-// 				if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))) {
-// 					if balance != 0 {
-// 						t.Errorf("Invalid sender balance: %d", balance)
-// 					}
-// 					if nonce != 4 {
-// 						t.Errorf("Invalid sender nonce: %d", nonce)
-// 					}
-// 				} else if bytes.Equal(decodedPkhash, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))) {
-// 					if balance != 550 {
-// 						t.Errorf("Invalid recipient balance: %d", balance)
-// 					}
-// 					if nonce != 3 {
-// 						t.Errorf("Invalid recipient nonce: %d", nonce)
-// 					}
-// 				}
-// 			}
-// 		})
-// 	}
-// }
