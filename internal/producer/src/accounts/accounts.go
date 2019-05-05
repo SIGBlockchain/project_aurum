@@ -326,10 +326,10 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, nil
 	}
 
-	// check insufficient funds
+	// check insufficient funds and invalid nonce
 	pubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
 	// create a query for the row that contains the sender's pkhash in the table
-	sqlQuery := fmt.Sprintf("SELECT balance FROM account_balances WHERE public_key_hash= \"%s\"", pubKeyStr)
+	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", pubKeyStr)
 	row, err := db.Query(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to create row for query")
@@ -337,11 +337,15 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	defer row.Close()
 
 	if row.Next() {
-		// if row is found, retrieve the sender's balance
-		var balance int
-		row.Scan(&balance)
+		// if row is found, retrieve the sender's balance and nonce
+		var balance, nonce int
+		row.Scan(&balance, &nonce)
 		// check if the sender's balance is less than the contract amount
 		if balance < int(c.Value) {
+			return false, nil
+		}
+		// check if the nonce + 1 is not equal to the contract nonce
+		if nonce+1 != int(c.Nonce) {
 			return false, nil
 		}
 	}
