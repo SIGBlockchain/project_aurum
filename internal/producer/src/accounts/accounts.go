@@ -311,7 +311,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// verify the signature in the contract
 	// Serialize the Contract
-	serializedContract := block.HashSHA256(c.Serialize(true))
+	serializedContract := block.HashSHA256(c.Serialize(false))
 
 	// stores r and s values needed for ecdsa.Verify
 	var esig struct {
@@ -337,17 +337,32 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	defer row.Close()
 
 	if row.Next() {
-		// if row is found, retrieve the sender's balance and nonce
-		var balance, nonce int
-		row.Scan(&balance, &nonce)
+		// if row is found, retrieve the sender's balance and nonce and close the query
+		var tblBalance, tblNonce int
+		row.Scan(&tblBalance, &tblNonce)
+		row.Close()
 		// check if the sender's balance is less than the contract amount
-		if balance < int(c.Value) {
+		if tblBalance < int(c.Value) {
 			return false, nil
 		}
 		// check if the nonce + 1 is not equal to the contract nonce
-		if nonce+1 != int(c.Nonce) {
+		if tblNonce+1 != int(c.Nonce) {
 			return false, nil
 		}
+
+		// valid contract
+		pubKeyHash, err := hex.DecodeString(pubKeyStr)
+		if err != nil {
+			return false, errors.New("Failed to decode pubKey string")
+		}
+
+		// update both the sender's and recipient's account
+		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, pubKeyHash, c.RecipPubKeyHash, c.Value)
+		if err != nil {
+			return false, errors.New("Failed to exchange between acccounts: " + err.Error())
+		}
+
+		return true, nil
 	}
 
 	return false, errors.New("Failed to validate contract")
