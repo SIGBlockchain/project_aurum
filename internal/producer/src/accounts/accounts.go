@@ -23,7 +23,6 @@ Signature Length
 Signature
 Recipient Public Key Hash
 Value
-Nonce
 */
 type Contract struct {
 	Version         uint16
@@ -32,7 +31,6 @@ type Contract struct {
 	Signature       []byte // size varies
 	RecipPubKeyHash []byte // 32 bytes
 	Value           uint64
-	Nonce           uint64
 }
 
 /*
@@ -42,10 +40,9 @@ signature comes from calling sign contract
 signature length comes from signature
 recipient pk hash comes from sha-256 hash of rpk
 value is value parameter
-nonce is nonce parameter
 returns contract struct
 */
-func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nonce uint64) (*Contract, error) {
+func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64) (*Contract, error) {
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")
@@ -57,7 +54,6 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 		Signature:       nil,
 		RecipPubKeyHash: recipient,
 		Value:           value,
-		Nonce:           nonce,
 	}
 
 	if sender == nil {
@@ -78,7 +74,6 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 		181 - 181+c.siglen signature
 		181+c.siglen - (181+c.siglen + 32) rpkh
 		(181+c.siglen + 32) - (181+c.siglen + 32+ 8) value
-		(181+c.siglen + 32+ 8) - (181+c.siglen + 32 + 8 + 8) nonce
 
 	*/
 
@@ -92,18 +87,17 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 
 	//unsigned contract
 	if withSignature == false {
-		totalSize := (2 + 178 + 1 + 32 + 16)
+		totalSize := (2 + 178 + 1 + 32 + 8)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
 		serializedContract[180] = 0
 		copy(serializedContract[181:213], c.RecipPubKeyHash)
 		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
-		binary.LittleEndian.PutUint64(serializedContract[221:229], c.Nonce)
 
 		return serializedContract
 	} else { //signed contract
-		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 16)
+		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 8)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
@@ -111,7 +105,6 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 		copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
 		copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
 		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
-		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.Nonce)
 
 		return serializedContract
 	}
@@ -136,7 +129,6 @@ func (c *Contract) Deserialize(b []byte) {
 		c.SigLen = b[180]
 		c.RecipPubKeyHash = b[181:213]
 		c.Value = binary.LittleEndian.Uint64(b[213:221])
-		c.Nonce = binary.LittleEndian.Uint64(b[221:229])
 	} else {
 		c.Version = binary.LittleEndian.Uint16(b[0:2])
 		c.SenderPubKey = spubkeydecoded
@@ -144,12 +136,11 @@ func (c *Contract) Deserialize(b []byte) {
 		c.Signature = b[181:(181 + siglen)]
 		c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
 		c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
-		c.Nonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
 	}
 }
 
 /*
-hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
+hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value)
 signature = Sign ( hashed contract, sender private key )
 sig len = signature length
 siglen and sig go into respective fields in contract
@@ -248,7 +239,7 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 		updatedNonce = 0
 	}
 
-	// update recipient's balance by adding the amount indicated by value, and nonce
+	// update recipient's balance with updatedBal and nonce with updatedNonce
 	sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
 	_, err = dbConnection.Exec(sqlUpdate)
 	if err != nil {
@@ -270,8 +261,7 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 		return errors.New("Failed to create rows for query")
 	}
 
-	var balance int
-	var nonce int
+	var balance, nonce int
 	if row.Next() {
 		// if row is found, retrieve balance and nonce and close the query
 		err = row.Scan(&balance, &nonce)
@@ -341,7 +331,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// create a query for the row that contains the sender's pkhash in the table
 	senderPubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
-	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
+	sqlQuery := fmt.Sprintf("SELECT balance FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
 	row, err := db.Query(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to create row for query")
@@ -349,18 +339,14 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	defer row.Close()
 
 	if row.Next() {
-		// if row is found, retrieve the sender's balance and nonce and close the query
-		var tblBalance, tblNonce int
-		row.Scan(&tblBalance, &tblNonce)
+		// if row is found, retrieve the sender's balance and close the query
+		var tblBalance int
+		row.Scan(&tblBalance)
 		row.Close()
 
-		// check insufficient funds and invalid nonce
+		// check insufficient funds
 		if tblBalance < int(c.Value) {
 			// invalid contract because the sender's balance is less than the contract amount
-			return false, nil
-		}
-		if tblNonce+1 != int(c.Nonce) {
-			// invalid contract because tblNonce + 1 is not equal to the contract nonce
 			return false, nil
 		}
 
