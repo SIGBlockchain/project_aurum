@@ -704,6 +704,7 @@ func TestValidateContract(t *testing.T) {
 			if err != nil {
 				t.Errorf("Failed to acquire rows from table")
 			}
+			defer rows.Close()
 			switch tt.name {
 			case "Unauthorized minting":
 				for rows.Next() {

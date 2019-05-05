@@ -5,10 +5,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"database/sql"
+	"encoding/asn1"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -289,29 +291,41 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, nil
 	}
 
-	// check for unauthorized minting contracts
+	// if contract is for minting
 	if c.SenderPubKey == nil {
-		validMinting := false
+		// check for unauthorized minting contracts
 		for _, mintersPubKHash := range authorizedMinters {
 			if bytes.Equal(c.RecipPubKeyHash, mintersPubKHash) {
-				validMinting = true
-				break
+				// authorized minting
+				err = MintAurumUpdateAccountBalanceTable(db, c.RecipPubKeyHash, c.Value)
+				if err != nil {
+					return false, errors.New("Failed to mint aurum with a valid minting contract: " + err.Error())
+				}
+
+				return true, nil
 			}
 		}
-		if !validMinting {
-			// unauthorized minting
-			return false, nil
-		}
-
-		// authorized minting
-		err = MintAurumUpdateAccountBalanceTable(db, c.RecipPubKeyHash, c.Value)
-		if err != nil {
-			return false, err
-		}
-
-		return true, nil
+		// unauthorized minting
+		return false, nil
 	}
-	return false, errors.New("Incomplete function")
+
+	// Serialize the Contract
+	serializedContract := block.HashSHA256(c.Serialize(true))
+
+	// stores r and s values needed for ecdsa.Verify
+	var esig struct {
+		R, S *big.Int
+	}
+	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
+		return false, errors.New("Failed to unmarshal signature")
+	}
+
+	// verify the signature in the contract
+	if !ecdsa.Verify(c.SenderPubKey, serializedContract, esig.R, esig.S) {
+		return false, nil
+	}
+
+	return false, errors.New("Failed to validate contract")
 }
 
 // /*
