@@ -309,6 +309,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, nil
 	}
 
+	// verify the signature in the contract
 	// Serialize the Contract
 	serializedContract := block.HashSHA256(c.Serialize(true))
 
@@ -320,9 +321,29 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, errors.New("Failed to unmarshal signature")
 	}
 
-	// verify the signature in the contract
+	// if ecdsa.Verify returns false, the signature is invalid
 	if !ecdsa.Verify(c.SenderPubKey, serializedContract, esig.R, esig.S) {
 		return false, nil
+	}
+
+	// check insufficient funds
+	pubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
+	// create a query for the row that contains the sender's pkhash in the table
+	sqlQuery := fmt.Sprintf("SELECT balance FROM account_balances WHERE public_key_hash= \"%s\"", pubKeyStr)
+	row, err := db.Query(sqlQuery)
+	if err != nil {
+		return false, errors.New("Failed to create row for query")
+	}
+	defer row.Close()
+
+	if row.Next() {
+		// if row is found, retrieve the sender's balance
+		var balance int
+		row.Scan(&balance)
+		// check if the sender's balance is less than the contract amount
+		if balance < int(c.Value) {
+			return false, nil
+		}
 	}
 
 	return false, errors.New("Failed to validate contract")
