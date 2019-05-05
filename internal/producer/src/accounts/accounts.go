@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
@@ -192,54 +191,60 @@ Add value to recipient's balance
 Increment both nonces by 1
 */
 func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
-	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
+	senderQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(senderPKH))
+	recipientQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(recipPKH))
+	var tblBal, tblNonce int
+
+	// search for the sender's account
+	row, err := dbConnection.Query(senderQuery)
 	if err != nil {
-		return errors.New("Failed to create rows to look for public key")
+		return errors.New("Failed to create row to look for sender")
 	}
 
-	// search for the senders public key hash that belongs to the contract and update its fields
-	var pkh string
-	var tblBal int
-	var tblNonce int
-	var sqlQuery string
-	for rows.Next() {
-		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+	if row.Next() {
+		// if sender's account is found, retrieve the balance and nonce and close the query
+		err = row.Scan(&tblBal, &tblNonce)
 		if err != nil {
-			return errors.New("Failed to scan rows")
+			return errors.New("Failed to scan row")
 		}
+		row.Close()
 
-		if reflect.DeepEqual(pkh, (hex.EncodeToString(senderPKH))) {
-			rows.Close()
-			compareVal := hex.EncodeToString(senderPKH)
-			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(value), tblNonce+1, compareVal)
-		}
-	}
-	_, err = dbConnection.Exec(sqlQuery)
-	if err != nil {
-		return errors.New("Failed to execute sql query")
-	}
-
-	// new query to update the receiver
-	rows, err = dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-	if err != nil {
-		return errors.New("Failed the update the receiver query")
-	}
-
-	for rows.Next() {
-		err = rows.Scan(&pkh, &tblBal, &tblNonce)
+		// update sender's balance by subtracting the amount indicated by value and adding one to nonce
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(value), tblNonce+1, hex.EncodeToString(senderPKH))
+		_, err = dbConnection.Exec(sqlUpdate)
 		if err != nil {
-			return errors.New("Failed to scan rows")
+			return errors.New("Failed to execute sqlUpdate for sender")
 		}
 
-		if reflect.DeepEqual(pkh, (hex.EncodeToString(recipPKH))) {
-			rows.Close()
-			compareVal := hex.EncodeToString(recipPKH)
-			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(value), tblNonce+1, compareVal)
-		}
+	} else {
+		row.Close()
+		return errors.New("Cannot find Sender's account")
 	}
-	_, err = dbConnection.Exec(sqlQuery)
+
+	// search for the recipient's account
+	row, err = dbConnection.Query(recipientQuery)
 	if err != nil {
-		return errors.New("Failed to update recipient after searching in rows")
+		return errors.New("Failed to create row to look for recipient")
+	}
+
+	if row.Next() {
+		// if recipient's account is found, retrieve the balance and nonce and close the query
+		err = row.Scan(&tblBal, &tblNonce)
+		if err != nil {
+			return errors.New("Failed to scan row")
+		}
+		row.Close()
+
+		// update recipient's balance by adding the amount indicated by value and adding one to nonce
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(value), tblNonce+1, hex.EncodeToString(recipPKH))
+		_, err = dbConnection.Exec(sqlUpdate)
+		if err != nil {
+			return errors.New("Failed to execute sqlUpdate for recipient")
+		}
+
+	} else {
+		row.Close()
+		return errors.New("Cannot find recipient's account")
 	}
 
 	return nil
@@ -326,9 +331,8 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, nil
 	}
 
-	// check insufficient funds and invalid nonce
-	pubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
 	// create a query for the row that contains the sender's pkhash in the table
+	pubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
 	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", pubKeyStr)
 	row, err := db.Query(sqlQuery)
 	if err != nil {
@@ -341,12 +345,14 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		var tblBalance, tblNonce int
 		row.Scan(&tblBalance, &tblNonce)
 		row.Close()
-		// check if the sender's balance is less than the contract amount
+
+		// check insufficient funds and invalid nonce
 		if tblBalance < int(c.Value) {
+			// invalid contract because the sender's balance is less than the contract amount
 			return false, nil
 		}
-		// check if the nonce + 1 is not equal to the contract nonce
 		if tblNonce+1 != int(c.Nonce) {
+			// invalid contract because tblNonce + 1 is not equal to the contract nonce
 			return false, nil
 		}
 
@@ -355,7 +361,6 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		if err != nil {
 			return false, errors.New("Failed to decode pubKey string")
 		}
-
 		// update both the sender's and recipient's account
 		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, pubKeyHash, c.RecipPubKeyHash, c.Value)
 		if err != nil {
