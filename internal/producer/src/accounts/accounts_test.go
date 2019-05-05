@@ -796,6 +796,7 @@ func TestValidateContract(t *testing.T) {
 						}
 					}
 				}
+				break
 			case "Totally valid with old accounts":
 				for rows.Next() {
 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
@@ -814,7 +815,6 @@ func TestValidateContract(t *testing.T) {
 					}
 				}
 				break
-
 			case "Totally valid with a new account":
 				for rows.Next() {
 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
