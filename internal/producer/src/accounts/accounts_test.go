@@ -621,6 +621,9 @@ func TestValidateContract(t *testing.T) {
 	invalidNonceContract, _ := MakeContract(1, sender, recipientPKH, 50, 0)
 	invalidNonceContract.SignContract(sender)
 
+	invalidNonceContract2, _ := MakeContract(1, sender, recipientPKH, 50, 2)
+	invalidNonceContract2.SignContract(sender)
+
 	type args struct {
 		c                 *Contract
 		table             string
@@ -692,6 +695,16 @@ func TestValidateContract(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		{
+			name: "Invalid nonce 2",
+			args: args{
+				c:                 invalidNonceContract2,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
 		// {
 		// 	name:    "Totally valid with old accounts",
 		// 	want:    true,
@@ -752,6 +765,7 @@ func TestValidateContract(t *testing.T) {
 			case "Invalid signature":
 			case "Insufficient funds":
 			case "Invalid nonce":
+			case "Invalid nonce 2":
 				for rows.Next() {
 					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
 						t.Errorf("failed to scan rows: %s", err)
