@@ -368,134 +368,31 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	return false, errors.New("Failed to validate contract")
 }
 
-// /*
-// Check balance (ideal scenario):
-// Open table
-// Get hash of contract
-// Verify signature with hash and public key
-// Go to table and find sender
-// Confirm balance is sufficient
-// Update Account Balances (S & R)		// ony updated when true
-// Increment Table Nonce
+type AccountInfo struct {
+	balance    uint64
+	stateNonce uint64
+}
 
-// 1. verify signature
-// hashed contract = sha 256 hash ( version + spubkey + rpubkeyhash + value + nonce )
-// verify (hashed contract, spubkey, signature) (T)
-// 2. validate amount
-// check table to see if sender's balance >= contract amount (T)
-// 3. validate nonce
-// check to see that nonce is 1 + table nonce for that account (T)
+func NewAccountInfo(balance uint64, stateNonce uint64) *AccountInfo {
+	return nil
+}
 
-// If all 3 are true, update table
-// */
-// func ValidateContract(c Contract, dbConnection *sql.DB) (bool, error) {
-// 	// check for zero value transaction
-// 	if c.Value == 0 {
-// 		return false, errors.New("the transaction was zero value")
-// 	}
+func (accInfo *AccountInfo) Serialize() ([]byte, error) {
+	return nil, errors.New("Incomplete function")
+}
 
-// 	// Serialize the Contract
-// 	serializedContract := block.HashSHA256(c.Serialize(false))
+func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
+	return errors.New("Incomplete function")
+}
 
-// 	// stores r and s values needed for ecdsa.Verify
-// 	var esig struct {
-// 		R, S *big.Int
-// 	}
-// 	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
-// 		return false, errors.New("Failed to unmarshal signature")
-// 	}
+func GetBalance(pkhash []byte) (uint64, error) {
+	return 0, errors.New("Incomplete function")
+}
 
-// 	// if the ecdsa.Verify is true then check the rest of the contract against whats in the databasei
-// 	if !ecdsa.Verify(&c.SenderPubKey, serializedContract, esig.R, esig.S) {
-// 		return false, errors.New("failed to verify signature")
-// 	}
+func GetStateNonce(pkhash []byte) (uint64, error) {
+	return 0, errors.New("Incomplete function")
+}
 
-// 	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	defer rows.Close()
-
-// 	//look for the public key that pertains to the contract and verify its balance and nonce
-// 	var pkh string
-// 	var tblBal int
-// 	var tblNonce int
-// 	for rows.Next() {
-// 		err = rows.Scan(&pkh, &tblBal, &tblNonce)
-// 		if err != nil {
-// 			return false, errors.New("Failed ot scan rows")
-// 		}
-// 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-// 			if !(tblBal >= int(c.Value)) {
-// 				return false, errors.New("tblBal is less than c.Value")
-// 			}
-// 			if !(tblNonce+1 == int(c.Nonce)) {
-// 				return false, errors.New("couldn't validate")
-// 			}
-// 		}
-// 	}
-
-// 	err = c.UpdateAccountBalanceTable(dbConnection)
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	return true, nil
-// }
-
-// /*
-// spkh = sha256 ( serialized sender pub key )
-// find sender public key hash
-// decrease value from sender public key hash account
-// increment their nonce by one
-// increase value of recipient public key hash account by contract value
-// */
-// func (c *Contract) UpdateAccountBalanceTable(dbConnection *sql.DB) error {
-// 	rows, err := dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-// 	if err != nil {
-// 		return errors.New("Failed to create rows to look for public key")
-// 	}
-
-// 	// search for the senders public key hash that belongs to the contract and update its fields
-// 	var pkh string
-// 	var tblBal int
-// 	var tblNonce int
-// 	var sqlQuery string
-// 	for rows.Next() {
-// 		rows.Scan(&pkh, &tblBal, &tblNonce)
-// 		if reflect.DeepEqual(pkh, (hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey))))) {
-// 			rows.Close()
-// 			compareVal := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(&c.SenderPubKey)))
-// 			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(c.Value), tblNonce+1, compareVal)
-// 		}
-// 	}
-
-// 	_, err = dbConnection.Exec(sqlQuery)
-// 	if err != nil {
-// 		return errors.New("Failed to execute sql query")
-// 	}
-
-// 	// new query to update the receiver
-// 	rows, err = dbConnection.Query("SELECT public_key_hash , balance, nonce FROM account_balances")
-// 	if err != nil {
-// 		return errors.New("Failed the update the receiver query")
-// 	}
-
-// 	for rows.Next() {
-// 		err = rows.Scan(&pkh, &tblBal, &tblNonce)
-// 		if err != nil {
-// 			return errors.New("Failed to scan rows")
-// 		}
-// 		if reflect.DeepEqual(pkh, (hex.EncodeToString(c.RecipPubKeyHash))) {
-// 			rows.Close()
-// 			compareVal := hex.EncodeToString(c.RecipPubKeyHash)
-// 			sqlQuery = fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal+int(c.Value), tblNonce+1, compareVal)
-// 		}
-// 	}
-
-// 	_, err = dbConnection.Exec(sqlQuery)
-// 	if err != nil {
-// 		return errors.New("Failed to update recipient after searching in rows")
-// 	}
-
-// 	return nil
-// }
+func GetAccountInfo(pkhash []byte) (*AccountInfo, error) {
+	return nil, errors.New("Incomplete function")
+}
