@@ -27,6 +27,8 @@ import (
 	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
+var secretBytes = block.HashSHA256([]byte("aurum"))[8:16]
+
 // This will check if the client is connected to the internet
 //
 // Will return relevant error if not connected
@@ -277,9 +279,10 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
 
 type ContractRequest struct {
-	Version uint16
-	Type    uint16
-	Request *accounts.Contract
+	SecBytes []byte
+	Version  uint16
+	Type     uint16
+	Request  *accounts.Contract
 }
 
 func (conReq *ContractRequest) Serialize() ([]byte, error) {

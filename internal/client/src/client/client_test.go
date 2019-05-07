@@ -343,9 +343,10 @@ func TestContractRequest_Serialize(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		Version: 1,
-		Type:    0,
-		Request: someContract,
+		SecBytes: secretBytes,
+		Version:  1,
+		Type:     0,
+		Request:  someContract,
 	}
 	tests := []struct {
 		name    string
@@ -369,14 +370,17 @@ func TestContractRequest_Serialize(t *testing.T) {
 			binary.LittleEndian.PutUint16(serializedVersion, 1)
 			serializedType := make([]byte, 2)
 			binary.LittleEndian.PutUint16(serializedType, 0)
-			if !bytes.Equal(serializedVersion, got[:2]) {
+			if !bytes.Equal(secretBytes, got[:8]) {
+				t.Errorf("secret bytes do not match")
+			}
+			if !bytes.Equal(serializedVersion, got[8:10]) {
 				t.Error("versions do not match")
 			}
-			if !bytes.Equal(serializedType, got[2:4]) {
+			if !bytes.Equal(serializedType, got[10:12]) {
 				t.Errorf("types do not match")
 			}
 			serializedContract, _ := someContract.Serialize()
-			if !bytes.Equal(serializedContract, got[4:]) {
+			if !bytes.Equal(serializedContract, got[12:]) {
 				t.Errorf("contracts do not match")
 			}
 		})
@@ -400,9 +404,10 @@ func TestContractRequest_Deserialize(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		Version: 1,
-		Type:    0,
-		Request: someContract,
+		SecBytes: secretBytes,
+		Version:  1,
+		Type:     0,
+		Request:  someContract,
 	}
 	serializedReq, _ := someContractRequest.Serialize()
 	type args struct {
@@ -451,9 +456,10 @@ func TestSendAurum(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		Version: 1,
-		Type:    0,
-		Request: someContract,
+		SecBytes: secretBytes,
+		Version:  1,
+		Type:     0,
+		Request:  someContract,
 	}
 	serializedReq, _ := someContractRequest.Serialize()
 
