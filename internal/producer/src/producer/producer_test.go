@@ -289,7 +289,7 @@ func TestBringOnTheGenesis(t *testing.T) {
 				t.Errorf("BringOnTheGenesis() = %v, want %v", got, tt.want)
 			}
 			for i := range got.Data {
-				deserializedData := Data{}
+				var deserializedData = (*Data)(nil).Deserialize(got.Data[i])
 				err := deserializedData.Deserialize(got.Data[i])
 				if err != nil {
 					t.Errorf("failed to deserialize data")
