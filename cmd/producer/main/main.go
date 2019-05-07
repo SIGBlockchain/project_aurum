@@ -8,9 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
 )
@@ -110,23 +107,23 @@ func main() {
 
 	// Main loop
 	timerChan := make(chan bool)
-	var chainHeight uint64
+	// var chainHeight uint64
 	var dataPool []producer.Data
 	productionInterval, err := time.ParseDuration(*interval)
 	if err != nil {
 		logger.Fatalln("failed to parse interval")
 	}
-	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
-	if err != nil {
-		logger.Fatalf("failed to retrieve youngest block header: %s\n", err)
-	}
+	// youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
+	// if err != nil {
+	// 	logger.Fatalf("failed to retrieve youngest block header: %s\n", err)
+	// }
 	for {
 		select {
 		case newData := <-newDataChan:
 			dataPool = append(dataPool, newData)
 		case <-timerChan:
-			newBlock, _ := producer.CreateBlock(version, chainHeight, block.HashBlock(youngestBlock), dataPool)
-			blockchain.AddBlock(newBlock, ledger, metadata)
+			// newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
+			// blockchain.AddBlock(newBlock, ledger, metadata)
 			dataPool = nil
 			go func() {
 				time.AfterFunc(productionInterval, func() {
