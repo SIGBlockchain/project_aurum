@@ -20,9 +20,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
-
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
@@ -279,10 +278,10 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
 
 type ContractRequest struct {
-	SecBytes []byte
-	Version  uint16
-	Type     uint16
-	Request  *accounts.Contract
+	SecBytes    []byte
+	Version     uint16
+	MessageType uint16
+	Request     *producer.Data
 }
 
 func (conReq *ContractRequest) Serialize() ([]byte, error) {

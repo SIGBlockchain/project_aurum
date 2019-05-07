@@ -343,10 +343,16 @@ func TestContractRequest_Serialize(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		SecBytes: secretBytes,
-		Version:  1,
-		Type:     0,
-		Request:  someContract,
+		SecBytes:    secretBytes,
+		Version:     1,
+		MessageType: 0,
+		Request: &producer.Data{
+			Hdr: producer.DataHeader{
+				Version: 1,
+				Type:    0,
+			},
+			Bdy: someContract,
+		},
 	}
 	tests := []struct {
 		name    string
@@ -404,10 +410,16 @@ func TestContractRequest_Deserialize(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		SecBytes: secretBytes,
-		Version:  1,
-		Type:     0,
-		Request:  someContract,
+		SecBytes:    secretBytes,
+		Version:     1,
+		MessageType: 0,
+		Request: &producer.Data{
+			Hdr: producer.DataHeader{
+				Version: 1,
+				Type:    0,
+			},
+			Bdy: someContract,
+		},
 	}
 	serializedReq, _ := someContractRequest.Serialize()
 	type args struct {
@@ -420,7 +432,7 @@ func TestContractRequest_Deserialize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			conReq: &ContractRequest{},
+			conReq: (*ContractRequest)(nil),
 			args: args{
 				serializedRequest: serializedReq,
 			},
@@ -456,10 +468,16 @@ func TestSendAurum(t *testing.T) {
 	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
-		SecBytes: secretBytes,
-		Version:  1,
-		Type:     0,
-		Request:  someContract,
+		SecBytes:    secretBytes,
+		Version:     1,
+		MessageType: 0,
+		Request: &producer.Data{
+			Hdr: producer.DataHeader{
+				Version: 1,
+				Type:    0,
+			},
+			Bdy: someContract,
+		},
 	}
 	serializedReq, _ := someContractRequest.Serialize()
 
