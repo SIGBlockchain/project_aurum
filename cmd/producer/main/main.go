@@ -80,19 +80,33 @@ func main() {
 	}
 
 	// Initialize BP struct with listener and empty map
-	bp := producer.BlockProducer{
-		Server:        ln,
-		NewConnection: make(chan net.Conn, 128),
-		Logger:        logger,
-	}
+	// bp := producer.BlockProducer{
+	// 	Server:        ln,
+	// 	NewConnection: make(chan net.Conn, 128),
+	// 	Logger:        logger,
+	// }
 
 	// Start listening for connections
 	logger.Printf("Server listening on port %s.", *port)
-	go bp.AcceptConnections()
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				continue
+			}
+			logger.Printf("%s connection\n", conn.RemoteAddr())
+			go func() {
+
+			}()
+		}
+	}()
 
 	// Main loop
-	bp.WorkLoop()
+	for {
+		select {}
+	}
 
 	// Close the server
-	bp.Server.Close()
+	ln.Close()
 }
