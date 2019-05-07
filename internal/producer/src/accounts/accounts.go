@@ -386,3 +386,32 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	return false, errors.New("Failed to validate contract")
 }
+
+type AccountInfo struct {
+	balance    uint64
+	stateNonce uint64
+}
+
+func NewAccountInfo(balance uint64, stateNonce uint64) *AccountInfo {
+	return nil
+}
+
+func (accInfo *AccountInfo) Serialize() ([]byte, error) {
+	return nil, errors.New("Incomplete function")
+}
+
+func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
+	return errors.New("Incomplete function")
+}
+
+func GetBalance(pkhash []byte) (uint64, error) {
+	return 0, errors.New("Incomplete function")
+}
+
+func GetStateNonce(pkhash []byte) (uint64, error) {
+	return 0, errors.New("Incomplete function")
+}
+
+func GetAccountInfo(pkhash []byte) (*AccountInfo, error) {
+	return nil, errors.New("Incomplete function")
+}

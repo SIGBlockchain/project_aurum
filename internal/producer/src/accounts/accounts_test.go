@@ -841,3 +841,198 @@ func checkBalanceAndNonce(queryBalance uint64, wantBalance uint64, queryNonce ui
 	}
 	return nil
 }
+
+func TestAccountInfo_Deserialize(t *testing.T) {
+	ac := NewAccountInfo(9001, 50)
+	serAc, _ := ac.Serialize()
+	type args struct {
+		serializedAccountInfo []byte
+	}
+	tests := []struct {
+		name    string
+		accInfo *AccountInfo
+		args    args
+		wantErr bool
+	}{
+		{
+			accInfo: (*AccountInfo)(nil),
+			args:    args{serializedAccountInfo: serAc},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.accInfo.Deserialize(tt.args.serializedAccountInfo); (err != nil) != tt.wantErr {
+				t.Errorf("AccountInfo.Deserialize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(tt.accInfo, ac) {
+				t.Errorf("structs do not match")
+			}
+		})
+	}
+}
+
+func TestGetBalance(t *testing.T) {
+	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	dbName := "accountBalanceTable.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
+	if err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+	type args struct {
+		pkhash []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    uint64
+		wantErr bool
+	}{
+		{
+			args:    args{spkh},
+			want:    1000,
+			wantErr: false,
+		},
+		{
+			args:    args{[]byte("doesn't exist in table")},
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetBalance(tt.args.pkhash)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetBalance() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetBalance() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetStateNonce(t *testing.T) {
+	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	dbName := "accountBalanceTable.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
+	if err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+	type args struct {
+		pkhash []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    uint64
+		wantErr bool
+	}{
+		{
+			args:    args{spkh},
+			want:    0,
+			wantErr: false,
+		},
+		{
+			args:    args{[]byte("doesn't exist in table")},
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetStateNonce(tt.args.pkhash)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetStateNonce() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetStateNonce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetAccountInfo(t *testing.T) {
+	 TestGetStateNonce(t *testing.T) {
+	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	dbName := "accountBalanceTable.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
+	if err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+	type args struct {
+		pkhash []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AccountInfo
+		wantErr bool
+	}{
+		{
+			args: args{spkh},
+			want: &AccountInfo{1000,0},
+			wantErr: false,
+		},
+		{
+			args: args{[]byte("this account doesn't exit")},
+			want: nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetAccountInfo(tt.args.pkhash)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetAccountInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetAccountInfo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
