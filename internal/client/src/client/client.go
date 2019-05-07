@@ -279,7 +279,7 @@ func UpdateWallet() error { return errors.New("Not ready to be implemented yet")
 type ContractRequest struct {
 	Version uint16
 	Type    uint16
-	Request accounts.Contract
+	Request *accounts.Contract
 }
 
 func (conReq *ContractRequest) Serialize() ([]byte, error) {
@@ -290,6 +290,7 @@ func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
 	return errors.New("Incomplete function")
 }
 
+// Open aurum_wallet.json for private key and nonce
 func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipientPublicKeyHash []byte, value uint64) error {
 	return errors.New("Incomplete function")
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -18,10 +19,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
-	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -326,16 +327,36 @@ func TestGetPrivateKey(t *testing.T) {
 }
 
 func TestContractRequest_Serialize(t *testing.T) {
-	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	SetupWallet()
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove aurum wallet")
+		}
+	}()
+	senderPrivateKey, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to retrieve private key")
+	}
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-
+	rpkh := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
+	someContract.SignContract(senderPrivateKey)
+	someContractRequest := &ContractRequest{
+		Version: 1,
+		Type:    0,
+		Request: someContract,
+	}
 	tests := []struct {
 		name    string
 		conReq  *ContractRequest
 		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			conReq:  someContractRequest,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -344,8 +365,148 @@ func TestContractRequest_Serialize(t *testing.T) {
 				t.Errorf("ContractRequest.Serialize() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ContractRequest.Serialize() = %v, want %v", got, tt.want)
+			serializedVersion := make([]byte, 2)
+			binary.LittleEndian.PutUint16(serializedVersion, 1)
+			serializedType := make([]byte, 2)
+			binary.LittleEndian.PutUint16(serializedType, 0)
+			if !bytes.Equal(serializedVersion, got[:2]) {
+				t.Error("versions do not match")
+			}
+			if !bytes.Equal(serializedType, got[2:4]) {
+				t.Errorf("types do not match")
+			}
+			serializedContract, _ := someContract.Serialize()
+			if !bytes.Equal(serializedContract, got[4:]) {
+				t.Errorf("contracts do not match")
+			}
+		})
+	}
+}
+
+func TestContractRequest_Deserialize(t *testing.T) {
+	SetupWallet()
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove aurum wallet")
+		}
+	}()
+	senderPrivateKey, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to retrieve private key")
+	}
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	rpkh := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
+	someContract.SignContract(senderPrivateKey)
+	someContractRequest := &ContractRequest{
+		Version: 1,
+		Type:    0,
+		Request: someContract,
+	}
+	serializedReq, _ := someContractRequest.Serialize()
+	type args struct {
+		serializedRequest []byte
+	}
+	tests := []struct {
+		name    string
+		conReq  *ContractRequest
+		args    args
+		wantErr bool
+	}{
+		{
+			conReq: &ContractRequest{},
+			args: args{
+				serializedRequest: serializedReq,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.conReq.Deserialize(tt.args.serializedRequest); (err != nil) != tt.wantErr {
+				t.Errorf("ContractRequest.Deserialize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(someContractRequest, tt.conReq) {
+				t.Errorf("failed to deserialize contract request")
+			}
+		})
+	}
+}
+
+func TestSendAurum(t *testing.T) {
+	SetupWallet()
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove aurum wallet")
+		}
+	}()
+	senderPrivateKey, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to retrieve private key")
+	}
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	rpkh := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
+	someContract.SignContract(senderPrivateKey)
+	someContractRequest := &ContractRequest{
+		Version: 1,
+		Type:    0,
+		Request: someContract,
+	}
+	serializedReq, _ := someContractRequest.Serialize()
+
+	type args struct {
+		producerAddr           string
+		clientPrivateKey       *ecdsa.PrivateKey
+		recipientPublicKeyHash []byte
+		value                  uint64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				producerAddr:           ":8080",
+				clientPrivateKey:       senderPrivateKey,
+				recipientPublicKeyHash: rpkh,
+				value: 1000,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ln, err := net.Listen("tcp", "localhost:8080")
+			if err != nil {
+				t.Errorf("Failed to open tcp listener")
+			}
+			conReqChan := make(chan []byte)
+			go func() {
+				dur, _ := time.ParseDuration("3s")
+				tm := time.AfterFunc(dur, func() {
+					conReqChan <- []byte("fail")
+				})
+				buf := make([]byte, 1024)
+				conn, err := ln.Accept()
+				if err != nil {
+					t.Error("failed to accept connection")
+				}
+				_, err = conn.Read(buf)
+				if err != nil {
+					t.Errorf("failed to read into buffer")
+				}
+				conReqChan <- buf
+				tm.Stop()
+			}()
+			if err := SendAurum(tt.args.producerAddr, tt.args.clientPrivateKey, tt.args.recipientPublicKeyHash, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("SendAurum() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			senderConReq := <-conReqChan
+			if !bytes.Equal(senderConReq, serializedReq) {
+				t.Errorf("Contract requests do not match")
 			}
 		})
 	}
