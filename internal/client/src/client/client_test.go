@@ -3,6 +3,8 @@ package client
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
@@ -16,9 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -317,6 +320,32 @@ func TestGetPrivateKey(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetPrivateKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestContractRequest_Serialize(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+
+	tests := []struct {
+		name    string
+		conReq  *ContractRequest
+		want    []byte
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.conReq.Serialize()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ContractRequest.Serialize() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ContractRequest.Serialize() = %v, want %v", got, tt.want)
 			}
 		})
 	}

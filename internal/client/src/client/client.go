@@ -20,6 +20,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
 	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
@@ -273,3 +275,21 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 
 // NOT READY TO BE IMPLEMENTED YET
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
+
+type ContractRequest struct {
+	Version uint16
+	Type    uint16
+	Request accounts.Contract
+}
+
+func (conReq *ContractRequest) Serialize() ([]byte, error) {
+	return nil, errors.New("Incomplete function")
+}
+
+func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
+	return errors.New("Incomplete function")
+}
+
+func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipientPublicKeyHash []byte, value uint64) error {
+	return errors.New("Incomplete function")
+}
