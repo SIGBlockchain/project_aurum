@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 )
 
 // This stores connection information for the producer
@@ -103,4 +105,39 @@ func (bp *BlockProducer) WorkLoop() {
 			*/
 		}
 	}
+}
+
+type DataHeader struct {
+	Version uint16 // Version denotes how the Data piece is structured
+	Type    uint16 // Identifies what the type of the Data Body is
+}
+
+type DataElem interface {
+	Serialize() ([]byte, error) // Call serialize function of DataElem
+	Deserialize([]byte) error
+}
+
+type Data struct {
+	Hdr DataHeader
+	Bdy DataElem
+}
+
+func (d *Data) Serialize() ([]byte, error) {
+	return []byte{}, errors.New("Incomplete function")
+}
+
+func (d *Data) Deserialize(serializedData []byte) error {
+	return errors.New("Incomplete function")
+}
+
+func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data) (block.Block, error) {
+	return block.Block{}, errors.New("Incomplete function")
+}
+
+func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
+	return block.Block{}, errors.New("Incomplete function")
+}
+
+func Airdrop(blockchain string, metadata string, genesisBlock block.Block) error {
+	return errors.New("Incomplete function")
 }
