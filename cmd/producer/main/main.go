@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
@@ -23,7 +22,7 @@ func main() {
 	globalhost := getopt.BoolLong("global", 'g', "enable global host")
 	logFile := getopt.StringLong("log", 'l', "", "log file")
 	port := getopt.StringLong("port", 'p', "13131", "port")
-	interval := getopt.StringLong("interval", 'i', "", "production interval")
+	// interval := getopt.StringLong("interval", 'i', "", "production interval")
 	// initialAurumSupply := getopt.Uint64Long("supply", 's', 0, "initial aurum supply")
 	getopt.CommandLine.Lookup('l').SetOptional()
 	getopt.Parse()
@@ -95,12 +94,14 @@ func main() {
 			}
 			logger.Printf("%s connection\n", conn.RemoteAddr())
 			go func() {
+				defer conn.Close()
 				buf := make([]byte, 1024)
 				_, err := conn.Read(buf)
 				if err != nil {
 					return
 				}
 				// Handle message
+				conn.Write(buf)
 			}()
 		}
 	}()
@@ -109,7 +110,7 @@ func main() {
 	timerChan := make(chan bool)
 	// var chainHeight uint64
 	var dataPool []producer.Data
-	productionInterval, err := time.ParseDuration(*interval)
+	// productionInterval, err := time.ParseDuration(*interval)
 	if err != nil {
 		logger.Fatalln("failed to parse interval")
 	}
@@ -125,11 +126,11 @@ func main() {
 			// newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
 			// blockchain.AddBlock(newBlock, ledger, metadata)
 			dataPool = nil
-			go func() {
-				time.AfterFunc(productionInterval, func() {
-					<-timerChan
-				})
-			}()
+			// go func() {
+			// 	time.AfterFunc(productionInterval, func() {
+			// 		<-timerChan
+			// 	})
+			// }()
 		}
 	}
 
