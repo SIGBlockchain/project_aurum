@@ -84,7 +84,6 @@ func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
-	initialContract.StateNonce = 0
 	tests := []struct {
 		name string
 		d    *Data
@@ -135,7 +134,6 @@ func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
-	initialContract.StateNonce = 0
 	someData := &Data{
 		Hdr: DataHeader{
 			Version: 1,
@@ -178,7 +176,6 @@ func TestCreateBlock(t *testing.T) {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
-		someAirdropContract.StateNonce = 0
 		someDataHdr := DataHeader{
 			Version: 1,
 			Type:    0,
@@ -247,7 +244,6 @@ func TestBringOnTheGenesis(t *testing.T) {
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
-		someAirdropContract.StateNonce = 0
 		someDataHdr := DataHeader{
 			Version: 1,
 			Type:    0,
