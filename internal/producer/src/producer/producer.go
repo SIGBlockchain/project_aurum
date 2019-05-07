@@ -138,6 +138,6 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 	return block.Block{}, errors.New("Incomplete function")
 }
 
-func Airdrop(blockchain string, genesisBlock block.Block) error {
+func Airdrop(blockchain string, metadata string, genesisBlock block.Block) error {
 	return errors.New("Incomplete function")
 }

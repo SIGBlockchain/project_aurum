@@ -315,6 +315,7 @@ func TestAirdrop(t *testing.T) {
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
 	type args struct {
 		blockchain   string
+		metadata     string
 		genesisBlock block.Block
 	}
 	tests := []struct {
@@ -325,13 +326,14 @@ func TestAirdrop(t *testing.T) {
 		{
 			args: args{
 				blockchain:   "blockchain.dat",
+				metadata:     "metadata.tab",
 				genesisBlock: genny,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Airdrop(tt.args.blockchain, tt.args.genesisBlock); (err != nil) != tt.wantErr {
+			if err := Airdrop(tt.args.blockchain, tt.args.metadata, tt.args.genesisBlock); (err != nil) != tt.wantErr {
 				t.Errorf("Airdrop() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			fileGenny, err := ioutil.ReadFile(tt.args.blockchain)
