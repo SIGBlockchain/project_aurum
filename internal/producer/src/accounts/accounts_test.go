@@ -187,21 +187,21 @@ func TestContract_Deserialize(t *testing.T) {
 	}{
 		{
 			name: "Minting contract",
-			c:    &Contract{},
+			c:    (*Contract)(nil),
 			args: args{
 				nullSenderContractSerialized,
 			},
 		},
 		{
 			name: "Unsigned contract",
-			c:    &Contract{},
+			c:    (*Contract)(nil),
 			args: args{
 				unsignedContractSerialized,
 			},
 		},
 		{
 			name: "Signed contract",
-			c:    &Contract{},
+			c:    (*Contract)(nil),
 			args: args{
 				signedContractSerialized,
 			},
@@ -982,7 +982,6 @@ func TestGetStateNonce(t *testing.T) {
 }
 
 func TestGetAccountInfo(t *testing.T) {
-	 TestGetStateNonce(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
 	dbName := "accountBalanceTable.tab"
@@ -1013,13 +1012,13 @@ func TestGetAccountInfo(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			args: args{spkh},
-			want: &AccountInfo{1000,0},
+			args:    args{spkh},
+			want:    &AccountInfo{1000, 0},
 			wantErr: false,
 		},
 		{
-			args: args{[]byte("this account doesn't exit")},
-			want: nil,
+			args:    args{[]byte("this account doesn't exit")},
+			want:    nil,
 			wantErr: true,
 		},
 	}
