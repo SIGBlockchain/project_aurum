@@ -141,7 +141,7 @@ func TestData_Deserialize(t *testing.T) {
 		},
 		Bdy: initialContract,
 	}
-	serializedInitialContract, _ := initialContract.Serialize()
+	serializedsomeData, _ := someData.Serialize()
 	type args struct {
 		serializedData []byte
 	}
@@ -152,9 +152,9 @@ func TestData_Deserialize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			d: &Data{},
+			d: (*Data)(nil),
 			args: args{
-				serializedData: serializedInitialContract,
+				serializedData: serializedsomeData,
 			},
 		},
 	}
