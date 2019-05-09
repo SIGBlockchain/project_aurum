@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"encoding/asn1"
 	"encoding/hex"
-	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"reflect"
@@ -23,10 +23,11 @@ func TestMakeContract(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	type args struct {
-		version   uint16
-		sender    *ecdsa.PrivateKey
-		recipient []byte
-		value     uint64
+		version       uint16
+		sender        *ecdsa.PrivateKey
+		recipient     []byte
+		value         uint64
+		newStateNonce uint64
 	}
 	tests := []struct {
 		name    string
@@ -37,10 +38,11 @@ func TestMakeContract(t *testing.T) {
 		{
 			name: "Unsigned Minting contract",
 			args: args{
-				version:   1,
-				sender:    nil,
-				recipient: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
-				value:     1000000000,
+				version:       1,
+				sender:        nil,
+				recipient:     block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+				value:         1000000000,
+				newStateNonce: 1,
 			},
 			want: &Contract{
 				Version:         1,
@@ -49,16 +51,18 @@ func TestMakeContract(t *testing.T) {
 				Signature:       nil,
 				RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
 				Value:           1000000000,
+				StateNonce:      1,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Unsigned Normal contract",
 			args: args{
-				version:   1,
-				sender:    senderPrivateKey,
-				recipient: block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
-				value:     1000000000,
+				version:       1,
+				sender:        senderPrivateKey,
+				recipient:     block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
+				value:         1000000000,
+				newStateNonce: 1,
 			},
 			want: &Contract{
 				Version:         1,
@@ -67,16 +71,18 @@ func TestMakeContract(t *testing.T) {
 				Signature:       nil,
 				RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
 				Value:           1000000000,
+				StateNonce:      1,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Version 0 contract",
 			args: args{
-				version:   0,
-				sender:    senderPrivateKey,
-				recipient: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
-				value:     1000000000,
+				version:       0,
+				sender:        senderPrivateKey,
+				recipient:     block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+				value:         1000000000,
+				newStateNonce: 1,
 			},
 			want:    nil,
 			wantErr: true,
@@ -84,7 +90,7 @@ func TestMakeContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeContract(tt.args.version, tt.args.sender, tt.args.recipient, tt.args.value)
+			got, err := MakeContract(tt.args.version, tt.args.sender, tt.args.recipient, tt.args.value, tt.args.newStateNonce)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MakeContract() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -98,43 +104,30 @@ func TestMakeContract(t *testing.T) {
 func TestContract_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000)
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000)
-	signedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000)
+	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
+	signedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
 	signedContract.SignContract(senderPrivateKey)
-	type args struct {
-		withSignature bool
-	}
 	tests := []struct {
 		name string
 		c    *Contract
-		args args
 	}{
 		{
 			name: "Minting contract",
 			c:    nullSenderContract,
-			args: args{
-				withSignature: false,
-			},
 		},
 		{
 			name: "Unsigned contract",
 			c:    unsignedContract,
-			args: args{
-				withSignature: false,
-			},
 		},
 		{
 			name: "Signed contract",
 			c:    signedContract,
-			args: args{
-				withSignature: true,
-			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.c.Serialize(tt.args.withSignature)
+			got, _ := tt.c.Serialize()
 			sigLen := got[180]
 			switch tt.name {
 			case "Minting contract":
@@ -168,7 +161,6 @@ func TestContract_Serialize(t *testing.T) {
 				if !bytes.Equal(got[(181+int(sigLen)):(181+int(sigLen)+32)], tt.c.RecipPubKeyHash) {
 					t.Errorf("Invalid recipient public key hash in signed contract")
 				}
-			default:
 			}
 		})
 	}
@@ -177,13 +169,13 @@ func TestContract_Serialize(t *testing.T) {
 func TestContract_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000)
-	nullSenderContractSerialized := nullSenderContract.Serialize(false)
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000)
-	unsignedContractSerialized := unsignedContract.Serialize(false)
-	signedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000)
+	nullSenderContract, _ := MakeContract(1, nil, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 1)
+	nullSenderContractSerialized, _ := nullSenderContract.Serialize()
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 1)
+	unsignedContractSerialized, _ := unsignedContract.Serialize()
+	signedContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 1)
 	signedContract.SignContract(senderPrivateKey)
-	signedContractSerialized := signedContract.Serialize(true)
+	signedContractSerialized, _ := signedContract.Serialize()
 	type args struct {
 		b []byte
 	}
@@ -234,6 +226,9 @@ func TestContract_Deserialize(t *testing.T) {
 				if tt.c.SenderPubKey != nil {
 					t.Errorf("Invalid field on nullSender contract: sender public key")
 				}
+				if tt.c.StateNonce != nullSenderContract.StateNonce {
+					t.Errorf(fmt.Sprintf("Invalid field on nullSender contract: state nonce. Want: %d, got %d", nullSenderContract.StateNonce, tt.c.StateNonce))
+				}
 				break
 			case "Unsigned contract":
 				if tt.c.Version != unsignedContract.Version {
@@ -250,6 +245,9 @@ func TestContract_Deserialize(t *testing.T) {
 				}
 				if !reflect.DeepEqual(tt.c.SenderPubKey, &senderPrivateKey.PublicKey) {
 					t.Errorf("Invalid field on unsigned contract: sender public key")
+				}
+				if tt.c.StateNonce != unsignedContract.StateNonce {
+					t.Errorf("Invalid field on unsigned contract: state nonce")
 				}
 				break
 			case "Signed contract":
@@ -268,8 +266,10 @@ func TestContract_Deserialize(t *testing.T) {
 				if !reflect.DeepEqual(tt.c.SenderPubKey, &senderPrivateKey.PublicKey) {
 					t.Errorf("Invalid field on signed contract: sender public key")
 				}
+				if tt.c.StateNonce != signedContract.StateNonce {
+					t.Errorf("Invalid field on signed contract: state nonce")
+				}
 				break
-			default:
 			}
 		})
 	}
@@ -277,7 +277,7 @@ func TestContract_Deserialize(t *testing.T) {
 
 func TestContract_SignContract(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	testContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000)
+	testContract, _ := MakeContract(1, senderPrivateKey, block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
 	type args struct {
 		sender ecdsa.PrivateKey
 	}
@@ -296,19 +296,20 @@ func TestContract_SignContract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			copyOfContract := testContract
+			serializedTestContract, _ := copyOfContract.Serialize()
+			hashedContract := block.HashSHA256(serializedTestContract)
 			tt.c.SignContract(&tt.args.sender)
-			serializedTestContract := block.HashSHA256(copyOfContract.Serialize(false))
 			var esig struct {
 				R, S *big.Int
 			}
 			if _, err := asn1.Unmarshal(tt.c.Signature, &esig); err != nil {
 				t.Errorf("Failed to unmarshall signature")
 			}
-			if !ecdsa.Verify(tt.c.SenderPubKey, serializedTestContract, esig.R, esig.S) {
+			if !ecdsa.Verify(tt.c.SenderPubKey, hashedContract, esig.R, esig.S) {
 				t.Errorf("Failed to verify valid signature")
 			}
 			maliciousPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-			if ecdsa.Verify(&maliciousPrivateKey.PublicKey, serializedTestContract, esig.R, esig.S) {
+			if ecdsa.Verify(&maliciousPrivateKey.PublicKey, hashedContract, esig.R, esig.S) {
 				t.Errorf("Failed to reject invalid signature")
 			}
 		})
@@ -589,32 +590,38 @@ func TestValidateContract(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
-	zeroValueContract, _ := MakeContract(1, sender, recipientPKH, 0)
+	zeroValueContract, _ := MakeContract(1, sender, recipientPKH, 0, 1)
 	zeroValueContract.SignContract(sender)
 
-	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500)
+	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
 
-	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500)
+	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500, 1)
 
-	invalidSignatureContract, _ := MakeContract(1, sender, recipientPKH, 500)
+	invalidSignatureContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
 	invalidSignatureContract.SignContract(recipient)
 
-	insufficentFundsContract, _ := MakeContract(1, sender, recipientPKH, 2000000)
+	insufficentFundsContract, _ := MakeContract(1, sender, recipientPKH, 2000000, 1)
 	insufficentFundsContract.SignContract(sender)
 
-	validTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500)
+	invalidNonceContract, _ := MakeContract(1, sender, recipientPKH, 20, 0)
+	invalidNonceContract.SignContract(sender)
+
+	invalidNonceContract2, _ := MakeContract(1, sender, recipientPKH, 20, 2)
+	invalidNonceContract2.SignContract(sender)
+
+	validTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
 	validTwoExistingAccountsContract.SignContract(sender)
 
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	keyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&keyNotInTable.PublicKey))
 
-	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500)
+	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 2)
 	validOneExistingAccountsContract.SignContract(sender)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	anotherKeyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
 
-	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500)
+	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.SignContract(keyNotInTable)
 
 	type args struct {
@@ -672,6 +679,26 @@ func TestValidateContract(t *testing.T) {
 			name: "Insufficient funds",
 			args: args{
 				c:                 insufficentFundsContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Invalid nonce",
+			args: args{
+				c:                 invalidNonceContract,
+				table:             dbName,
+				authorizedMinters: authMinters,
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Invalid nonce 2",
+			args: args{
+				c:                 invalidNonceContract2,
 				table:             dbName,
 				authorizedMinters: authMinters,
 			},
@@ -825,7 +852,6 @@ func TestValidateContract(t *testing.T) {
 					}
 				}
 				break
-			default:
 			}
 		})
 	}
@@ -833,10 +859,10 @@ func TestValidateContract(t *testing.T) {
 
 func checkBalanceAndNonce(queryBalance uint64, wantBalance uint64, queryNonce uint64, wantNonce uint64) error {
 	if queryBalance != wantBalance {
-		return errors.New("balance does not match")
+		return fmt.Errorf("balance does not match; wanted: %d, got: %d", wantBalance, queryBalance)
 	}
 	if queryNonce != wantNonce {
-		return errors.New("nonce does not match")
+		return fmt.Errorf("nonce does not match; wanted: %d, got: %d", wantNonce, queryNonce)
 	}
 	return nil
 }
