@@ -2,6 +2,8 @@
 package producer
 
 import (
+	"database/sql"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
@@ -9,8 +11,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 )
 
 // This stores connection information for the producer
@@ -123,21 +128,121 @@ type Data struct {
 }
 
 func (d *Data) Serialize() ([]byte, error) {
-	return []byte{}, errors.New("Incomplete function")
+	serializedData := make([]byte, 4) // 2 + 2 bytes for Dataheader version and type
+	binary.LittleEndian.PutUint16(serializedData[:2], d.Hdr.Version)
+	binary.LittleEndian.PutUint16(serializedData[2:], d.Hdr.Type)
+
+	dataBdy, err := d.Bdy.Serialize() // serialize data body
+	if err != nil {
+		return nil, errors.New("Failed to serialize data body")
+	}
+	serializedData = append(serializedData, dataBdy...)
+	return serializedData, nil
 }
 
 func (d *Data) Deserialize(serializedData []byte) error {
-	return errors.New("Incomplete function")
+	d.Hdr.Version = binary.LittleEndian.Uint16(serializedData[:2]) // data version
+	d.Hdr.Type = binary.LittleEndian.Uint16(serializedData[2:4])   // data type
+
+	d.Bdy = &accounts.Contract{}
+	err := d.Bdy.Deserialize(serializedData[4:]) // data body
+	if err != nil {
+		return errors.New("Failed to deserialize data: " + err.Error())
+	}
+
+	return nil
 }
 
 func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data) (block.Block, error) {
-	return block.Block{}, errors.New("Incomplete function")
+	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
+
+	for i := range data {
+		serializedData, err := data[i].Serialize()
+		if err != nil {
+			return block.Block{}, errors.New("Failed to serialize data")
+		}
+
+		serializedDatum = append(serializedDatum, serializedData)
+	}
+
+	// create the block
+	block := block.Block{
+		Version:        version,
+		Height:         height,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   previousHash,
+		MerkleRootHash: block.GetMerkleRootHash(serializedDatum),
+		DataLen:        uint16(len(data)),
+		Data:           serializedDatum,
+	}
+
+	return block, nil
 }
 
 func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
-	return block.Block{}, errors.New("Incomplete function")
+	version := uint16(1)
+	mintAmt := initialAurumSupply / uint64(len(genesisPublicKeyHashes)) // (initialAurumSupply / n supplied key hashes)
+	var datum []Data
+
+	for _, pubKeyHash := range genesisPublicKeyHashes {
+		// for every public key hashes, make a nil-sender contract with value indicated by mintAmt
+		contract, err := accounts.MakeContract(version, nil, pubKeyHash, mintAmt, 0)
+		if err != nil {
+			return block.Block{}, errors.New("Failed to make contracts")
+		}
+
+		// data that contains data version and type, and the contract
+		data := Data{
+			Hdr: DataHeader{
+				Version: version,
+				Type:    0,
+			},
+			Bdy: contract,
+		}
+		datum = append(datum, data)
+	}
+
+	// create genesis block with null previous hash
+	genesisBlock, err := CreateBlock(version, 0, make([]byte, 32), datum)
+	if err != nil {
+		return block.Block{}, errors.New("Failed to create genesis block")
+	}
+
+	return genesisBlock, nil
 }
 
-func Airdrop(blockchain string, metadata string, genesisBlock block.Block) error {
-	return errors.New("Incomplete function")
+func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) error {
+	// create blockchain file
+	file, err := os.Create(blockchainz)
+	if err != nil {
+		return errors.New("Failed to create blockchain file")
+	}
+	file.Close()
+
+	// create metadata file
+	file, err = os.Create(metadata)
+	if err != nil {
+		return errors.New("Failed to create metadata table")
+	}
+	file.Close()
+
+	// open metadata file and create the table
+	db, err := sql.Open("sqlite3", metadata)
+	if err != nil {
+		return errors.New("Failed to open table")
+	}
+
+	_, err = db.Exec("CREATE table METADATA (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	if err != nil {
+		return errors.New("Failed to create table")
+	}
+	db.Close()
+
+	// add genesis block into blockchain
+	err = blockchain.AddBlock(genesisBlock, blockchainz, metadata)
+	if err != nil {
+		return errors.New("Failed to add genesis block into blockchain")
+	}
+
+	return nil
 }
