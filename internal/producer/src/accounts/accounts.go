@@ -16,6 +16,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
+var accountBalanceTable = "accounts.tab"
+
 /*
 Version
 Sender Public Key

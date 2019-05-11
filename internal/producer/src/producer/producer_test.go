@@ -5,7 +5,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,6 +16,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -358,3 +362,227 @@ func TestAirdrop(t *testing.T) {
 		})
 	}
 }
+
+func TestRecoverBlockchainMetadata(t *testing.T) {
+	var ljr = "blockchain.dat"
+	var meta = "metadata.tab"
+	var accts = "accounts.tab"
+
+	if file, err := os.Create(ljr); err != nil {
+		t.Errorf("Failed to create file.")
+	} else {
+		file.Close()
+	}
+	defer func() {
+		if err := os.Remove(ljr); err != nil {
+			t.Errorf("failed to remove blockchain file")
+		}
+	}()
+
+	if conn, err := sql.Open("sqlite3", meta); err != nil {
+		t.Errorf("failed to create metadata file")
+	} else {
+		statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		statement.Exec()
+		conn.Close()
+	}
+	defer func() {
+		if err := os.Remove(meta); err != nil {
+			t.Errorf("failed to remove metadata file")
+		}
+	}()
+
+	if conn, err := sql.Open("sqlite3", accts); err != nil {
+		t.Errorf("failed to create accounts file")
+	} else {
+		statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+		statement.Exec()
+		conn.Close()
+	}
+
+	defer func() {
+		if err := os.Remove(accts); err != nil {
+			t.Errorf("failed to remove accounts file" + err.Error())
+		}
+	}()
+
+	var pkhashes [][]byte
+	for i := 0; i < 100; i++ {
+		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
+		pkhashes = append(pkhashes, someKeyPKHash)
+	}
+	genny, _ := BringOnTheGenesis(pkhashes, 1000)
+	if err := Airdrop(ljr, meta, genny); err != nil {
+		t.Errorf("airdrop failed")
+	}
+
+	type args struct {
+		ledgerFilename      string
+		metadataFilename    string
+		accountBalanceTable string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				ledgerFilename:      ljr,
+				metadataFilename:    meta,
+				accountBalanceTable: accts,
+			},
+		},
+	}
+	var blockchainHeightIdx = 0
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := RecoverBlockchainMetadata(tt.args.ledgerFilename, tt.args.metadataFilename, tt.args.accountBalanceTable); (err != nil) != tt.wantErr {
+				t.Errorf("RecoverBlockchainMetadata() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			blockchainGenesisBlockSerialized, err := blockchain.GetBlockByHeight(blockchainHeightIdx, ljr, meta)
+			if err != nil {
+				t.Errorf("failed to get genesis block")
+			}
+			blockchainGenesisBlockDeserialized := block.Deserialize(blockchainGenesisBlockSerialized)
+			if !reflect.DeepEqual(blockchainGenesisBlockDeserialized, genny) {
+				t.Errorf("genesis blocks do not match")
+			}
+			dbc, _ := sql.Open("sqlite3", accts)
+			defer func() { // not sure if this defer will happen before the others, is it stack based?
+				if err := dbc.Close(); err != nil {
+					t.Errorf("Failed to close database: %s", err)
+				}
+			}()
+			for _, hsh := range pkhashes {
+				var pkhash string
+				var balance uint64
+				var nonce uint64
+				foundKey := false
+				rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+				if err != nil {
+					t.Errorf("Failed to acquire rows from table")
+				}
+				for rows.Next() {
+					err = rows.Scan(&pkhash, &balance, &nonce)
+					if err != nil {
+						t.Errorf("failed to scan rows: %s", err)
+					}
+					decodedPkhash, err := hex.DecodeString(pkhash)
+					if err != nil {
+						t.Errorf("failed to decode public key hash")
+					}
+					if bytes.Equal(hsh, decodedPkhash) {
+						foundKey = true
+						if balance != 10 {
+							t.Errorf("wrong balance on key: %v", hsh)
+						}
+						if nonce != 0 {
+							t.Errorf("wrong nonce on key: %v", hsh)
+						}
+					}
+				}
+				if !foundKey {
+					t.Errorf("Key not found in table: %v", hsh)
+				}
+			}
+		})
+		blockchainHeightIdx++
+	}
+}
+
+// func TestRecoverBlockchainMetadataInitial(t *testing.T) {
+// 	blockchain := "testBlockchain.dat"
+// 	table := "table.db"
+// 	dbName := "accountBalanceTable.tab"
+// 	dbc, _ := sql.Open("sqlite3", dbName)
+// 	defer func() {
+// 		err := dbc.Close()
+// 		if err != nil {
+// 			t.Errorf("Failed to remove database: %s", err)
+// 		}
+// 		err = os.Remove(dbName)
+// 		if err != nil {
+// 			t.Errorf("Failed to remove database: %s", err)
+// 		}
+// 	}()
+// 	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+// 	statement.Exec()
+// 	setUp(blockchain, table)
+// 	defer tearDown(blockchain, table)
+// 	// Create a bunch of blocks
+// 	block0 := block.Block{
+// 		Version:        1,
+// 		Height:         0,
+// 		Timestamp:      time.Now().UnixNano(),
+// 		PreviousHash:   block.HashSHA256([]byte{'0'}),
+// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+// 		Data:           [][]byte{block.HashSHA256([]byte{'x', 'o', 'x', 'o'})},
+// 	}
+// 	block0.DataLen = uint16(len(block0.Data))
+// 	block1 := block.Block{
+// 		Version:        1,
+// 		Height:         1,
+// 		Timestamp:      time.Now().UnixNano(),
+// 		PreviousHash:   block.HashBlock(block0),
+// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+// 		Data:           [][]byte{block.HashSHA256([]byte{'x', 'y', 'z'})},
+// 	}
+// 	block1.DataLen = uint16(len(block1.Data))
+// 	block2 := block.Block{
+// 		Version:        1,
+// 		Height:         2,
+// 		Timestamp:      time.Now().UnixNano(),
+// 		PreviousHash:   block.HashBlock(block1),
+// 		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+// 		Data:           [][]byte{block.HashSHA256([]byte{'a', 'b', 'c'})},
+// 	}
+// 	block2.DataLen = uint16(len(block2.Data))
+// 	// Add all the blocks
+// 	err := AddBlock(block0, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to add block0.")
+// 	}
+// 	err = AddBlock(block1, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to add block1.")
+// 	}
+// 	err = AddBlock(block2, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to add block2.")
+// 	}
+// 	os.Remove(table)
+// 	_, err = os.Stat(table)
+// 	if err == nil {
+// 		t.Errorf("table still exists")
+// 	}
+// 	err = RecoverBlockchainMetadata(blockchain, table)
+
+// 	// Block 0 by height
+// 	actualBlock0, err := GetBlockByHeight(0, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to extract block (block 0 by height).")
+// 	}
+// 	if bytes.Equal(block0.Serialize(), actualBlock0) == false {
+// 		t.Errorf("Blocks do not match (block 0 by height)")
+// 	}
+
+// 	// Block 1 by height
+// 	actualBlock1, err := GetBlockByHeight(1, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to extract block (block 1 by height).")
+// 	}
+// 	if bytes.Equal(block1.Serialize(), actualBlock1) == false {
+// 		t.Errorf("Blocks do not match (block 1 by height)")
+// 	}
+
+// 	// Block 2
+// 	actualBlock2, err := GetBlockByHeight(2, blockchain, table)
+// 	if err != nil {
+// 		t.Errorf("Failed to extract block (block 2 by height).")
+// 	}
+// 	if bytes.Equal(block2.Serialize(), actualBlock2) == false {
+// 		t.Errorf("Blocks do not match (block 2 by height)")
+// 	}
+// }
