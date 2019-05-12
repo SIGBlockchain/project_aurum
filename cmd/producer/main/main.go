@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,7 +12,8 @@ import (
 type Flags struct {
 	help       *bool
 	debug      *bool
-	globalhost *bool
+	version    *bool
+	height     *bool
 	logs       *string
 	port       *string
 	interval   *string
@@ -21,12 +23,14 @@ type Flags struct {
 var version = uint16(1)
 var ledger = "blockchain.dat"
 var metadata = "metadata.tab"
+var accounts = "accounts.tab"
 
 func main() {
 	fl := Flags{
 		help:       getopt.BoolLong("help", '?', "help"),
 		debug:      getopt.BoolLong("debug", 'd', "debug"),
-		globalhost: getopt.BoolLong("global", 'g', "global host"),
+		version:    getopt.BoolLong("version", 'v', "version"),
+		height:     getopt.BoolLong("height", 'h', "height"),
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "0s", "production interval"),
@@ -40,63 +44,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *fl.version {
+		fmt.Printf("Aurum producer version: %d\n", version)
+	}
+
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.debug {
 		lgr.SetOutput(os.Stderr)
 	}
-
 }
-
-// package main
-
-// import (
-// 	"fmt"
-// 	"io"
-// 	"io/ioutil"
-// 	"log"
-// 	"net"
-// 	"os"
-
-// 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
-// 	"github.com/pborman/getopt"
-// )
-
-// var addr string
-// var fl Flags
-// var filepath = os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/producer/logs/"
-// var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-
-// type Flags struct {
-// 	help       *bool
-// 	debug      *bool
-// 	globalhost *bool
-// 	logs       *string
-// 	port       *string
-// 	interval   *string
-// 	initSupply *uint64
-// }
-
-// func init() {
-// 	fl = Flags{
-// 		help:       getopt.BoolLong("help", '?', "help"),
-// 		debug:      getopt.BoolLong("debug", 'd', "debug"),
-// 		globalhost: getopt.BoolLong("global", 'g', "global host"),
-// 		logs:       getopt.StringLong("log", 'l', "", "log file"),
-// 		port:       getopt.StringLong("port", 'p', "13131", "port"),
-// 		interval:   getopt.StringLong("interval", 'i', "0s", "production interval"),
-// 		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
-// 	}
-// 	getopt.Lookup('l').SetOptional()
-// 	getopt.Parse()
-// }
-
-// func init() {
-// 	if *fl.help {
-// 		getopt.Usage()
-// 		os.Exit(0)
-// 	}
-// }
 
 // func init() {
 // 	if *fl.debug {
