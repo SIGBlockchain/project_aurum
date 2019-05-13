@@ -1,20 +1,19 @@
 package main
 
 import (
-    "crypto/ecdsa"
-    "crypto/elliptic"
-    "crypto/rand"
-    "encoding/hex"
-    "encoding/json"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
-
 	"github.com/pborman/getopt"
 
-    keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
+	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 type Flags struct {
@@ -62,11 +61,10 @@ func main() {
 		lgr.SetOutput(os.Stderr)
 	}
 
-    err := SetupWallet()
-    if err != nil {
-        fmt.Println("Panicking!")
-        panic(fmt.Sprintf("%v", err))
-    }
+	err := SetupWallet()
+	if err != nil {
+		lgr.Fatalln(err)
+	}
 }
 
 // This will initialize a JSON file called "aurum_wallet.json"
