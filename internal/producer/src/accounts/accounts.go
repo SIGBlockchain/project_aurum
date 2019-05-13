@@ -43,7 +43,7 @@ recipient pk hash comes from sha-256 hash of rpk
 value is value parameter
 returns contract struct
 */
-func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, currentStateNonce uint64) (*Contract, error) {
+func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nextStateNonce uint64) (*Contract, error) {
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")
@@ -55,7 +55,7 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 		Signature:       nil,
 		RecipPubKeyHash: recipient,
 		Value:           value,
-		StateNonce:      currentStateNonce + 1,
+		StateNonce:      nextStateNonce,
 	}
 
 	if sender == nil {
@@ -349,7 +349,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// create a query for the row that contains the sender's pkhash in the table
 	senderPubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
-	sqlQuery := fmt.Sprintf("SELECT balance FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
+	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
 	row, err := db.Query(sqlQuery)
 	if err != nil {
 		return false, errors.New("Failed to create row for query")
@@ -359,12 +359,18 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	if row.Next() {
 		// if row is found, retrieve the sender's balance and close the query
 		var tblBalance int
-		row.Scan(&tblBalance)
+		var tblNonce int
+		row.Scan(&tblBalance, &tblNonce)
 		row.Close()
 
 		// check insufficient funds
 		if tblBalance < int(c.Value) {
 			// invalid contract because the sender's balance is less than the contract amount
+			return false, nil
+		}
+
+		if (tblNonce + 1) != int(c.StateNonce) {
+			// invalid contract because contract state nonce is not the expected number
 			return false, nil
 		}
 
