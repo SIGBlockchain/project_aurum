@@ -289,12 +289,12 @@ func TestBringOnTheGenesis(t *testing.T) {
 				t.Errorf("BringOnTheGenesis() = %v, want %v", got, tt.want)
 			}
 			for i := range got.Data {
-				var deserializedData = (*Data)(nil)
+				var deserializedData = &Data{}
 				err := deserializedData.Deserialize(got.Data[i])
 				if err != nil {
 					t.Errorf("failed to deserialize data")
 				}
-				var deserializedContract = (*accounts.Contract)(nil)
+				var deserializedContract = &accounts.Contract{}
 				serializedDataBdy, _ := deserializedData.Bdy.Serialize()
 				deserializedContract.Deserialize(serializedDataBdy)
 				if deserializedContract.Value != 10 {

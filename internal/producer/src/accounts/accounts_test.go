@@ -187,21 +187,21 @@ func TestContract_Deserialize(t *testing.T) {
 	}{
 		{
 			name: "Minting contract",
-			c:    (*Contract)(nil),
+			c:    &Contract{},
 			args: args{
 				nullSenderContractSerialized,
 			},
 		},
 		{
 			name: "Unsigned contract",
-			c:    (*Contract)(nil),
+			c:    &Contract{},
 			args: args{
 				unsignedContractSerialized,
 			},
 		},
 		{
 			name: "Signed contract",
-			c:    (*Contract)(nil),
+			c:    &Contract{},
 			args: args{
 				signedContractSerialized,
 			},
