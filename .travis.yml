@@ -3,4 +3,6 @@ language: go
 go:
 - master
 
-script: go test `go list ./... | grep -v main` -v ./...
+# script: go test `go list ./... | grep -v main` -v ./...
+
+script: go test -v
