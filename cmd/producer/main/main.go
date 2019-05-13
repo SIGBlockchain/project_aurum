@@ -1,12 +1,20 @@
 package main
 
 import (
+    "crypto/ecdsa"
+    "crypto/elliptic"
+    "crypto/rand"
+    "encoding/hex"
+    "encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
+
 	"github.com/pborman/getopt"
+
+    keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 type Flags struct {
@@ -53,6 +61,60 @@ func main() {
 	if *fl.debug {
 		lgr.SetOutput(os.Stderr)
 	}
+
+    err := SetupWallet()
+    if err != nil {
+        fmt.Println("Panicking!")
+        panic(fmt.Sprintf("%v", err))
+    }
+}
+
+// This will initialize a JSON file called "aurum_wallet.json"
+// with the hex encoded privatekey, balance, and nonce
+func SetupWallet() error {
+	// Create JSON file for wallet
+	file, err := os.Create("aurum_wallet.json")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Json structure that will be used to store information into the json file
+	type jsonStruct struct {
+		PrivateKey string
+		Balance    uint64
+		Nonce      uint64
+	}
+
+	// Generate ecdsa key pairs
+	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	// Encodes private key
+	pemEncoded, err := keys.EncodePrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+
+	// Encodes the pem encoded private key into string and stores it into a jsonStruct
+	hexKey := hex.EncodeToString(pemEncoded)
+	j := jsonStruct{PrivateKey: hexKey}
+
+	// Marshall the jsonStruct
+	jsonEncoded, err := json.Marshal(j)
+	if err != nil {
+		return err
+	}
+
+	// Write into the json file
+	_, err = file.Write(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // func init() {
