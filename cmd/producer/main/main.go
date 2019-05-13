@@ -55,12 +55,12 @@ func main() {
 		lgr.SetOutput(os.Stderr)
 	}
 
-	walletErr := client.SetupWallet()
-	if walletErr != nil {
-		lgr.Fatalln(walletErr)
+	err := client.SetupWallet()
+	if err != nil {
+		lgr.Fatalln(err)
 	}
 
-	_, err := os.Stat(ledger)
+	_, err = os.Stat(ledger)
 	if err != nil {
 		panic(err)
 	}
