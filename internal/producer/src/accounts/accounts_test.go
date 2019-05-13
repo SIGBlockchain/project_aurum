@@ -855,7 +855,7 @@ func TestAccountInfo_Deserialize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			accInfo: (*AccountInfo)(nil),
+			accInfo: &AccountInfo{},
 			args:    args{serializedAccountInfo: serAc},
 		},
 	}
