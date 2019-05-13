@@ -51,11 +51,16 @@ func main() {
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
+    _, err := os.Stat(ledger)
+    if err != nil {
+        panic(err)
+    }
+
 	if *fl.debug {
 		lgr.SetOutput(os.Stderr)
 	}
 
-	err := client.SetupWallet()
+	err = client.SetupWallet()
 	if err != nil {
 		lgr.Fatalln(err)
 	}
