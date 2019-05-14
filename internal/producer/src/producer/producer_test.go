@@ -358,3 +358,34 @@ func TestAirdrop(t *testing.T) {
 		})
 	}
 }
+
+func TestReadGenesisHashes(t *testing.T) {
+	GenerateGenesisHashFile(50)
+	defer func() {
+		if err := os.Remove(genesisHashFile); err != nil {
+			t.Errorf("failed to remove file: %s", err.Error())
+		}
+
+	}()
+	tests := []struct {
+		name    string
+		want    [][]byte
+		wantErr bool
+	}{
+		{
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ReadGenesisHashes()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadGenesisHashes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(got) != 50 {
+				t.Errorf("wrong count on number of hashes")
+			}
+		})
+	}
+}

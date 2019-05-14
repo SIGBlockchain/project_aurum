@@ -246,3 +246,19 @@ func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) erro
 
 	return nil
 }
+
+var genesisHashFile = "genesis_hashes.txt"
+
+// Open the genesisHashFile
+// Read line by line
+// use bufio.ReadLine()
+func ReadGenesisHashes() ([][]byte, error) {
+	return [][]byte{}, errors.New("Incomplete function")
+}
+
+// Create the genesisHashFile
+// Generate numHashes number of public key hashes
+// Store them AS STRINGS (not bytes) in the file, line by line
+func GenerateGenesisHashFile(numHashes uint16) {
+
+}
