@@ -1,98 +1,218 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"net"
 	"os"
+	"time"
 
-	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
 )
 
+type Flags struct {
+	help       *bool
+	debug      *bool
+	version    *bool
+	height     *bool
+	logs       *string
+	port       *string
+	interval   *string
+	initSupply *uint64
+}
+
+var version = uint16(1)
+var ledger = "blockchain.dat"
+var metadata = "metadata.tab"
+var accounts = "accounts.tab"
+
 func main() {
-	// Command line parsing
-	help := getopt.Bool('?', "Display Valid Flags")
-	debug := getopt.BoolLong("debug", 'd', "Enable Debug Mode")
-	globalhost := getopt.BoolLong("global", 'g', "Enable globalhost")
-	logFile := getopt.StringLong("log", 'l', "", "Log File Location")
-	port := getopt.StringLong("port", 'p', "13131", "Port Number")
-	getopt.CommandLine.Lookup('l').SetOptional()
+	fl := Flags{
+		help:       getopt.BoolLong("help", '?', "help"),
+		debug:      getopt.BoolLong("debug", 'd', "debug"),
+		version:    getopt.BoolLong("version", 'v', "version"),
+		height:     getopt.BoolLong("height", 'h', "height"),
+		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
+		port:       getopt.StringLong("port", 'p', "13131", "port"),
+		interval:   getopt.StringLong("interval", 'i', "0s", "production interval"),
+		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
+	}
+	getopt.Lookup('l').SetOptional()
 	getopt.Parse()
 
-	// If the help flag is on, print usage to os.Stdout
-	if *help == true {
+	if *fl.help {
 		getopt.Usage()
 		os.Exit(0)
 	}
 
-	// Initialize logger
-	logger := log.New(os.Stdout, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-	if *debug == false {
-		var buffer bytes.Buffer
-		logger = log.New(&buffer, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	if *fl.version {
+		fmt.Printf("Aurum producer version: %d\n", version)
 	}
 
-	if getopt.CommandLine.Lookup('l').Count() > 0 {
-		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/logs"
-		os.Mkdir(filepath, 0777)
-		// If no filename is given, logs.txt
-		if *logFile == "" {
-			filepath += "/producer_logs.txt"
-			// Otherwise the custom filename is used
-		} else {
-			filepath += "/" + *logFile
-		}
-		f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
-		defer f.Close()
+	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
-		// If there is any error, do not set the logger. Log an error messgae
-		if err != nil {
-			logger.Fatalln(err)
-		} else {
-			logger = log.New(f, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-		}
+	if *fl.debug {
+		lgr.SetOutput(os.Stderr)
 	}
 
-	// Check to see if there is an internet connection
-	err := producer.CheckConnectivity()
+	_, err := os.Stat(ledger)
 	if err != nil {
-		logger.Fatalln("Connectivity check failed.")
+		panic(err)
 	}
-	logger.Println("Connection check passed.")
-
-	// Spin up server
-	// NOTE: If this doesn't work, try deleting `localhost`
-
-	var addr string
-	if *globalhost {
-		addr = fmt.Sprintf(":")
-		logger.Println("Listening on all IP addresses")
-	} else {
-		addr = fmt.Sprintf("localhost:")
-		logger.Println("Listening on local IP addresses")
-
-	}
-	ln, err := net.Listen("tcp", addr+*port)
-	if err != nil {
-		logger.Fatalln("Failed to start server.")
-	}
-
-	// Initialize BP struct with listener and empty map
-	bp := producer.BlockProducer{
-		Server:        ln,
-		NewConnection: make(chan net.Conn, 128),
-		Logger:        logger,
-	}
-
-	// Start listening for connections
-	logger.Printf("Server listening on port %s.", *port)
-	go bp.AcceptConnections()
 
 	// Main loop
-	bp.WorkLoop()
-
-	// Close the server
-	bp.Server.Close()
+	var timerChan = make(chan bool)
+	var chainHeight uint64
+	var lastTimestamp int64
+	productionInterval, err := time.ParseDuration(*fl.interval)
+	if err != nil {
+		lgr.Fatalln("failed to parse interval")
+	}
+	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
+	if err != nil {
+		lgr.Fatalf("failed to retrieve youngest block header: %s\n", err)
+	}
+	chainHeight = youngestBlock.Height
+	// TODO: Cast timestamp field of block to uint64, Unix(), not UnixNano()
+	lastTimestamp = youngestBlock.Timestamp
+	secondsDiff := uint64(time.Now().Sub(lastTimestamp))
+	go func() {
+		time.AfterFunc(productionInterval, func() {
+			<-timerChan
+		})
+	}()
+	for {
+		select {
+		case <-timerChan:
+			// TODO: should have a function that hashes the block header only
+			newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
+			blockchain.AddBlock(newBlock, ledger, metadata)
+			go func() {
+				time.AfterFunc(productionInterval, func() {
+					<-timerChan
+				})
+			}()
+		}
+	}
 }
+
+// func init() {
+// 	if *fl.debug {
+// 		lgr.SetOutput(os.Stderr)
+// 	}
+// 	if getopt.IsSet('l') || getopt.IsSet("log") {
+// 		os.Mkdir(filepath, 0777)
+// 		if *fl.logs == "" {
+// 			filepath += "logs.txt"
+// 		} else {
+// 			filepath += *fl.logs
+// 		}
+// 		f, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE, 0666)
+// 		if err != nil {
+// 			log.Fatalln("failed to open file" + err.Error())
+// 		}
+// 		defer func() {
+// 			if err := f.Close(); err != nil {
+// 				log.Fatalln("failed to close file")
+// 			}
+// 		}()
+// 		lgr.SetOutput(io.Writer(f))
+// 	}
+// }
+
+// func init() {
+// 	if *fl.globalhost {
+// 		addr = ":"
+// 		lgr.Println("Listening on all IP addresses")
+// 	} else {
+// 		addr = fmt.Sprintf("localhost:")
+// 		lgr.Println("Listening on local IP addresses")
+// 	}
+// }
+
+// func main() {
+// 	ln, err := net.Listen("tcp", addr+*fl.port)
+// 	if err != nil {
+// 		lgr.Fatalln("Failed to start server.")
+// 	}
+// 	lgr.Printf("Server listening on port %s.", *fl.port)
+// 	newDataChan := make(chan producer.Data)
+// 	go func() {
+// 		for {
+// 			conn, err := ln.Accept()
+// 			if err != nil {
+// 				continue
+// 			}
+// 			lgr.Printf("%s connection\n", conn.RemoteAddr())
+// 			go func() {
+// 				defer conn.Close()
+// 				buf := make([]byte, 1024)
+// 				_, err := conn.Read(buf)
+// 				if err != nil {
+// 					return
+// 				}
+// 				// Handle message
+// 				conn.Write(buf)
+// 			}()
+// 		}
+// 	}()
+
+// 	// Main loop
+// 	timerChan := make(chan bool)
+// 	// var chainHeight uint64
+// 	var dataPool []producer.Data
+// 	// productionInterval, err := time.ParseDuration(*interval)
+// 	// if err != nil {
+// 	// 	lgr.Fatalln("failed to parse interval")
+// 	// }
+// 	// youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
+// 	// if err != nil {
+// 	// 	lgr.Fatalf("failed to retrieve youngest block header: %s\n", err)
+// 	// }
+// 	for {
+// 		select {
+// 		case newData := <-newDataChan:
+// 			dataPool = append(dataPool, newData)
+// 		case <-timerChan:
+// 			// newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
+// 			// blockchain.AddBlock(newBlock, ledger, metadata)
+// 			dataPool = nil
+// 			// go func() {
+// 			// 	time.AfterFunc(productionInterval, func() {
+// 			// 		<-timerChan
+// 			// 	})
+// 			// }()
+// 		}
+// 	}
+
+// 	// Close the server
+// 	ln.Close()
+// }
+
+// var filepath = os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/producer/logs/"
+// 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+
+// 	if *fl.debug {
+// 		lgr.SetOutput(os.Stderr)
+// 	}
+// 	if getopt.IsSet('l') || getopt.IsSet("log") {
+// 		os.Mkdir(filepath, 0777)
+// 		if *fl.logs == "" {
+// 			filepath += "logs.txt"
+// 		} else {
+// 			filepath += *fl.logs
+// 		}
+// 		f, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE, 0666)
+// 		if err != nil {
+// 			log.Fatalln("failed to open file" + err.Error())
+// 		}
+// 		defer func() {
+// 			if err := f.Close(); err != nil {
+// 				log.Fatalln("failed to close file")
+// 			}
+// 		}()
+// 		lgr.SetOutput(io.Writer(f))
+// 	}
