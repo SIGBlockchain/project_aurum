@@ -7,9 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+
 	"github.com/pborman/getopt"
 )
 
@@ -37,7 +36,7 @@ func main() {
 		height:     getopt.BoolLong("height", 'h', "height"),
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
-		interval:   getopt.StringLong("interval", 'i', "0s", "production interval"),
+		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
 		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
 	}
 	getopt.Lookup('l').SetOptional()
@@ -60,44 +59,48 @@ func main() {
 
 	_, err := os.Stat(ledger)
 	if err != nil {
-		panic(err)
+		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
 	// Main loop
-	var timerChan = make(chan bool)
-	var chainHeight uint64
-	var lastTimestamp int64
 	productionInterval, err := time.ParseDuration(*fl.interval)
 	if err != nil {
-		lgr.Fatalln("failed to parse interval")
+		lgr.Fatalln("failed to parse block production interval")
+	} else {
+		lgr.Println("block production interval: " + *fl.interval)
 	}
-	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadata)
 	if err != nil {
-		lgr.Fatalf("failed to retrieve youngest block header: %s\n", err)
+		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
 	}
-	chainHeight = youngestBlock.Height
-	// TODO: Cast timestamp field of block to uint64, Unix(), not UnixNano()
-	lastTimestamp = youngestBlock.Timestamp
-	secondsDiff := uint64(time.Now().Sub(lastTimestamp))
-	go func() {
-		time.AfterFunc(productionInterval, func() {
-			<-timerChan
-		})
-	}()
-	for {
-		select {
-		case <-timerChan:
-			// TODO: should have a function that hashes the block header only
-			newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
-			blockchain.AddBlock(newBlock, ledger, metadata)
-			go func() {
-				time.AfterFunc(productionInterval, func() {
-					<-timerChan
-				})
-			}()
-		}
+	var intervalChannel = make(chan bool)
+	var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
+	timeSince := time.Since(lastTimestamp)
+	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
+		go func() { intervalChannel <- true }()
 	}
+	var chainHeight = youngestBlockHeader.Height
+
+	select {
+	case <-intervalChannel:
+		lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+	}
+
+	// var currentTime = time.Now()
 }
+
+// for {
+// 	select {
+// 	case <-timerChan:
+// 		newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
+// 		blockchain.AddBlock(newBlock, ledger, metadata)
+// 		go func() {
+// 			time.AfterFunc(productionInterval, func() {
+// 				<-timerChan
+// 			})
+// 		}()
+// 	}
+// }
 
 // func init() {
 // 	if *fl.debug {

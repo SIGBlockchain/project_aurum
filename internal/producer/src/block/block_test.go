@@ -1,11 +1,11 @@
 package block
 
 import (
-	"bytes"           // for comparing []bytes
-	"encoding/binary" // for encoding/decoding
-	"reflect"         // to get data type
-	"testing"         // testing
-	"time"            // to get time stamp
+	"bytes"
+	"encoding/binary"
+	"reflect"
+	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -185,4 +185,35 @@ func TestDeserialize(t *testing.T) {
 		t.Errorf("Blocks do not match")
 	}
 
+}
+
+func TestHashBlockHeader(t *testing.T) {
+	expected := BlockHeader{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   HashSHA256([]byte{'x'}),
+		MerkleRootHash: HashSHA256([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+	}
+	type args struct {
+		b BlockHeader
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			args: args{
+				b: expected,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// if got := HashBlockHeader(tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			// 	t.Errorf("HashBlockHeader() = %v, want %v", got, tt.want)
+			// }
+		})
+	}
 }

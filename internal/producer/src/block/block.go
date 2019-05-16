@@ -126,6 +126,20 @@ func HashBlock(b Block) []byte {
 	return HashSHA256(concatenated)
 }
 
+// Concatenate all the fields of the block header and return its SHA256 hash
+func HashBlockHeader(b BlockHeader) []byte {
+	const blength = 82 // calculate the total length of the slice
+	concatenated := make([]byte, blength)
+
+	// convert the known variables to byte slices in little endian and add to slice
+	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
+	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
+	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
+	copy(concatenated[18:50], b.PreviousHash)
+	copy(concatenated[50:82], b.MerkleRootHash)
+	return HashSHA256(concatenated)
+}
+
 // Converts a block in byte form into a block struct, returns the struct
 func Deserialize(block []byte) Block {
 	dataLen := binary.LittleEndian.Uint16(block[82:84])
