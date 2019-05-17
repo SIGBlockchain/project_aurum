@@ -2,16 +2,24 @@
 package producer
 
 import (
+	"bufio"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -245,4 +253,61 @@ func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) erro
 	}
 
 	return nil
+}
+
+var genesisHashFile = "genesis_hashes.txt"
+
+// Open the genesisHashFile
+// Read line by line
+// use bufio.ReadLine()
+func ReadGenesisHashes() ([][]byte, error) {
+	//open genesisHashFile
+	file, err := os.Open(genesisHashFile)
+	if err != nil {
+		return [][]byte{}, errors.New("Unable to open genesis_hashs.txt")
+	}
+
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+
+	var hashesInBytes [][]byte
+
+	// while loop to loop till EOF
+	for {
+		line, _, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		// append to the byte slice that is going to be returned
+		hashesInBytes = append(hashesInBytes, line)
+	}
+
+	return hashesInBytes, err
+}
+
+// Create the genesisHashFile
+// Generate numHashes number of public key hashes
+// Store them AS STRINGS (not bytes) in the file, line by line
+func GenerateGenesisHashFile(numHashes uint16) {
+
+	// creating the new file
+	genHashfile, _ := os.Create(genesisHashFile)
+
+	defer genHashfile.Close()
+
+	// create the hashes numHashes times
+	for i := 0; i < int(numHashes); i++ {
+		// generate private key
+		privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+
+		// get public kek and hash it
+		hashedPubKey := block.HashSHA256(keys.EncodePublicKey(&privateKey.PublicKey))
+
+		// get pub key hash as string to store in txt file
+		hashPubKeyStr := hex.EncodeToString(hashedPubKey)
+
+		// write pub key hash into genesisHashFile
+		genHashfile.WriteString(hashPubKeyStr + "\n")
+	}
 }
