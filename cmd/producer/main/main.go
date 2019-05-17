@@ -7,7 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	"github.com/pborman/getopt"
 )
@@ -17,6 +20,7 @@ type Flags struct {
 	debug      *bool
 	version    *bool
 	height     *bool
+	genesis    *bool
 	logs       *string
 	port       *string
 	interval   *string
@@ -34,6 +38,7 @@ func main() {
 		debug:      getopt.BoolLong("debug", 'd', "debug"),
 		version:    getopt.BoolLong("version", 'v', "version"),
 		height:     getopt.BoolLong("height", 'h', "height"),
+		genesis:    getopt.BoolLong("genesis", 'g', "genesis"),
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
@@ -80,27 +85,29 @@ func main() {
 		go func() { intervalChannel <- true }()
 	}
 	var chainHeight = youngestBlockHeader.Height
+	var dataPool []producer.Data
 
 	select {
 	case <-intervalChannel:
 		lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+		if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
+			lgr.Fatalf("failed to add block %s", err.Error())
+		} else {
+			// TODO: make account.Validate only validate the transaction
+			// TODO: table should be updated in separate call, after AddBlock
+			if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
+				lgr.Fatalf("failed to add block: %s", err.Error())
+			}
+			chainHeight++
+			lgr.Printf("block produced: #%d\n", chainHeight)
+			go func() {
+				time.AfterFunc(productionInterval, func() {
+					intervalChannel <- true
+				})
+			}()
+		}
 	}
-
-	// var currentTime = time.Now()
 }
-
-// for {
-// 	select {
-// 	case <-timerChan:
-// 		newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
-// 		blockchain.AddBlock(newBlock, ledger, metadata)
-// 		go func() {
-// 			time.AfterFunc(productionInterval, func() {
-// 				<-timerChan
-// 			})
-// 		}()
-// 	}
-// }
 
 // func init() {
 // 	if *fl.debug {
