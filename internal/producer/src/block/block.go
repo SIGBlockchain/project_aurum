@@ -26,6 +26,10 @@ type Block struct {
 	Data           [][]byte // Data is an abritrary variable, holding the actual contents of this block
 }
 
+func (b *Block) GetHeader() BlockHeader {
+	return BlockHeader{b.Version, b.Height, b.Timestamp, b.PreviousHash, b.MerkleRootHash}
+}
+
 // Produces a byte string based on the block struct provided
 //
 // Block Header Structure:

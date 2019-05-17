@@ -62,6 +62,8 @@ func main() {
 		lgr.SetOutput(os.Stderr)
 	}
 
+	// TODO: Genesis/Airdrop option
+
 	_, err := os.Stat(ledger)
 	if err != nil {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
@@ -97,14 +99,16 @@ func main() {
 			// TODO: table should be updated in separate call, after AddBlock
 			if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
 				lgr.Fatalf("failed to add block: %s", err.Error())
+			} else {
+				chainHeight++
+				lgr.Printf("block produced: #%d\n", chainHeight)
+				youngestBlockHeader = newBlock.GetHeader()
+				go func() {
+					time.AfterFunc(productionInterval, func() {
+						intervalChannel <- true
+					})
+				}()
 			}
-			chainHeight++
-			lgr.Printf("block produced: #%d\n", chainHeight)
-			go func() {
-				time.AfterFunc(productionInterval, func() {
-					intervalChannel <- true
-				})
-			}()
 		}
 	}
 }

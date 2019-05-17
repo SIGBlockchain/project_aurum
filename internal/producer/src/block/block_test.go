@@ -217,3 +217,38 @@ func TestHashBlockHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestBlock_GetHeader(t *testing.T) {
+	expected := Block{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   HashSHA256([]byte{'x'}),
+		MerkleRootHash: HashSHA256([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{HashSHA256([]byte{'r'})},
+	}
+	expected.DataLen = uint16(len(expected.Data))
+	tests := []struct {
+		name string
+		b    *Block
+		want BlockHeader
+	}{
+		{
+			b: &expected,
+			want: BlockHeader{
+				Version:        1,
+				Height:         0,
+				PreviousHash:   HashSHA256([]byte{'x'}),
+				MerkleRootHash: HashSHA256([]byte{'q'}),
+				Timestamp:      time.Now().UnixNano(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.GetHeader(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Block.GetHeader() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
