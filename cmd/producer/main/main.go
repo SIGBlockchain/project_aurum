@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -67,8 +68,11 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to read in genesis hashes because %s", err.Error())
 		}
-
-		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, *fl.initSupply)
+		initialAurumSupply, err := strconv.ParseUint(*fl.initSupply, 10, 64)
+		if err != nil {
+			lgr.Fatalf("failed to parse initial aurum supply because %s", err.Error())
+		}
+		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, initialAurumSupply)
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
