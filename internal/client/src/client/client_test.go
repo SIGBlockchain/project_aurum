@@ -385,9 +385,9 @@ func TestContractRequest_Serialize(t *testing.T) {
 			if !bytes.Equal(serializedType, got[10:12]) {
 				t.Errorf("types do not match")
 			}
-			serializedContract, _ := someContract.Serialize()
-			if !bytes.Equal(serializedContract, got[12:]) {
-				t.Errorf("contracts do not match")
+			serializedData, _ := someContractRequest.Request.Serialize()
+			if !bytes.Equal(serializedData, got[12:]) {
+				t.Errorf("data does not match")
 			}
 		})
 	}
