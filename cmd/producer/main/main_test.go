@@ -14,6 +14,19 @@ import (
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
+func TestProducerGenesisFlag(t *testing.T) {
+	producer.GenerateGenesisHashFile(25)
+	cmd := exec.Command("go", "run", "main.go", "-g")
+	err := cmd.Start()
+	if err != nil {
+		t.Errorf("failed to run main command because: %s", err.Error())
+	}
+	err = cmd.Wait()
+	if err != nil {
+		t.Errorf("main call returned with non-zero exit value: %s", err.Error())
+	}
+}
+
 func TestProducerStartup(t *testing.T) {
 	var pkhashes [][]byte
 	for i := 0; i < 100; i++ {

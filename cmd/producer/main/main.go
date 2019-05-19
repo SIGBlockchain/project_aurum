@@ -24,7 +24,7 @@ type Flags struct {
 	logs       *string
 	port       *string
 	interval   *string
-	initSupply *uint64
+	initSupply *string
 }
 
 var version = uint16(1)
@@ -42,7 +42,7 @@ func main() {
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
-		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
+		initSupply: getopt.StringLong("supply", 'y', "", "initial supply"),
 	}
 	getopt.Lookup('l').SetOptional()
 	getopt.Parse()
@@ -62,7 +62,23 @@ func main() {
 		lgr.SetOutput(os.Stderr)
 	}
 
-	// TODO: Genesis/Airdrop option
+	if *fl.genesis {
+		genesisHashes, err := producer.ReadGenesisHashes()
+		if err != nil {
+			lgr.Fatalf("failed to read in genesis hashes because %s", err.Error())
+		}
+
+		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, *fl.initSupply)
+		if err != nil {
+			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
+		}
+		err = producer.Airdrop(ledger, metadata, genesisBlock)
+		if err != nil {
+			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
+		} else {
+			lgr.Println("airdrop successful.")
+		}
+	}
 
 	_, err := os.Stat(ledger)
 	if err != nil {
