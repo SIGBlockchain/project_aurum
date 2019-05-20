@@ -290,7 +290,7 @@ func (conReq *ContractRequest) Serialize() ([]byte, error) {
     lengthSecBytes             := int(len(conReq.SecBytes))
     lengthVersion              := int(unsafe.Sizeof(conReq.Version))
     lengthType                 := int(unsafe.Sizeof(conReq.MessageType))
-    incomingConReqDataBdy, err := conReq.Request.Bdy.Serialize()
+    incomingConReqDataBdy, err := conReq.Request.Serialize() //TODO should this be conReq.Request.Bdy.Serialize() instead?
     if err != nil {
         return nil, errors.New("Failed to serialize Contract Request")
     }
@@ -305,7 +305,14 @@ func (conReq *ContractRequest) Serialize() ([]byte, error) {
 }
 
 func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
-	return errors.New("Incomplete function")
+    //TODO Is there a better way to do this then hardcode sizes (thinking about scalability in the future
+    conReq.SecBytes    = serializedRequest[0 : 8]
+    conReq.Version     = binary.LittleEndian.Uint16(serializedRequest[8 : 10])
+    conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[10 : 12])
+    conReq.Request.Deserialize(serializedRequest[12 : ])
+
+    return nil
+
 }
 
 // Open aurum_wallet.json for private key and nonce
