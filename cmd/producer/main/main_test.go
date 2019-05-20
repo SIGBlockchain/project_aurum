@@ -26,7 +26,7 @@ func TestProducerGenesisFlag(t *testing.T) {
 			}
 		}
 	}()
-	cmd := exec.Command("go", "run", "main.go", "-d", "-g", "--supply=100")
+	cmd := exec.Command("go", "run", "main.go", "-d", "-g", "--supply=100", "-t")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Start()
@@ -55,7 +55,7 @@ func TestLoop(t *testing.T) {
 			}
 		}
 	}()
-	cmd := exec.Command("go", "run", "main.go", "-d", "-g", "--supply=100")
+	cmd := exec.Command("go", "run", "main.go", "-d", "-g", "--supply=100", "-t")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Start(); err != nil {
@@ -65,7 +65,7 @@ func TestLoop(t *testing.T) {
 		t.Errorf("main call returned with: %s.", err.Error())
 		t.Logf("Stderr: %s", string(stderr.Bytes()))
 	}
-	// cmd = exec.Command("go", "run", "main.go", "-d", "--interval=5000ms", ">", "test.txt")
+	// cmd = exec.Command("go", "run", "main.go", "-d", "--interval=5000ms", ">", "test.txt", "-t")
 	// cmd.Stderr = &stderr
 	// if err := cmd.Start(); err != nil {
 	// 	t.Errorf("failed to run main command because: %s", err.Error())
