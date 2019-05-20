@@ -854,7 +854,7 @@ func TestAccountInfo_Deserialize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			accInfo: (*AccountInfo)(nil),
+			accInfo: &AccountInfo{},
 			args:    args{serializedAccountInfo: serAc},
 		},
 	}
@@ -981,7 +981,6 @@ func TestGetStateNonce(t *testing.T) {
 }
 
 func TestGetAccountInfo(t *testing.T) {
-	 TestGetStateNonce(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
 	dbName := "accountBalanceTable.tab"
@@ -1012,13 +1011,13 @@ func TestGetAccountInfo(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			args: args{spkh},
-			want: &AccountInfo{1000,0},
+			args:    args{spkh},
+			want:    &AccountInfo{1000, 0},
 			wantErr: false,
 		},
 		{
-			args: args{[]byte("this account doesn't exit")},
-			want: nil,
+			args:    args{[]byte("this account doesn't exit")},
+			want:    nil,
 			wantErr: true,
 		},
 	}
