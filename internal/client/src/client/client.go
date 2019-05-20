@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+    "encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -19,6 +20,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+    "unsafe"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
@@ -285,7 +287,21 @@ type ContractRequest struct {
 }
 
 func (conReq *ContractRequest) Serialize() ([]byte, error) {
-	return nil, errors.New("Incomplete function")
+    lengthSecBytes             := int(len(conReq.SecBytes))
+    lengthVersion              := int(unsafe.Sizeof(conReq.Version))
+    lengthType                 := int(unsafe.Sizeof(conReq.MessageType))
+    incomingConReqDataBdy, err := conReq.Request.Bdy.Serialize()
+    if err != nil {
+        return nil, errors.New("Failed to serialize Contract Request")
+    }
+    lengthMinusBdy             := lengthSecBytes + lengthVersion + lengthType
+    serializedConReq           := make([]byte, lengthMinusBdy)
+    copy(serializedConReq[0 : lengthSecBytes], conReq.SecBytes)
+    binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes : lengthSecBytes + lengthVersion], conReq.Version)
+    binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes + lengthVersion : lengthSecBytes + lengthVersion + lengthType], conReq.MessageType)
+
+    serializedConReq = append(serializedConReq, incomingConReqDataBdy...)
+	return serializedConReq, nil
 }
 
 func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
