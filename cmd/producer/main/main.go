@@ -21,6 +21,7 @@ type Flags struct {
 	version    *bool
 	height     *bool
 	genesis    *bool
+	test       *bool
 	logs       *string
 	port       *string
 	interval   *string
@@ -39,6 +40,7 @@ func main() {
 		version:    getopt.BoolLong("version", 'v', "version"),
 		height:     getopt.BoolLong("height", 'h', "height"),
 		genesis:    getopt.BoolLong("genesis", 'g', "genesis"),
+		test:       getopt.BoolLong("test", 't', "test mode"),
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
@@ -107,31 +109,43 @@ func main() {
 	timeSince := time.Since(lastTimestamp)
 	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
 		go func() { intervalChannel <- true }()
+	} else {
+		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
+		go func() {
+			time.AfterFunc(time.Duration(diff), func() {
+				intervalChannel <- true
+			})
+		}()
 	}
 	var chainHeight = youngestBlockHeader.Height
 	var dataPool []producer.Data
 
-	select {
-	case <-intervalChannel:
-		lgr.Printf("block ready for production: #%d\n", chainHeight+1)
-		if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
-			lgr.Fatalf("failed to add block %s", err.Error())
-		} else {
-			// TODO: make account.Validate only validate the transaction
-			// TODO: table should be updated in separate call, after AddBlock
-			// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
-			if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
-				lgr.Fatalf("failed to add block: %s", err.Error())
+	for {
+		select {
+		case <-intervalChannel:
+			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+			if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
+				lgr.Fatalf("failed to add block %s", err.Error())
 			} else {
-				chainHeight++
-				lgr.Printf("block produced: #%d\n", chainHeight)
-				youngestBlockHeader = newBlock.GetHeader()
-				go func() {
-					time.AfterFunc(productionInterval, func() {
-						intervalChannel <- true
-					})
-				}()
+				// TODO: make account.Validate only validate the transaction
+				// TODO: table should be updated in separate call, after AddBlock
+				// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
+				if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
+					lgr.Fatalf("failed to add block: %s", err.Error())
+				} else {
+					chainHeight++
+					lgr.Printf("block produced: #%d\n", chainHeight)
+					youngestBlockHeader = newBlock.GetHeader()
+					go func() {
+						time.AfterFunc(productionInterval, func() {
+							intervalChannel <- true
+						})
+					}()
+				}
 			}
+		}
+		if *fl.test {
+			break
 		}
 	}
 }
