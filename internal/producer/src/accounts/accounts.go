@@ -182,56 +182,31 @@ Add value to recipient's balance
 Increment both nonces by 1
 */
 func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
-	senderQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(senderPKH))
-	recipientQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(recipPKH))
-	var tblBal, tblNonce int
+	// retrieve both sender's and recipient's balance and nonce
+	senderAccountInfo, errSenderAccount := GetAccountInfo(senderPKH)
+	recipientAccountInfo, errRecipientAccount := GetAccountInfo(recipPKH)
 
-	// search for the sender's account
-	row, err := dbConnection.Query(senderQuery)
-	if err != nil {
-		return errors.New("Failed to create row to look for sender")
-	}
-
-	if row.Next() {
-		// if sender's account is found, retrieve the balance and nonce and close the query
-		err = row.Scan(&tblBal, &tblNonce)
-		if err != nil {
-			return errors.New("Failed to scan row")
-		}
-		row.Close()
-
+	if errSenderAccount == nil {
 		// update sender's balance by subtracting the amount indicated by value and adding one to nonce
-		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", tblBal-int(value), tblNonce+1, hex.EncodeToString(senderPKH))
-		_, err = dbConnection.Exec(sqlUpdate)
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"",
+			int(senderAccountInfo.balance-value), int(senderAccountInfo.stateNonce+1), hex.EncodeToString(senderPKH))
+		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to execute sqlUpdate for sender")
 		}
 
 	} else {
-		row.Close()
 		return errors.New("Cannot find Sender's account")
 	}
 
-	// search for the recipient's account
-	row, err = dbConnection.Query(recipientQuery)
-	if err != nil {
-		return errors.New("Failed to create row to look for recipient")
-	}
-
 	var updatedNonce, updatedBal int
-	if row.Next() {
-		// if recipient's account is found, retrieve the balance and nonce and close the query
-		err = row.Scan(&tblBal, &tblNonce)
-		if err != nil {
-			return errors.New("Failed to scan row")
-		}
-		row.Close()
-		updatedBal = tblBal + int(value)
-		updatedNonce = tblNonce + 1
+	if errRecipientAccount == nil {
+		// if recipient's account is found
+		updatedBal = int(recipientAccountInfo.balance + value)
+		updatedNonce = int(recipientAccountInfo.stateNonce + 1)
 	} else {
-		// if recipient's account is not found, close the query and insert recipient's account into table
-		row.Close()
-		err = InsertAccountIntoAccountBalanceTable(dbConnection, recipPKH, 0)
+		// if recipient's account is not found, insert recipient's account into table
+		err := InsertAccountIntoAccountBalanceTable(dbConnection, recipPKH, 0)
 		if err != nil {
 			return errors.New("Failed to insert recipient's account into table: " + err.Error())
 		}
@@ -241,7 +216,7 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 
 	// update recipient's balance with updatedBal and nonce with updatedNonce
 	sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"", updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
-	_, err = dbConnection.Exec(sqlUpdate)
+	_, err := dbConnection.Exec(sqlUpdate)
 	if err != nil {
 		return errors.New("Failed to execute sqlUpdate for recipient")
 	}
@@ -254,25 +229,14 @@ Add value to pkhash's balanace
 Increment nonce by 1
 */
 func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
-	// create a query for the row that contains the pkhash in the table
-	sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(pkhash))
-	row, err := dbConnection.Query(sqlQuery)
-	if err != nil {
-		return errors.New("Failed to create rows for query")
-	}
+	// retrieve pkhash's balance and nonce
+	accountInfo, errAccount := GetAccountInfo(pkhash)
 
-	var balance, nonce int
-	if row.Next() {
-		// if row is found, retrieve balance and nonce and close the query
-		err = row.Scan(&balance, &nonce)
-		if err != nil {
-			return errors.New("Failed to scan row")
-		}
-		row.Close()
-
+	if errAccount == nil {
 		// update pkhash's balance by adding the amount indicated by value, and add one to nonce
-		sqlUpdate := fmt.Sprintf("UPDATE account_balances SET balance= %d, nonce= %d WHERE public_key_hash= \"%s\"", balance+int(value), nonce+1, hex.EncodeToString(pkhash))
-		_, err = dbConnection.Exec(sqlUpdate)
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances SET balance= %d, nonce= %d WHERE public_key_hash= \"%s\"",
+			int(accountInfo.balance)+int(value), int(accountInfo.stateNonce)+1, hex.EncodeToString(pkhash))
+		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to update phash's balance")
 		}
@@ -329,33 +293,18 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		return false, nil
 	}
 
-	// create a query for the row that contains the sender's pkhash in the table
-	senderPubKeyStr := hex.EncodeToString(block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey)))
-	sqlQuery := fmt.Sprintf("SELECT balance FROM account_balances WHERE public_key_hash= \"%s\"", senderPubKeyStr)
-	row, err := db.Query(sqlQuery)
-	if err != nil {
-		return false, errors.New("Failed to create row for query")
-	}
-	defer row.Close()
+	// retrieve sender's balance from account balance table
+	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
+	senderBalance, errBalance := GetBalance(senderPubKeyHash)
 
-	if row.Next() {
-		// if row is found, retrieve the sender's balance and close the query
-		var tblBalance int
-		row.Scan(&tblBalance)
-		row.Close()
-
+	if errBalance == nil {
 		// check insufficient funds
-		if tblBalance < int(c.Value) {
+		if senderBalance < c.Value {
 			// invalid contract because the sender's balance is less than the contract amount
 			return false, nil
 		}
 
 		// V--- valid contract ---V
-		senderPubKeyHash, err := hex.DecodeString(senderPubKeyStr)
-		if err != nil {
-			return false, errors.New("Failed to decode senderPubKeyStr")
-		}
-
 		// update both the sender's and recipient's accounts
 		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, senderPubKeyHash, c.RecipPubKeyHash, c.Value)
 		if err != nil {
@@ -374,25 +323,91 @@ type AccountInfo struct {
 }
 
 func NewAccountInfo(balance uint64, stateNonce uint64) *AccountInfo {
-	return nil
+	return &AccountInfo{balance: balance, stateNonce: stateNonce}
 }
 
 func (accInfo *AccountInfo) Serialize() ([]byte, error) {
-	return nil, errors.New("Incomplete function")
+	serializedAccount := make([]byte, 16) // 8 + 8 bytes for balance and stateNonce
+	binary.LittleEndian.PutUint64(serializedAccount[:8], accInfo.balance)
+	binary.LittleEndian.PutUint64(serializedAccount[8:], accInfo.stateNonce)
+	return serializedAccount, nil
 }
 
 func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
-	return errors.New("Incomplete function")
+	// accInfo = &AccountInfo{
+	// 	balance:    binary.LittleEndian.Uint64(serializedAccountInfo[:8]),
+	// 	stateNonce: binary.LittleEndian.Uint64(serializedAccountInfo[8:])}
+	accInfo.balance = binary.LittleEndian.Uint64(serializedAccountInfo[:8])
+	accInfo.stateNonce = binary.LittleEndian.Uint64(serializedAccountInfo[8:])
+	return nil
 }
 
 func GetBalance(pkhash []byte) (uint64, error) {
-	return 0, errors.New("Incomplete function")
+	// open account balance table
+	db, err := sql.Open("sqlite3", "accountBalanceTable.tab")
+	if err != nil {
+		return 0, errors.New("Failed to open account balance table")
+	}
+	defer db.Close()
+
+	// search for pkhash's balance
+	row, err := db.Query("SELECT balance FROM account_balances WHERE public_key_hash = \"" + hex.EncodeToString(pkhash) + "\"")
+	if err != nil {
+		return 0, errors.New("Failed to create row for query")
+	}
+	defer row.Close()
+
+	if !row.Next() {
+		return 0, errors.New("Failed to find row given pkHash")
+	}
+
+	var balance uint64
+	err = row.Scan(&balance)
+	if err != nil {
+		return 0, errors.New("Failed to scan row")
+	}
+	return balance, nil
 }
 
 func GetStateNonce(pkhash []byte) (uint64, error) {
-	return 0, errors.New("Incomplete function")
+	// open account balance table
+	db, err := sql.Open("sqlite3", "accountBalanceTable.tab")
+	if err != nil {
+		return 0, errors.New("Failed to open account balance table")
+	}
+	defer db.Close()
+
+	// search for pkhash's stateNonce
+	row, err := db.Query("SELECT nonce FROM account_balances WHERE public_key_hash= \"" + hex.EncodeToString(pkhash) + "\"")
+	if err != nil {
+		return 0, errors.New("Failed to create row for query")
+	}
+	defer row.Close()
+
+	if !row.Next() {
+		return 0, errors.New("Failed to find row given pkHash")
+	}
+
+	var stateNonce uint64
+	err = row.Scan(&stateNonce)
+	if err != nil {
+		return 0, errors.New("Failed to scan row")
+	}
+	return stateNonce, nil
 }
 
 func GetAccountInfo(pkhash []byte) (*AccountInfo, error) {
-	return nil, errors.New("Incomplete function")
+	// retrieve pkhash's balance
+	balance, err := GetBalance(pkhash)
+	if err != nil {
+		return nil, errors.New("Failed to retreive balance: " + err.Error())
+	}
+
+	// retrieve pkhash's stateNonce
+	stateNonce, err := GetStateNonce(pkhash)
+	if err != nil {
+		return nil, errors.New("Failed to retreive stateNonce: " + err.Error())
+	}
+
+	return &AccountInfo{balance: balance, stateNonce: stateNonce}, nil
 }
