@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -17,18 +18,15 @@ import (
 func TestProducerGenesisFlag(t *testing.T) {
 	producer.GenerateGenesisHashFile(25)
 	cmd := exec.Command("go", "run", "main.go", "-g")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Errorf("failed to create stdout pipe because: %s", err.Error())
-	}
-	err = cmd.Start()
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	err := cmd.Start()
 	if err != nil {
 		t.Errorf("failed to run main command because: %s", err.Error())
 	}
 	err = cmd.Wait()
-
 	if err != nil {
-		t.Errorf("main call returned with non-zero exit value: %s. Stdout pipe: %s", err.Error())
+		t.Errorf("main call returned with non-zero exit value: %s. Stdout pipe: %s", err.Error(), string(stdout.Bytes()))
 	}
 }
 

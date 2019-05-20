@@ -117,6 +117,7 @@ func main() {
 		} else {
 			// TODO: make account.Validate only validate the transaction
 			// TODO: table should be updated in separate call, after AddBlock
+			// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
 			if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
 				lgr.Fatalf("failed to add block: %s", err.Error())
 			} else {
