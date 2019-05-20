@@ -17,16 +17,17 @@ import (
 
 func TestProducerGenesisFlag(t *testing.T) {
 	producer.GenerateGenesisHashFile(25)
-	cmd := exec.Command("go", "run", "main.go", "-g")
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
+	cmd := exec.Command("go", "run", "main.go", "-d", "-g", "-y 100")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	err := cmd.Start()
 	if err != nil {
 		t.Errorf("failed to run main command because: %s", err.Error())
 	}
 	err = cmd.Wait()
 	if err != nil {
-		t.Errorf("main call returned with non-zero exit value: %s. Stdout pipe: %s", err.Error(), string(stdout.Bytes()))
+		t.Errorf("main call returned with: %s.", err.Error())
+		t.Logf("Stderr: %s", string(stderr.Bytes()))
 	}
 }
 
