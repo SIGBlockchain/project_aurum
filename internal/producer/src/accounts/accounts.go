@@ -358,9 +358,6 @@ func (accInfo *AccountInfo) Serialize() ([]byte, error) {
 }
 
 func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
-	// accInfo = &AccountInfo{
-	// 	balance:    binary.LittleEndian.Uint64(serializedAccountInfo[:8]),
-	// 	stateNonce: binary.LittleEndian.Uint64(serializedAccountInfo[8:])}
 	accInfo.balance = binary.LittleEndian.Uint64(serializedAccountInfo[:8])
 	accInfo.stateNonce = binary.LittleEndian.Uint64(serializedAccountInfo[8:])
 	return nil
