@@ -8,7 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-    "encoding/binary"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -20,7 +20,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-    "unsafe"
+	"unsafe"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
@@ -287,32 +287,34 @@ type ContractRequest struct {
 }
 
 func (conReq *ContractRequest) Serialize() ([]byte, error) {
-    lengthSecBytes             := int(len(conReq.SecBytes))
-    lengthVersion              := int(unsafe.Sizeof(conReq.Version))
-    lengthType                 := int(unsafe.Sizeof(conReq.MessageType))
-    incomingConReqDataBdy, err := conReq.Request.Serialize() //TODO should this be conReq.Request.Bdy.Serialize() instead?
-    if err != nil {
-        return nil, errors.New("Failed to serialize Contract Request")
-    }
-    lengthMinusBdy             := lengthSecBytes + lengthVersion + lengthType
-    serializedConReq           := make([]byte, lengthMinusBdy)
-    copy(serializedConReq[0 : lengthSecBytes], conReq.SecBytes)
-    binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes : lengthSecBytes + lengthVersion], conReq.Version)
-    binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes + lengthVersion : lengthSecBytes + lengthVersion + lengthType], conReq.MessageType)
+	lengthSecBytes := int(len(conReq.SecBytes))
+	lengthVersion := int(unsafe.Sizeof(conReq.Version))
+	lengthType := int(unsafe.Sizeof(conReq.MessageType))
+	incomingConReqDataBdy, err := conReq.Request.Serialize() //TODO should this be conReq.Request.Bdy.Serialize() instead?
+	if err != nil {
+		return nil, errors.New("Failed to serialize Contract Request")
+	}
+	lengthMinusBdy := lengthSecBytes + lengthVersion + lengthType
+	serializedConReq := make([]byte, lengthMinusBdy)
+	copy(serializedConReq[0:lengthSecBytes], conReq.SecBytes)
+	binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes:lengthSecBytes+lengthVersion], conReq.Version)
+	binary.LittleEndian.PutUint16(serializedConReq[lengthSecBytes+lengthVersion:lengthSecBytes+lengthVersion+lengthType], conReq.MessageType)
 
-    serializedConReq = append(serializedConReq, incomingConReqDataBdy...)
+	serializedConReq = append(serializedConReq, incomingConReqDataBdy...)
 	return serializedConReq, nil
 }
 
 func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
-    conReq.SecBytes    = serializedRequest[0 : 8]
-    conReq.Version     = binary.LittleEndian.Uint16(serializedRequest[8 : 10])
-    conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[10 : 12])
-    tempConReqReq     := &producer.Data{}
-    tempConReqReq.Bdy.Deserialize(serializedRequest[12 : ])
-    conReq.Request     = tempConReqReq
+	conReq.SecBytes = serializedRequest[:8]
+	conReq.Version = binary.LittleEndian.Uint16(serializedRequest[8:10])
+	conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[10:12])
+	conReq.Request = &producer.Data{}
+	conReq.Request.Deserialize(serializedRequest[12:])
+	// tempConReqReq := &producer.Data{}
+	// tempConReqReq.Bdy.Deserialize(serializedRequest[12:])
+	// conReq.Request = tempConReqReq
 
-    return nil
+	return nil
 
 }
 
