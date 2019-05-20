@@ -313,17 +313,16 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// retrieve sender's balance from account balance table
 	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
-	senderBalance, errBalance := GetBalance(senderPubKeyHash)
+	senderAccountInfo, errAccount := GetAccountInfo(senderPubKeyHash)
 
-
-	if errBalance == nil {
+	if errAccount == nil {
 		// check insufficient funds
-		if senderBalance < c.Value {
+		if senderAccountInfo.balance < c.Value {
 			// invalid contract because the sender's balance is less than the contract amount
 			return false, nil
 		}
 
-		if (tblNonce + 1) != int(c.StateNonce) {
+		if senderAccountInfo.stateNonce+1 != c.StateNonce {
 			// invalid contract because contract state nonce is not the expected number
 			return false, nil
 		}
