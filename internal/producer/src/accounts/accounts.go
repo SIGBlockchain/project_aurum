@@ -31,6 +31,7 @@ type Contract struct {
 	Signature       []byte // size varies
 	RecipPubKeyHash []byte // 32 bytes
 	Value           uint64
+	StateNonce      uint64
 }
 
 /*
@@ -42,7 +43,7 @@ recipient pk hash comes from sha-256 hash of rpk
 value is value parameter
 returns contract struct
 */
-func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64) (*Contract, error) {
+func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nextStateNonce uint64) (*Contract, error) {
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")
@@ -54,6 +55,7 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 		Signature:       nil,
 		RecipPubKeyHash: recipient,
 		Value:           value,
+		StateNonce:      nextStateNonce,
 	}
 
 	if sender == nil {
@@ -66,7 +68,7 @@ func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, va
 }
 
 // // Serialize all fields of the contract
-func (c *Contract) Serialize(withSignature bool) []byte {
+func (c *Contract) Serialize() ([]byte, error) {
 	/*
 		0-2 version
 		2-180 spubkey
@@ -86,18 +88,19 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 	}
 
 	//unsigned contract
-	if withSignature == false {
-		totalSize := (2 + 178 + 1 + 32 + 8)
+	if c.SigLen == 0 {
+		totalSize := (2 + 178 + 1 + 32 + 8 + 8)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
 		serializedContract[180] = 0
 		copy(serializedContract[181:213], c.RecipPubKeyHash)
 		binary.LittleEndian.PutUint64(serializedContract[213:221], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[221:229], c.StateNonce)
 
-		return serializedContract
+		return serializedContract, nil
 	} else { //signed contract
-		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 8)
+		totalSize := (2 + 178 + 1 + int(c.SigLen) + 32 + 8 + 8)
 		serializedContract := make([]byte, totalSize)
 		binary.LittleEndian.PutUint16(serializedContract[0:2], c.Version)
 		copy(serializedContract[2:180], spubkey)
@@ -105,13 +108,14 @@ func (c *Contract) Serialize(withSignature bool) []byte {
 		copy(serializedContract[181:(181+int(c.SigLen))], c.Signature)
 		copy(serializedContract[(181+int(c.SigLen)):(181+int(c.SigLen)+32)], c.RecipPubKeyHash)
 		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32):(181+int(c.SigLen)+32+8)], c.Value)
+		binary.LittleEndian.PutUint64(serializedContract[(181+int(c.SigLen)+32+8):(181+int(c.SigLen)+32+8+8)], c.StateNonce)
 
-		return serializedContract
+		return serializedContract, nil
 	}
 }
 
 // Deserialize into a struct
-func (c *Contract) Deserialize(b []byte) {
+func (c *Contract) Deserialize(b []byte) error {
 	var spubkeydecoded *ecdsa.PublicKey
 
 	// if serialized sender public key contains only zeros, sender public key is nil
@@ -129,6 +133,7 @@ func (c *Contract) Deserialize(b []byte) {
 		c.SigLen = b[180]
 		c.RecipPubKeyHash = b[181:213]
 		c.Value = binary.LittleEndian.Uint64(b[213:221])
+		c.StateNonce = binary.LittleEndian.Uint64(b[221:229])
 	} else {
 		c.Version = binary.LittleEndian.Uint16(b[0:2])
 		c.SenderPubKey = spubkeydecoded
@@ -136,7 +141,9 @@ func (c *Contract) Deserialize(b []byte) {
 		c.Signature = b[181:(181 + siglen)]
 		c.RecipPubKeyHash = b[(181 + siglen):(181 + siglen + 32)]
 		c.Value = binary.LittleEndian.Uint64(b[(181 + siglen + 32):(181 + siglen + 32 + 8)])
+		c.StateNonce = binary.LittleEndian.Uint64(b[(181 + siglen + 32 + 8):(181 + siglen + 32 + 8 + 8)])
 	}
+	return nil
 }
 
 /*
@@ -145,10 +152,15 @@ signature = Sign ( hashed contract, sender private key )
 sig len = signature length
 siglen and sig go into respective fields in contract
 */
-func (c *Contract) SignContract(sender *ecdsa.PrivateKey) {
-	serializedTestContract := block.HashSHA256(c.Serialize(false))
-	c.Signature, _ = sender.Sign(rand.Reader, serializedTestContract, nil)
+func (c *Contract) SignContract(sender *ecdsa.PrivateKey) error {
+	serializedTestContract, err := c.Serialize()
+	if err != nil {
+		return errors.New("Failed to serialize contract")
+	}
+	hashedContract := block.HashSHA256(serializedTestContract)
+	c.Signature, _ = sender.Sign(rand.Reader, hashedContract, nil)
 	c.SigLen = uint8(len(c.Signature))
+	return nil
 }
 
 /*
@@ -278,7 +290,13 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 	// verify the signature in the contract
 	// Serialize the Contract
-	serializedContract := block.HashSHA256(c.Serialize(false))
+	copyOfSigLen := c.SigLen
+	c.SigLen = 0
+	serializedContract, err := c.Serialize()
+	if err != nil {
+		return false, errors.New(err.Error())
+	}
+	hashedContract := block.HashSHA256(serializedContract)
 
 	// stores r and s values needed for ecdsa.Verify
 	var esig struct {
@@ -289,7 +307,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	}
 
 	// if ecdsa.Verify returns false, the signature is invalid
-	if !ecdsa.Verify(c.SenderPubKey, serializedContract, esig.R, esig.S) {
+	if !ecdsa.Verify(c.SenderPubKey, hashedContract, esig.R, esig.S) {
 		return false, nil
 	}
 
@@ -297,10 +315,16 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
 	senderBalance, errBalance := GetBalance(senderPubKeyHash)
 
+
 	if errBalance == nil {
 		// check insufficient funds
 		if senderBalance < c.Value {
 			// invalid contract because the sender's balance is less than the contract amount
+			return false, nil
+		}
+
+		if (tblNonce + 1) != int(c.StateNonce) {
+			// invalid contract because contract state nonce is not the expected number
 			return false, nil
 		}
 
@@ -311,6 +335,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 			return false, errors.New("Failed to exchange between acccounts: " + err.Error())
 		}
 
+		c.SigLen = copyOfSigLen
 		return true, nil
 	}
 
