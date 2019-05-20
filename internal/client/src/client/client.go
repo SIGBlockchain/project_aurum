@@ -305,12 +305,12 @@ func (conReq *ContractRequest) Serialize() ([]byte, error) {
 }
 
 func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
-    //TODO Is there a better way to do this then hardcode sizes (thinking about scalability in the futur
-    lengthSecBytes     := int(len(secretBytes))
-    conReq.SecBytes    = serializedRequest[0 : lengthSecBytes]
-    conReq.Version     = binary.LittleEndian.Uint16(serializedRequest[lengthSecBytes : lengthSecBytes + 2])
-    conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[lengthSecBytes + 2 : lengthSecBytes + 4])
-    conReq.Request.Deserialize(serializedRequest[lengthSecBytes + 4 : ])
+    conReq.SecBytes    = serializedRequest[0 : 8]
+    conReq.Version     = binary.LittleEndian.Uint16(serializedRequest[8 : 10])
+    conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[10 : 12])
+    tempConReqReq     := &producer.Data{}
+    tempConReqReq.Bdy.Deserialize(serializedRequest[12 : ])
+    conReq.Request     = tempConReqReq
 
     return nil
 
