@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -25,7 +24,7 @@ type Flags struct {
 	logs       *string
 	port       *string
 	interval   *string
-	initSupply *string
+	initSupply *uint64
 }
 
 var version = uint16(1)
@@ -43,7 +42,7 @@ func main() {
 		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
-		initSupply: getopt.StringLong("supply", 'y', "", "initial supply"),
+		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
 	}
 	getopt.Lookup('l').SetOptional()
 	getopt.Parse()
@@ -68,11 +67,13 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to read in genesis hashes because %s", err.Error())
 		}
-		initialAurumSupply, err := strconv.ParseUint(*fl.initSupply, 10, 64)
-		if err != nil {
-			lgr.Fatalf("failed to parse initial aurum supply because %s", err.Error())
+		if !getopt.IsSet('y') {
+			lgr.Fatalln("must set initial aurum supply")
 		}
-		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, initialAurumSupply)
+		if *fl.initSupply < uint64(len(genesisHashes)) {
+			lgr.Fatalln("must allocate at least 1 aurum per genesis hash")
+		}
+		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, *fl.initSupply)
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
@@ -81,6 +82,7 @@ func main() {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")
+			os.Exit(0)
 		}
 	}
 
