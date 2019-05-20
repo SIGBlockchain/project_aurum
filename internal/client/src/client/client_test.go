@@ -432,7 +432,7 @@ func TestContractRequest_Deserialize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			conReq: (*ContractRequest)(nil),
+			conReq: &ContractRequest{},
 			args: args{
 				serializedRequest: serializedReq,
 			},
