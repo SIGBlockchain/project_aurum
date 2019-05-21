@@ -30,12 +30,12 @@ type Block struct {
 //
 // Block Header Structure:
 //
-//      Bytes 0-4   : Version
-//      Bytes 4-12  : Height
-//      Bytes 12-20 : Timestamp
-//      Bytes 20-52 : Previous Hash
-//      Bytes 52-84 : Merkle Root Hash
-//      Bytes 84-86 : Data Length
+//      Bytes 0-2   : Version
+//      Bytes 2-10  : Height
+//      Bytes 10-18 : Timestamp
+//      Bytes 18-50 : Previous Hash
+//      Bytes 50-82 : Merkle Root Hash
+//      Bytes 82-84 : Data Length
 func (b *Block) Serialize() []byte { // Vineet
 	//calculate the total length beforehand, to prevent unneccessary appends
 	//NOTE: 32 bit ints are used to hold lengths; unsigned 16 bit int is used for the length of Data
