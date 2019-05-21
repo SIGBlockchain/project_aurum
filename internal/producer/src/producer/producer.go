@@ -277,8 +277,6 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 	}
 	defer accDb.Close()
 
-	insertString := "INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)"
-
 	// open ledger file
 	ledgerFile, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
 	if err != nil {
@@ -302,6 +300,8 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		if err != nil {
 			return err
 		}
+
+		//update the accounts table
 
 	}
 
@@ -369,5 +369,15 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 		log.Printf("Failed to execute statement: %s", err.Error())
 		return errors.New("Failed to execute statement")
 	}
+	return nil
+}
+
+func updateAccountTable(db *sql.DB, b *block.Block) error {
+	//first deserialize the data
+	/*deserializedData := b.Data
+	for _, d := range b.Data {
+
+	}*/
+
 	return nil
 }
