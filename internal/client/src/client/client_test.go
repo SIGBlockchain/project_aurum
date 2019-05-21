@@ -518,7 +518,8 @@ func TestSendAurum(t *testing.T) {
 				if err != nil {
 					t.Error("failed to accept connection")
 				}
-				_, err = conn.Read(buf)
+				nBytes, err := conn.Read(buf)
+				buf = buf[:nBytes]
 				if err != nil {
 					t.Errorf("failed to read into buffer")
 				}
