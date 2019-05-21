@@ -147,6 +147,7 @@ func main() {
 				}
 			}
 		}
+		// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
 		lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
 		lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
 		lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
