@@ -247,79 +247,125 @@ func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) erro
 	return nil
 }
 
-// This is a security feature for the ledger. If the block table gets lost somehow, this function will restore it completely.
+// This is a security feature for the ledger. If the metadata table gets lost somehow, this function will restore it completely.
 //
 // Another situation is when a producer in a decentralized system joins the network and wants the full ledger.
 func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, accountBalanceTable string) error {
-	_, err := os.Stat(metadataFilename)
+	//check if metadata file exits
+	err := emptyFile(metadataFilename)
 	if err != nil {
-		// create database
-		f, err := os.Create(metadataFilename)
-		f.Close()
+		log.Printf("Failed to create an empty metadata file: %s", err.Error())
+		return errors.New("Failed to create an empty metadata file")
+	}
 
-		// open database
-		db, err := sql.Open("sqlite3", metadataFilename)
-		if err != nil {
-			return errors.New("Failed to open newly created database")
+	err = emptyFile(accountBalanceTable)
+	if err != nil {
+		log.Printf("Failed to create an empty account file: %s", err.Error())
+		return errors.New("Failed to create an empty account file")
+	}
+
+	//set up the two database tables
+	metaDb, err := sql.Open("sqlite3", metadataFilename)
+	if err != nil {
+		return errors.New("Failed to open newly created metadata db")
+	}
+	defer metaDb.Close()
+
+	accDb, err := sql.Open("sqlite3", metadataFilename)
+	if err != nil {
+		return errors.New("Failed to open newly created accounts db")
+	}
+	defer accDb.Close()
+
+	insertString := "INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)"
+
+	// open ledger file
+	ledgerFile, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
+	if err != nil {
+		return errors.New("Failed to open ledger file")
+	}
+	defer ledgerFile.Close()
+
+	// loop that adds blocks' metadata into database
+	bPosition := int64(0)
+	for {
+		deserializedBlock, bLen, err := extractBlock(ledgerFile, &bPosition)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Printf("Failed to extract block from ledger: %s", err.Error())
+			return errors.New("Failed to extract block from ledger")
 		}
-		defer db.Close()
 
-		// create metadata table in database
-		statement, _ := db.Prepare("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-		statement.Exec()
-		statement.Close()
-
-		// create a prepared statement to insert into metadata
-		statement, err = db.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+		//update the metadata table
+		err = insertMetadata(metaDb, deserializedBlock, bLen, bPosition-int64(bLen))
 		if err != nil {
-			return errors.New("Failed to prepare a statement for further executes")
-		}
-		defer statement.Close()
-
-		// open ledger file
-		file, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
-		if err != nil {
-			return errors.New("Failed to open ledger file")
-		}
-		defer file.Close()
-
-		// loop that adds blocks' metadata into database
-		bPosition := int64(0)
-		for {
-			length := make([]byte, 4)
-
-			// read 4 bytes for blocks' length
-			_, err = file.Read(length)
-			if err == io.EOF {
-				// if reader reaches EOF, exit loop
-				break
-			} else if err != nil {
-				return errors.New("Failed to read ledger file")
-			}
-			bLen := binary.LittleEndian.Uint32(length)
-
-			// set offset for next read to get to the position of the block
-			file.Seek(bPosition+int64(len(length)), 0)
-			serialized := make([]byte, bLen)
-			_, err = io.ReadAtLeast(file, serialized, int(bLen))
-			if err != nil {
-				return errors.New("Failed to retrieve serialized block")
-			}
-
-			// need to deserialize block for block's height and hash
-			deserializedBlock := block.Deserialize(serialized)
-			bHeight := deserializedBlock.Height
-			bHash := block.HashBlock(deserializedBlock)
-
-			// execute statement
-			_, err = statement.Exec(bHeight, bPosition, bLen, bHash)
-			if err != nil {
-				return errors.New("Failed to execute statement")
-			}
-
-			// position of next block
-			bPosition += int64(len(length) + len(serialized))
+			return err
 		}
 	}
+
 	return err
+}
+
+//creates an empty file if the file doesn't exist, or clears if the contents of the file if it exists
+func emptyFile(fileName string) error {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		f, err := os.Create(fileName)
+		if err != nil {
+			return errors.New("Failed to create " + fileName)
+		}
+		f.Close()
+	} else { //file exits, so clear the file
+		err = os.Truncate(fileName, 0)
+		if err != nil {
+			return errors.New("Failed to truncate " + fileName)
+		}
+	}
+	return nil
+}
+
+//extract a block from the file, also update file position
+func extractBlock(ledgerFile *os.File, pos *int64) (*block.Block, uint32, error) {
+	length := make([]byte, 4)
+
+	// read 4 bytes for blocks' length
+	_, err := ledgerFile.Read(length)
+	if err == io.EOF {
+		return nil, 0, err
+	} else if err != nil {
+		return nil, 0, errors.New("Failed to read ledger file")
+	}
+
+	bLen := binary.LittleEndian.Uint32(length)
+
+	// set offset for next read to get to the position of the block
+	ledgerFile.Seek(*pos+int64(len(length)), 0)
+	serialized := make([]byte, bLen)
+
+	//update file position
+	*pos += int64(len(length) + len(serialized))
+
+	//extract block
+	_, err = io.ReadAtLeast(ledgerFile, serialized, int(bLen))
+	if err != nil {
+		return nil, 0, errors.New("Failed to retrieve serialized block")
+	}
+
+	deserializedBlock := block.Deserialize(serialized)
+	return &deserializedBlock, bLen, nil
+}
+
+/*inserts the block metadata into the metadata table
+  NOTE: the db connection passed in should be open
+*/
+func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
+	bHeight := b.Height
+	bHash := block.HashBlock(*b)
+
+	_, err := db.Exec(fmt.Sprintf("INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)", bHeight, pos, bLen, bHash))
+	if err != nil {
+		log.Printf("Failed to execute statement: %s", err.Error())
+		return errors.New("Failed to execute statement")
+	}
 }
