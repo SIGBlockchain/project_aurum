@@ -22,6 +22,7 @@ import (
 	"strings"
 	"unsafe"
 
+    "github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
@@ -310,15 +311,44 @@ func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
 	conReq.MessageType = binary.LittleEndian.Uint16(serializedRequest[10:12])
 	conReq.Request = &producer.Data{}
 	conReq.Request.Deserialize(serializedRequest[12:])
-	// tempConReqReq := &producer.Data{}
-	// tempConReqReq.Bdy.Deserialize(serializedRequest[12:])
-	// conReq.Request = tempConReqReq
-
-	return nil
+	
+    return nil
 
 }
 
 // Open aurum_wallet.json for private key and nonce
 func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipientPublicKeyHash []byte, value uint64) error {
-	return errors.New("Incomplete function")
+    senderPrivateKey, er := GetPrivateKey()
+    if er != nil {
+        return er
+    }
+    newContract, err := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, value, 0)
+    if err != nil {
+        return err
+    }
+    newContract.SignContract(senderPrivateKey)
+    contractReq := &ContractRequest{
+        SecBytes    : secretBytes,
+        Version     : 1,
+        MessageType : 0,
+        Request     : &producer.Data{
+                Hdr     : producer.DataHeader {
+                    Version : 1,
+                    Type    : 0,
+                },
+                Bdy     : newContract,
+        },
+    }
+
+    serializedReq, moreErr := contractReq.Serialize()
+    if moreErr != nil {
+        return moreErr
+    }
+
+    _, lastErr := SendToProducer(serializedReq, producerAddr)
+    if lastErr != nil {
+        return lastErr
+    }
+
+    return nil
 }
