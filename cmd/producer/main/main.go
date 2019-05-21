@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -56,6 +57,7 @@ func main() {
 
 	if *fl.version {
 		fmt.Printf("Aurum producer version: %d\n", version)
+		os.Exit(0)
 	}
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
@@ -117,10 +119,11 @@ func main() {
 			})
 		}()
 	}
-	var chainHeight = youngestBlockHeader.Height
 	var dataPool []producer.Data
+	var ms runtime.MemStats
 
 	for {
+		var chainHeight = youngestBlockHeader.Height
 		select {
 		case <-intervalChannel:
 			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
@@ -133,17 +136,21 @@ func main() {
 				if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 				} else {
-					chainHeight++
-					lgr.Printf("block produced: #%d\n", chainHeight)
+					lgr.Printf("block produced: #%d\n", chainHeight+1)
 					youngestBlockHeader = newBlock.GetHeader()
 					go func() {
 						time.AfterFunc(productionInterval, func() {
 							intervalChannel <- true
 						})
 					}()
+					runtime.ReadMemStats(&ms)
 				}
 			}
 		}
+		lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
+		lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
+		lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
+		lgr.Printf("Count of heap objects freed: %d", ms.Frees)
 		if *fl.test {
 			break
 		}
@@ -210,34 +217,6 @@ func main() {
 // 			}()
 // 		}
 // 	}()
-
-// 	// Main loop
-// 	timerChan := make(chan bool)
-// 	// var chainHeight uint64
-// 	var dataPool []producer.Data
-// 	// productionInterval, err := time.ParseDuration(*interval)
-// 	// if err != nil {
-// 	// 	lgr.Fatalln("failed to parse interval")
-// 	// }
-// 	// youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadata)
-// 	// if err != nil {
-// 	// 	lgr.Fatalf("failed to retrieve youngest block header: %s\n", err)
-// 	// }
-// 	for {
-// 		select {
-// 		case newData := <-newDataChan:
-// 			dataPool = append(dataPool, newData)
-// 		case <-timerChan:
-// 			// newBlock, _ := producer.CreateBlock(version, chainHeight+1, block.HashBlock(youngestBlock), dataPool)
-// 			// blockchain.AddBlock(newBlock, ledger, metadata)
-// 			dataPool = nil
-// 			// go func() {
-// 			// 	time.AfterFunc(productionInterval, func() {
-// 			// 		<-timerChan
-// 			// 	})
-// 			// }()
-// 		}
-// 	}
 
 // 	// Close the server
 // 	ln.Close()
