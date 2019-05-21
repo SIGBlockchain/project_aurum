@@ -465,7 +465,7 @@ func TestSendAurum(t *testing.T) {
 	}
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	rpkh := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
-	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 0)
+	someContract, _ := accounts.MakeContract(1, senderPrivateKey, rpkh, 1000, 1)
 	someContract.SignContract(senderPrivateKey)
 	someContractRequest := &ContractRequest{
 		SecBytes:    secretBytes,
@@ -530,7 +530,7 @@ func TestSendAurum(t *testing.T) {
 			}
 			senderConReq := <-conReqChan
 			if !bytes.Equal(senderConReq, serializedReq) {
-				t.Errorf("Contract requests do not match")
+				t.Errorf("Contract requests do not match: %v != %v", senderConReq, serializedReq)
 			}
 		})
 	}
