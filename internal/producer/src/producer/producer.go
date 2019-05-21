@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -270,6 +271,10 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		return errors.New("Failed to open newly created metadata db")
 	}
 	defer metaDb.Close()
+	_, err = metaDb.Exec("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	if err != nil {
+		return errors.New("Failed to create metadata table")
+	}
 
 	accDb, err := sql.Open("sqlite3", metadataFilename)
 	if err != nil {
@@ -287,6 +292,7 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 	// loop that adds blocks' metadata into database
 	bPosition := int64(0)
 	for {
+		bOldPos := bPosition
 		deserializedBlock, bLen, err := extractBlock(ledgerFile, &bPosition)
 		if err == io.EOF {
 			break
@@ -296,7 +302,7 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		}
 
 		//update the metadata table
-		err = insertMetadata(metaDb, deserializedBlock, bLen, bPosition-int64(bLen))
+		err = insertMetadata(metaDb, deserializedBlock, bLen, bOldPos)
 		if err != nil {
 			return err
 		}
@@ -364,7 +370,11 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	bHeight := b.Height
 	bHash := block.HashBlock(*b)
 
-	_, err := db.Exec(fmt.Sprintf("INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)", bHeight, pos, bLen, bHash))
+	// From StackOverFlow "https://stackoverflow.com/questions/37532255/one-liner-to-transform-int-into-string/42159097"
+	bHashStr := strings.Trim(strings.Replace(fmt.Sprint(bHash), " ", "", -1), "[]")
+
+	_, err := db.Exec(fmt.Sprintf("INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)",
+		bHeight, pos, bLen, bHashStr))
 	if err != nil {
 		log.Printf("Failed to execute statement: %s", err.Error())
 		return errors.New("Failed to execute statement")
