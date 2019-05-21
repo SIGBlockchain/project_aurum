@@ -318,11 +318,39 @@ func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
 
 // Open aurum_wallet.json for private key and nonce
 func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipientPublicKeyHash []byte, value uint64) error {
-    senderPrivateKey, er := GetPrivateKey()
-    if er != nil {
-        return er
+    senderPrivateKey, err := GetPrivateKey()
+    if err != nil {
+        return err
     }
-    newContract, err := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, value, 0)
+
+    // get nonce TODO functionize into GetNonce()
+	// Opens the wallet
+	file, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return errors.New("Failed to open wallet")
+	}
+	defer file.Close()
+
+	// Reads the json file and stores the data into a byte slice
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return errors.New("Failed to read wallet")
+	}
+
+	// Json struct for storing the balance from the json file
+	type jsonStruct struct {
+		Nonce      uint64
+	}
+
+	// Parse the data from the json file into a jsonStruct
+	var j jsonStruct
+	err = json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+    // end get nonce
+
+    newContract, err := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, value, j.Nonce+1)
     if err != nil {
         return err
     }
@@ -340,14 +368,14 @@ func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipien
         },
     }
 
-    serializedReq, moreErr := contractReq.Serialize()
-    if moreErr != nil {
-        return moreErr
+    serializedReq, err := contractReq.Serialize()
+    if err != nil {
+        return err
     }
 
-    _, lastErr := SendToProducer(serializedReq, producerAddr)
-    if lastErr != nil {
-        return lastErr
+    _, err = SendToProducer(serializedReq, producerAddr)
+    if err != nil {
+        return err
     }
 
     return nil
