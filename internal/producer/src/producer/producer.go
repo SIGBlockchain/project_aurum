@@ -302,6 +302,7 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		if err != nil {
 			return err
 		}
+
 	}
 
 	return err
@@ -368,4 +369,5 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 		log.Printf("Failed to execute statement: %s", err.Error())
 		return errors.New("Failed to execute statement")
 	}
+	return nil
 }
