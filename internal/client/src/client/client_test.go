@@ -532,7 +532,15 @@ func TestSendAurum(t *testing.T) {
 			senderConReq := <-conReqChan
 			if !bytes.Equal(senderConReq, serializedReq) {
 				t.Errorf("Contract requests do not match: %v != %v", senderConReq, serializedReq)
+				for i := range senderConReq {
+					if senderConReq[i] != serializedReq[i] {
+						t.Logf("index where contract requests do not match (earliest detection): %d", i)
+						t.Logf("byte values: %v != %v", senderConReq[i], serializedReq[i])
+						break
+					}
+				}
 			}
+
 		})
 	}
 }
