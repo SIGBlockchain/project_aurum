@@ -532,10 +532,25 @@ func TestSendAurum(t *testing.T) {
 			senderConReq := <-conReqChan
 			if !bytes.Equal(senderConReq, serializedReq) {
 				t.Errorf("Contract requests do not match: %v != %v", senderConReq, serializedReq)
-				for i := range senderConReq {
+               
+                request := &ContractRequest{}
+                request.Deserialize(serializedReq)
+                contract, ok := request.Request.Bdy.(accounts.Contract)
+                t.Logf("deserialized request: %v", request)
+                t.Logf("the bdy version: %d", contract.Version)
+                t.Logf("the bdy SenderPubKey: %v", contract.SenderPubKey)
+                t.Logf("the bdy Siglen: %d", contract.SigLen)
+                t.Logf("the bdy Signature: %v", contract.Signature)
+                t.Logf("the bdy Recip: %v", contract.RecipPubKeyHash)
+                t.Logf("the bdy Value: %d", contract.Value)
+                t.Logf("the bdy Nonce: %d", contract.StateNonce)
+
+
+                for i := range senderConReq {
 					if senderConReq[i] != serializedReq[i] {
 						t.Logf("index where contract requests do not match (earliest detection): %d", i)
 						t.Logf("byte values: %v != %v", senderConReq[i], serializedReq[i])
+
 						break
 					}
 				}
