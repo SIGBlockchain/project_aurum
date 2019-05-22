@@ -345,7 +345,7 @@ func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipien
 	}
     // end get nonce
 
-    newContract, err := accounts.MakeContract(1, clientPrivateKey, recipientPublicKeyHash, value, 1)
+    newContract, err := accounts.MakeContract(1, clientPrivateKey, recipientPublicKeyHash, value, j.Nonce+1)
 
     if err != nil {
         return err
