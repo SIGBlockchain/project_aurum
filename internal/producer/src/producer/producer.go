@@ -2,8 +2,10 @@
 package producer
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -11,9 +13,10 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
+
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -122,6 +125,7 @@ type DataHeader struct {
 type DataElem interface {
 	Serialize() ([]byte, error) // Call serialize function of DataElem
 	Deserialize([]byte) error
+	//GetValues() ([]byte, []byte, uint64, uint64)
 }
 
 type Data struct {
@@ -276,11 +280,15 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		return errors.New("Failed to create metadata table")
 	}
 
-	accDb, err := sql.Open("sqlite3", metadataFilename)
+	accDb, err := sql.Open("sqlite3", accountBalanceTable)
 	if err != nil {
 		return errors.New("Failed to open newly created accounts db")
 	}
 	defer accDb.Close()
+	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		return errors.New("Failed to create acount_balances table")
+	}
 
 	// open ledger file
 	ledgerFile, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
@@ -308,6 +316,10 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		}
 
 		//update the accounts table
+		err = updateAccountTable(accDb, deserializedBlock)
+		if err != nil {
+			return err
+		}
 
 	}
 
@@ -370,24 +382,78 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	bHeight := b.Height
 	bHash := block.HashBlock(*b)
 
-	// From StackOverFlow "https://stackoverflow.com/questions/37532255/one-liner-to-transform-int-into-string/42159097"
-	bHashStr := strings.Trim(strings.Replace(fmt.Sprint(bHash), " ", "", -1), "[]")
-
-	_, err := db.Exec(fmt.Sprintf("INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)",
-		bHeight, pos, bLen, bHashStr))
+	/*_, err := db.Exec(fmt.Sprintf("INSERT INTO metadata (height, position, size, hash) VALUES (%d, %d, %d, %s)",
+	bHeight, pos, bLen, string(bHash)))*/
+	sqlQuery := "INSERT INTO metadata (height, position, size, hash) VALUES ($1, $2, $3, $4)"
+	_, err := db.Exec(sqlQuery, bHeight, pos, bLen, bHash)
 	if err != nil {
 		log.Printf("Failed to execute statement: %s", err.Error())
 		return errors.New("Failed to execute statement")
 	}
+
 	return nil
 }
 
 func updateAccountTable(db *sql.DB, b *block.Block) error {
 	//first deserialize the data
-	/*deserializedData := b.Data
-	for _, d := range b.Data {
+	deserializedDatum := make([]Data, len(b.Data))
+	for i, serializedData := range b.Data {
+		dataStruct := &Data{}
+		dataStruct.Deserialize(serializedData)
+		deserializedDatum[i] = *dataStruct
+	}
 
-	}*/
+	//retrieve contracts
+	contracts := make([]*accounts.Contract, len(deserializedDatum))
+	for i, data := range deserializedDatum {
+		contracts[i] = data.Bdy.(*accounts.Contract)
+	}
+
+	//to keep track of clients' account info
+	type account struct {
+		sender  []byte
+		balance uint64
+		nonce   uint64
+	}
+
+	totalBalances := make([]account, 0)
+	for _, contract := range contracts {
+		addSender := true
+		addRecip := true
+
+		for _, accounts := range totalBalances {
+			if contract.SenderPubKey != nil && bytes.Compare(accounts.sender, block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))) == 0 {
+				addSender = false
+				accounts.balance -= contract.Value
+				accounts.nonce = contract.StateNonce
+			} else if bytes.Compare(accounts.sender, contract.RecipPubKeyHash) == 0 {
+				addRecip = false
+				accounts.balance += contract.Value
+				accounts.nonce = contract.StateNonce
+			}
+		}
+
+		if addSender && contract.SenderPubKey != nil {
+			totalBalances = append(totalBalances, account{sender: block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey)), balance: 0})
+		}
+		if addRecip {
+			totalBalances = append(totalBalances, account{sender: contract.RecipPubKeyHash, balance: contract.Value})
+		}
+	}
+
+	for _, acc := range totalBalances {
+		err := accounts.InsertAccountIntoAccountBalanceTable(db, acc.sender, acc.balance)
+		if err != nil {
+			return err
+		}
+
+		sqlUpdate := fmt.Sprintf("UPDATE account_balances set nonce=%d WHERE public_key_hash= \"%s\"", acc.nonce, hex.EncodeToString(acc.sender))
+		_, err = db.Exec(sqlUpdate)
+		if err != nil {
+			return errors.New("Failed to execute sqlUpdate for sender" + err.Error())
+		}
+
+	}
 
 	return nil
 }
