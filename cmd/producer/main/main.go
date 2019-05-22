@@ -62,8 +62,10 @@ func main() {
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
-	if *fl.debug {
-		lgr.SetOutput(os.Stderr)
+	{
+		if *fl.debug {
+			lgr.SetOutput(os.Stderr)
+		}
 	}
 
 	if *fl.genesis {
@@ -110,39 +112,46 @@ func main() {
 	var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
 	timeSince := time.Since(lastTimestamp)
 	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
-		go func() { intervalChannel <- true }()
+		// go func() { intervalChannel <- true }()
+		go triggerInterval(intervalChannel, time.Duration(0))
 	} else {
 		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
-		go func() {
-			time.AfterFunc(time.Duration(diff), func() {
-				intervalChannel <- true
-			})
-		}()
+		// go func() {
+		// 	time.AfterFunc(time.Duration(diff), func() {
+		// 		intervalChannel <- true
+		// 	})
+
+		// }()
+		go triggerInterval(intervalChannel, time.Duration(diff))
 	}
-	var dataPool []producer.Data
-	var ms runtime.MemStats
 
 	for {
+		var dataPool []producer.Data
+		var ms runtime.MemStats
 		var chainHeight = youngestBlockHeader.Height
 		select {
 		case <-intervalChannel:
-			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+			// lgr.Printf("block ready for production: #%d\n", chainHeight+1)
 			if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
-				lgr.Fatalf("failed to add block %s", err.Error())
+				// lgr.Fatalf("failed to add block %s", err.Error())
+				os.Exit(1)
 			} else {
 				// TODO: make account.Validate only validate the transaction
 				// TODO: table should be updated in separate call, after AddBlock
 				// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
 				if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
-					lgr.Fatalf("failed to add block: %s", err.Error())
+					// lgr.Fatalf("failed to add block: %s", err.Error())
+					os.Exit(1)
 				} else {
-					lgr.Printf("block produced: #%d\n", chainHeight+1)
+					// lgr.Printf("block produced: #%d\n", chainHeight+1)
 					youngestBlockHeader = newBlock.GetHeader()
-					go func() {
-						time.AfterFunc(productionInterval, func() {
-							intervalChannel <- true
-						})
-					}()
+					// go func() {
+					// 	time.AfterFunc(productionInterval, func() {
+					// 		intervalChannel <- true
+					// 	})
+
+					// }()
+					go triggerInterval(intervalChannel, productionInterval)
 					runtime.ReadMemStats(&ms)
 				}
 			}
@@ -156,6 +165,11 @@ func main() {
 			break
 		}
 	}
+}
+
+func triggerInterval(intervalChannel chan bool, productionInterval time.Duration) {
+	time.Sleep(productionInterval)
+	intervalChannel <- true
 }
 
 // func init() {
