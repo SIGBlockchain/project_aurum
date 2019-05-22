@@ -318,11 +318,6 @@ func (conReq *ContractRequest) Deserialize(serializedRequest []byte) error {
 
 // Open aurum_wallet.json for private key and nonce
 func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipientPublicKeyHash []byte, value uint64) error {
-    senderPrivateKey, err := GetPrivateKey()
-    if err != nil {
-        return err
-    }
-
     // get nonce TODO functionize into GetNonce()
 	// Opens the wallet
 	file, err := os.Open("aurum_wallet.json")
@@ -350,11 +345,12 @@ func SendAurum(producerAddr string, clientPrivateKey *ecdsa.PrivateKey, recipien
 	}
     // end get nonce
 
-    newContract, err := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, value, j.Nonce+1)
+    newContract, err := accounts.MakeContract(1, clientPrivateKey, recipientPublicKeyHash, value, 1)
+
     if err != nil {
         return err
     }
-    newContract.SignContract(senderPrivateKey)
+    newContract.SignContract(clientPrivateKey)
     contractReq := &ContractRequest{
         SecBytes    : secretBytes,
         Version     : 1,
