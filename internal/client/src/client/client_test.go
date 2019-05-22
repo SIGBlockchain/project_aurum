@@ -533,17 +533,28 @@ func TestSendAurum(t *testing.T) {
 			if !bytes.Equal(senderConReq, serializedReq) {
 				t.Errorf("Contract requests do not match: %v != %v", senderConReq, serializedReq)
                
-                request := &ContractRequest{}
+                request    := &ContractRequest{}
+                recRequest := &ContractRequest{}
                 request.Deserialize(serializedReq)
-                contract, ok := request.Request.Bdy.(accounts.Contract)
-                t.Logf("deserialized request: %v", request)
-                t.Logf("the bdy version: %d", contract.Version)
-                t.Logf("the bdy SenderPubKey: %v", contract.SenderPubKey)
-                t.Logf("the bdy Siglen: %d", contract.SigLen)
-                t.Logf("the bdy Signature: %v", contract.Signature)
-                t.Logf("the bdy Recip: %v", contract.RecipPubKeyHash)
-                t.Logf("the bdy Value: %d", contract.Value)
-                t.Logf("the bdy Nonce: %d", contract.StateNonce)
+                recRequest.Deserialize(senderConReq)
+                contract, _    := request.Request.Bdy.(*accounts.Contract)
+                recContract, _ := recRequest.Request.Bdy.(*accounts.Contract)
+                //t.Logf("serializedReq - deserialized request: %v", request)
+                t.Logf("serializedReq - the bdy version: %d", contract.Version)
+                t.Logf("senderConReq  - the bdy version: %d", recContract.Version)
+                t.Logf("serializedReq - the bdy SenderPubKey: %v", contract.SenderPubKey)
+                t.Logf("senderConReq  - the bdy SenderPubKey: %v", recContract.SenderPubKey)
+                t.Logf("serializedReq - the bdy Siglen: %d", contract.SigLen)
+                t.Logf("senderConReq  - the bdy Siglen: %d", recContract.SigLen)
+                t.Logf("serializedReq - the bdy Signature: %v", contract.Signature)
+                t.Logf("senderConReq  - the bdy Signature: %v", recContract.Signature)
+                t.Logf("serializedReq - the bdy Recip: %v", contract.RecipPubKeyHash)
+                t.Logf("senderConReq  - the bdy Recip: %v", recContract.RecipPubKeyHash)
+                t.Logf("serializedReq - the bdy Value: %d", contract.Value)
+                t.Logf("senderConReq  - the bdy Value: %d", recContract.Value)
+                t.Logf("serializedReq - the bdy Nonce: %d", contract.StateNonce)
+                t.Logf("senderConReq  - the bdy Nonce: %d", recContract.StateNonce)
+
 
 
                 for i := range senderConReq {
