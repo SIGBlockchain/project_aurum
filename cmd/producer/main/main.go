@@ -1,5 +1,15 @@
 package main
 
+/*
+Usage:
+Must have genesis-hashes file, or will fail.
+Run go run main.go with -g --supply=[x] for genesis
+Running go run main.go with --interval=[x]ms will generate
+a block every x milliseconds (must be milliseconds) indefinitely
+Running the same command with -t flag will generate only
+one block and exit.
+*/
+
 import (
 	"fmt"
 	"io/ioutil"
@@ -112,16 +122,9 @@ func main() {
 	var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
 	timeSince := time.Since(lastTimestamp)
 	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
-		// go func() { intervalChannel <- true }()
 		go triggerInterval(intervalChannel, time.Duration(0))
 	} else {
 		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
-		// go func() {
-		// 	time.AfterFunc(time.Duration(diff), func() {
-		// 		intervalChannel <- true
-		// 	})
-
-		// }()
 		go triggerInterval(intervalChannel, time.Duration(diff))
 	}
 
@@ -131,26 +134,20 @@ func main() {
 		var chainHeight = youngestBlockHeader.Height
 		select {
 		case <-intervalChannel:
-			// lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
 			if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
-				// lgr.Fatalf("failed to add block %s", err.Error())
+				lgr.Fatalf("failed to add block %s", err.Error())
 				os.Exit(1)
 			} else {
 				// TODO: make account.Validate only validate the transaction
 				// TODO: table should be updated in separate call, after AddBlock
 				// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
 				if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
-					// lgr.Fatalf("failed to add block: %s", err.Error())
+					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
 				} else {
-					// lgr.Printf("block produced: #%d\n", chainHeight+1)
+					lgr.Printf("block produced: #%d\n", chainHeight+1)
 					youngestBlockHeader = newBlock.GetHeader()
-					// go func() {
-					// 	time.AfterFunc(productionInterval, func() {
-					// 		intervalChannel <- true
-					// 	})
-
-					// }()
 					go triggerInterval(intervalChannel, productionInterval)
 					runtime.ReadMemStats(&ms)
 				}
