@@ -479,7 +479,6 @@ func TestSendAurum(t *testing.T) {
 			Bdy: someContract,
 		},
 	}
-	serializedReq, _ := someContractRequest.Serialize()
 
 	type args struct {
 		producerAddr           string
@@ -530,10 +529,50 @@ func TestSendAurum(t *testing.T) {
 				t.Errorf("SendAurum() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			senderConReq := <-conReqChan
+			t.Logf("%v", senderConReq)
 			deserializedSenderConReq := &ContractRequest{}
 			deserializedSenderConReq.Deserialize(senderConReq)
 			if deserializedSenderConReq.MessageType != someContractRequest.MessageType {
 				t.Errorf("message types do not match")
+			}
+			if deserializedSenderConReq.Version != someContractRequest.Version {
+				t.Errorf("versions do not match")
+			}
+
+			compareDataHdr := deserializedSenderConReq.Request.Hdr
+			if compareDataHdr.Version != someContractRequest.Request.Hdr.Version {
+				t.Error("header versions do not match")
+			}
+			if compareDataHdr.Type != someContractRequest.MessageType {
+				t.Errorf("header types do not match")
+			}
+
+			compareContract, ok := deserializedSenderConReq.Request.Bdy.(*accounts.Contract)
+			if !ok {
+				t.Errorf("failed to type assert request body")
+			}
+			if compareContract.Version != someContract.Version {
+				t.Errorf("contract versions do not match")
+			}
+			if !reflect.DeepEqual(compareContract.SenderPubKey, someContract.SenderPubKey) {
+				t.Errorf("contract sender public keys do not match")
+			}
+			serializedTestContract, err := compareContract.Serialize()
+			if err != nil {
+				t.Errorf("failed to serialize contract")
+			}
+			hashedContract := block.HashSHA256(serializedTestContract)
+			if !accounts.ValidateSignature(compareContract.Signature, hashedContract, &senderPrivateKey.PublicKey) {
+				t.Errorf("invalid signature")
+			}
+			if !bytes.Equal(compareContract.RecipPubKeyHash, someContract.RecipPubKeyHash) {
+				t.Errorf("recipient public key hashes do not match")
+			}
+			if compareContract.Value != someContract.Value {
+				t.Errorf("values do not match")
+			}
+			if compareContract.StateNonce != someContract.StateNonce {
+				t.Errorf("state nonces do not match")
 			}
 			// if !bytes.Equal(senderConReq, serializedReq) {
 			// 	t.Errorf("Contract requests do not match: %v != %v", senderConReq, serializedReq)
