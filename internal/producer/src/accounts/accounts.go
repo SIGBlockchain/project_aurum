@@ -294,21 +294,21 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
-func ValidateSignature(sig []byte, hashedContract []byte, senderPubKey *ecdsa.PublicKey) (bool, error) {
+func ValidateSignature(sig []byte, hashedContract []byte, senderPubKey *ecdsa.PublicKey) bool {
 	// stores r and s values needed for ecdsa.Verify
 	var esig struct {
 		R, S *big.Int
 	}
 	if _, err := asn1.Unmarshal(sig, &esig); err != nil {
-		return false, errors.New("Failed to unmarshal signature")
+		return false
 	}
 
 	// if ecdsa.Verify returns false, the signature is invalid
 	if !ecdsa.Verify(senderPubKey, hashedContract, esig.R, esig.S) {
-		return false, nil
+		return false
 	}
 
-	return false, nil
+	return false
 }
 
 func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
