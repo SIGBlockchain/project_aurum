@@ -7,7 +7,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -118,47 +117,6 @@ func (bp *BlockProducer) WorkLoop() {
 			*/
 		}
 	}
-}
-
-type DataHeader struct {
-	Version uint16 // Version denotes how the Data piece is structured
-	Type    uint16 // Identifies what the type of the Data Body is
-}
-
-type DataElem interface {
-	Serialize() ([]byte, error) // Call serialize function of DataElem
-	Deserialize([]byte) error
-}
-
-type Data struct {
-	Hdr DataHeader
-	Bdy DataElem
-}
-
-func (d *Data) Serialize() ([]byte, error) {
-	serializedData := make([]byte, 4) // 2 + 2 bytes for Dataheader version and type
-	binary.LittleEndian.PutUint16(serializedData[:2], d.Hdr.Version)
-	binary.LittleEndian.PutUint16(serializedData[2:], d.Hdr.Type)
-
-	dataBdy, err := d.Bdy.Serialize() // serialize data body
-	if err != nil {
-		return nil, errors.New("Failed to serialize data body")
-	}
-	serializedData = append(serializedData, dataBdy...)
-	return serializedData, nil
-}
-
-func (d *Data) Deserialize(serializedData []byte) error {
-	d.Hdr.Version = binary.LittleEndian.Uint16(serializedData[:2]) // data version
-	d.Hdr.Type = binary.LittleEndian.Uint16(serializedData[2:4])   // data type
-
-	d.Bdy = &accounts.Contract{}
-	err := d.Bdy.Deserialize(serializedData[4:]) // data body
-	if err != nil {
-		return errors.New("Failed to deserialize data: " + err.Error())
-	}
-
-	return nil
 }
 
 func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data) (block.Block, error) {
