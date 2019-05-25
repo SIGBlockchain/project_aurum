@@ -240,15 +240,32 @@ func TestBlock_GetHeader(t *testing.T) {
 				Height:         0,
 				PreviousHash:   HashSHA256([]byte{'x'}),
 				MerkleRootHash: HashSHA256([]byte{'q'}),
-				Timestamp:      time.Now().UnixNano(),
+				Timestamp:      expected.Timestamp,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.b.GetHeader(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Block.GetHeader() = %v, want %v", got, tt.want)
+			got := tt.b.GetHeader()
+			v := reflect.ValueOf(got)
+			values := make([]interface{}, v.NumField())
+			for i := 0; i < v.NumField(); i++ {
+				values[i] = v.Field(i).Interface()
 			}
+
+			v = reflect.ValueOf(BlockHeader{
+				Version:        1,
+				Height:         0,
+				PreviousHash:   HashSHA256([]byte{'x'}),
+				MerkleRootHash: HashSHA256([]byte{'q'}),
+				Timestamp:      expected.Timestamp,
+			})
+			for i := 0; i < v.NumField(); i++ {
+				if !reflect.DeepEqual(values[i], v.Field(i).Interface()) {
+					t.Error("fields do not match")
+				}
+			}
+
 		})
 	}
 }
