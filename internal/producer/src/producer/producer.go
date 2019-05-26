@@ -119,7 +119,7 @@ func (bp *BlockProducer) WorkLoop() {
 	}
 }
 
-func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data) (block.Block, error) {
+func CreateBlock(version uint16, height uint64, previousHash []byte, data []accounts.Contract) (block.Block, error) {
 	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
 
 	for i := range data {
@@ -148,7 +148,7 @@ func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data
 func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
 	version := uint16(1)
 	mintAmt := initialAurumSupply / uint64(len(genesisPublicKeyHashes)) // (initialAurumSupply / n supplied key hashes)
-	var datum []Data
+	var datum []accounts.Contract
 
 	for _, pubKeyHash := range genesisPublicKeyHashes {
 		// for every public key hashes, make a nil-sender contract with value indicated by mintAmt
@@ -158,14 +158,14 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 		}
 
 		// data that contains data version and type, and the contract
-		data := Data{
-			Hdr: DataHeader{
-				Version: version,
-				Type:    0,
-			},
-			Bdy: contract,
-		}
-		datum = append(datum, data)
+		// data := Data{
+		// 	Hdr: DataHeader{
+		// 		Version: version,
+		// 		Type:    0, // WHAT EXACTLY IS TYPE??????************************************************************
+		// 	},
+		// 	Bdy: contract,
+		// }
+		datum = append(datum, *contract) // switched second parameter from data to contract
 	}
 
 	// create genesis block with null previous hash

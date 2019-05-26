@@ -87,21 +87,24 @@ func TestData_Serialize(t *testing.T) {
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
-		d    *Data
+		// d    *Data
+		d *accounts.Contract
 	}{
 		{
-			d: &Data{
-				Hdr: DataHeader{
-					Version: 1,
-					Type:    0,
-				},
-				Bdy: initialContract,
-			},
+			// d: &Data{
+			// 	Hdr: DataHeader{
+			// 		Version: 1,
+			// 		Type:    0,
+			// 	},
+			// 	Bdy: initialContract,
+			// },
+			d: initialContract,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.d.Serialize()
+			// got, err := tt.d.Serialize()
+			got, err := initialContract.Serialize()
 			if err != nil {
 				t.Errorf(err.Error())
 			}
@@ -110,7 +113,8 @@ func TestData_Serialize(t *testing.T) {
 					t.Errorf("panicked, check indexing")
 				}
 			}()
-			serializedInitialContract, err := tt.d.Bdy.Serialize()
+			// serializedInitialContract, err := tt.d.Serialize()
+			serializedInitialContract, err := initialContract.Serialize()
 			if err != nil {
 				t.Errorf(err.Error())
 			}
@@ -124,7 +128,7 @@ func TestData_Serialize(t *testing.T) {
 			if !bytes.Equal(got[2:4], serializedType) {
 				t.Errorf(fmt.Sprintf("Data header type serialization does not match. Wanted: %v, got: %v", serializedVersion, got[2:4]))
 			}
-			if !bytes.Equal(got[4:], serializedInitialContract) {
+			if !bytes.Equal(got[4:], serializedInitialContract[4:]) { //had to change serializedInitialContract to serializedInitialContract[4:]
 				t.Errorf(fmt.Sprintf("Data header body serialization does not match. Wanted: %v, got: %v", serializedVersion, got[4:]))
 			}
 		})
@@ -135,25 +139,27 @@ func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
-	someData := &Data{
-		Hdr: DataHeader{
-			Version: 1,
-			Type:    0,
-		},
-		Bdy: initialContract,
-	}
+	// someData := &Data{
+	// 	Hdr: DataHeader{
+	// 		Version: 1,
+	// 		Type:    0,
+	// 	},
+	// 	Bdy: initialContract,
+	// }
+	someData := initialContract
 	serializedsomeData, _ := someData.Serialize()
 	type args struct {
 		serializedData []byte
 	}
 	tests := []struct {
 		name    string
-		d       *Data
+		d       *accounts.Contract
 		args    args
 		wantErr bool
 	}{
 		{
-			d: &Data{},
+			// d: &Data{},
+			d: &accounts.Contract{},
 			args: args{
 				serializedData: serializedsomeData,
 			},
@@ -172,20 +178,21 @@ func TestData_Deserialize(t *testing.T) {
 }
 
 func TestCreateBlock(t *testing.T) {
-	var datum []Data
+	var datum []accounts.Contract
 	for i := 0; i < 50; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
-		someDataHdr := DataHeader{
-			Version: 1,
-			Type:    0,
-		}
-		someData := Data{
-			Hdr: someDataHdr,
-			Bdy: someAirdropContract,
-		}
-		datum = append(datum, someData)
+		// someDataHdr := DataHeader{
+		// 	Version: 1,
+		// 	Type:    0,
+		// }
+		// someData := Data{
+		// 	Hdr: someDataHdr,
+		// 	Bdy: someAirdropContract,
+		// }
+		// someData := *someAirdropContract
+		datum = append(datum, *someAirdropContract)
 	}
 	var serializedDatum [][]byte
 	for i := range datum {
@@ -196,7 +203,7 @@ func TestCreateBlock(t *testing.T) {
 		version      uint16
 		height       uint64
 		previousHash []byte
-		data         []Data
+		data         []accounts.Contract
 	}
 	tests := []struct {
 		name    string
@@ -244,21 +251,23 @@ func TestCreateBlock(t *testing.T) {
 
 func TestBringOnTheGenesis(t *testing.T) {
 	var pkhashes [][]byte
-	var datum []Data
+	// var datum []Data
+	var datum []accounts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 10, 0)
-		someDataHdr := DataHeader{
-			Version: 1,
-			Type:    0,
-		}
-		someData := Data{
-			Hdr: someDataHdr,
-			Bdy: someAirdropContract,
-		}
-		datum = append(datum, someData)
+		// someDataHdr := DataHeader{
+		// 	Version: 1,
+		// 	Type:    0,
+		// }
+		// someData := Data{
+		// 	Hdr: someDataHdr,
+		// 	Bdy: someAirdropContract,
+		// }
+		// someData := *someAirdropContract
+		datum = append(datum, *someAirdropContract)
 	}
 	genny, _ := CreateBlock(1, 0, make([]byte, 32), datum)
 	type args struct {
@@ -296,13 +305,13 @@ func TestBringOnTheGenesis(t *testing.T) {
 				t.Errorf("BringOnTheGenesis() = %v, want %v", got, tt.want)
 			}
 			for i := range got.Data {
-				deserializedData := Data{}
+				deserializedData := accounts.Contract{}
 				err := deserializedData.Deserialize(got.Data[i])
 				if err != nil {
 					t.Errorf("failed to deserialize data")
 				}
 				deserializedContract := &accounts.Contract{}
-				serializedDataBdy, _ := deserializedData.Bdy.Serialize()
+				serializedDataBdy, _ := deserializedData.Serialize()
 				deserializedContract.Deserialize(serializedDataBdy)
 				if deserializedContract.Value != 10 {
 					t.Errorf("failed to distribute aurum properly")
