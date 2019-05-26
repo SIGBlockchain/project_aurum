@@ -492,6 +492,229 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	}
 }
 
+func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
+	var ljr = "blockchain.dat"
+	var meta = "metadata.tab"
+	var accts = "accounts.tab"
+
+	// Create ledger file and the two tables
+	file, err := os.Create(ljr)
+	if err != nil {
+		t.Errorf("Failed to create file.")
+	} else {
+		file.Close()
+	}
+	metaDB, err := sql.Open("sqlite3", meta)
+	if err != nil {
+		t.Errorf("failed to create metadata file")
+	} else {
+		metaDB.Exec("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		metaDB.Close()
+	}
+	acctsDB, err := sql.Open("sqlite3", accts)
+	if err != nil {
+		t.Errorf("failed to create accounts file")
+	} else {
+		acctsDB.Exec("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	}
+
+	defer func() {
+		if err := os.Remove(ljr); err != nil {
+			t.Errorf("failed to remove blockchain file")
+		}
+		if err := os.Remove(meta); err != nil {
+			t.Errorf("failed to remove metadata file")
+		}
+		if err := os.Remove(accts); err != nil {
+			t.Errorf("failed to remove accounts file")
+		}
+	}()
+
+	var pkhashes [][]byte
+	somePVKeys := make([]*ecdsa.PrivateKey, 3) // Grab 3 private keys for creating contracts
+	for i := 0; i < 100; i++ {
+		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
+		pkhashes = append(pkhashes, someKeyPKHash)
+		if i < 3 {
+			somePVKeys[i] = someKey
+		}
+	}
+	genesisBlk, _ := BringOnTheGenesis(pkhashes, 1000)
+	if err := Airdrop(ljr, meta, genesisBlk); err != nil {
+		t.Errorf("airdrop failed")
+	}
+	// Insert pkhashes into account table for contract validation
+	for i := 0; i < 100; i++ {
+		err := accounts.InsertAccountIntoAccountBalanceTable(acctsDB, pkhashes[i], 10)
+		if err != nil {
+			t.Errorf("Failed to insert pkhash (%v) into account table: %s", pkhashes[i], err.Error())
+		}
+	}
+	acctsDB.Close()
+
+	// Create 3 contracts
+	contracts := make([]*accounts.Contract, 3)
+	var datum []Data
+
+	recipPKHash := block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
+	contract1, _ := accounts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
+	contract1.SignContract(somePVKeys[0])
+	valid, err := accounts.ValidateContract(contract1, accts, make([][]byte, 0))
+	if err != nil {
+		t.Error("Failed to validate contract: " + err.Error())
+	} else if !valid {
+		t.Error("Invalid contract")
+	}
+	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[2].PublicKey)))
+	contract2, _ := accounts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
+	contract2.SignContract(somePVKeys[1])
+	valid, err = accounts.ValidateContract(contract2, accts, make([][]byte, 0))
+	if err != nil {
+		t.Error("Failed to validate contract: " + err.Error())
+	} else if !valid {
+		t.Error("Invalid contract")
+	}
+	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
+	contract3, _ := accounts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
+	contract3.SignContract(somePVKeys[2])
+	valid, err = accounts.ValidateContract(contract3, accts, make([][]byte, 0))
+	if err != nil {
+		t.Error("Failed to validate contract: " + err.Error())
+	} else if !valid {
+		t.Error("Invalid contract")
+	}
+
+	contracts[0] = contract1
+	contracts[1] = contract2
+	contracts[2] = contract3
+	ct1Data := Data{
+		Hdr: DataHeader{
+			Version: 1,
+			Type:    0,
+		},
+		Bdy: contract1,
+	}
+	ct2Data := Data{
+		Hdr: DataHeader{
+			Version: 1,
+			Type:    0,
+		},
+		Bdy: contract2,
+	}
+	ct3Data := Data{
+		Hdr: DataHeader{
+			Version: 1,
+			Type:    0,
+		},
+		Bdy: contract3,
+	}
+	datum = append(datum, ct1Data)
+	datum = append(datum, ct2Data)
+	datum = append(datum, ct3Data)
+
+	firstBlock, err := CreateBlock(1, 1, block.HashBlock(genesisBlk), datum)
+	if err != nil {
+		t.Errorf("failed to create first block")
+	}
+	err = blockchain.AddBlock(firstBlock, ljr, meta)
+	if err != nil {
+		t.Errorf("failed to add first block")
+	}
+
+	os.Remove(meta)
+	os.Remove(accts)
+	type args struct {
+		ledgerFilename      string
+		metadataFilename    string
+		accountBalanceTable string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			args: args{
+				ledgerFilename:      ljr,
+				metadataFilename:    meta,
+				accountBalanceTable: accts,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := RecoverBlockchainMetadata(tt.args.ledgerFilename, tt.args.metadataFilename, tt.args.accountBalanceTable); err != nil {
+				t.Errorf("RecoverBlockchainMetadata() error = %v", err)
+			}
+			firstBlockSerialized, err := blockchain.GetBlockByHeight(1, ljr, meta)
+			if err != nil {
+				t.Errorf("failed to get firstBlock block")
+			}
+			firstBlockDeserialized := block.Deserialize(firstBlockSerialized)
+			if !reflect.DeepEqual(firstBlockDeserialized, firstBlock) {
+				t.Errorf("first blocks do not match")
+			}
+
+			dbc, _ := sql.Open("sqlite3", accts)
+			defer func() { // not sure if this defer will happen before the others, is it stack based?
+				if err := dbc.Close(); err != nil {
+					t.Errorf("Failed to close database: %s", err)
+				}
+			}()
+			for i, key := range somePVKeys {
+				someKeyPKhsh := block.HashSHA256(keys.EncodePublicKey(&key.PublicKey))
+				var balance uint64
+				var nonce uint64
+				queryStr := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash=\"%s\"", hex.EncodeToString(someKeyPKhsh))
+				row, err := dbc.Query(queryStr)
+				if err != nil {
+					t.Errorf("Failed to acquire row from table")
+				}
+				if row.Next() {
+					err = row.Scan(&balance, &nonce)
+					if err != nil {
+						t.Errorf("failed to scan row: %s", err)
+					}
+					switch i {
+					case 0: // first contract
+						if balance != 5 { // 10 - 5
+							t.Errorf("wrong balance (%v) on key: %v", balance, someKeyPKhsh)
+						}
+						if nonce != 1 {
+							t.Errorf("wrong nonce (%v) on key: %v", nonce, someKeyPKhsh)
+						}
+						break
+					case 1: // second contract
+						if balance != 13 { // 10 + 5 - 7 + 5
+							t.Errorf("wrong balance (%v) on key: %v", balance, someKeyPKhsh)
+						}
+						if nonce != 3 {
+							t.Errorf("wrong nonce (%v) on key: %v", nonce, someKeyPKhsh)
+						}
+						break
+					default: // third contract
+						if balance != 12 { // 10 + 7 - 5
+							t.Errorf("wrong balance (%v) on key: %v", balance, someKeyPKhsh)
+						}
+						if nonce != 2 {
+							t.Errorf("wrong nonce (%v) on key: %v", nonce, someKeyPKhsh)
+						}
+						break
+					}
+				} else {
+					t.Errorf("Key not found in table: %v", someKeyPKhsh)
+				}
+				row.Close()
+			}
+		})
+	}
+}
+
+// func TestRecoverBlockchainMetadataInitial(t *testing.T) {
+// 	t.Errorf("ErroRRRR!")
+// }
+
 // func TestRecoverBlockchainMetadataInitial(t *testing.T) {
 // 	blockchain := "testBlockchain.dat"
 // 	table := "table.db"

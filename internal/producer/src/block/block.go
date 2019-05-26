@@ -133,7 +133,7 @@ func Deserialize(block []byte) Block {
 	index := 84
 
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
-		elementLen := int(block[index])
+		elementLen := int(binary.LittleEndian.Uint16(block[index:index+2]))
 		index += 2
 		data[i] = make([]byte, elementLen)
 		copy(data[i], block[index:index+elementLen])

@@ -412,46 +412,77 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 	//struct to keep track of everyone's account info
 	type accountInfo struct {
 		accountPKH []byte
-		balance    uint64
+		balance    int64
 		nonce      uint64
 	}
 
 	totalBalances := make([]accountInfo, 0)
+	minting := false
 	for _, contract := range contracts {
 		addRecip := true
+		addSender := true
 
-		for _, accountInfos := range totalBalances {
-			if contract.SenderPubKey != nil && bytes.Compare(accountInfos.accountPKH, block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))) == 0 {
+		if contract.SenderPubKey == nil { // minting contracts
+			minting = true
+			err := accounts.InsertAccountIntoAccountBalanceTable(db, contract.RecipPubKeyHash, contract.Value)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		for i := 0; i < len(totalBalances); i++ {
+			if bytes.Compare(totalBalances[i].accountPKH, block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))) == 0 {
 				//subtract the value of the contract from the sender's account
-				accountInfos.balance -= contract.Value
-				accountInfos.nonce = contract.StateNonce
-			} else if bytes.Compare(accountInfos.accountPKH, contract.RecipPubKeyHash) == 0 {
+				addSender = false
+				totalBalances[i].balance -= int64(contract.Value)
+				totalBalances[i].nonce++
+			} else if bytes.Compare(totalBalances[i].accountPKH, contract.RecipPubKeyHash) == 0 {
 				//add the value of the contract to the recipient's account
 				addRecip = false
-				accountInfos.balance += contract.Value
-				accountInfos.nonce = contract.StateNonce
+				totalBalances[i].balance += int64(contract.Value)
+				totalBalances[i].nonce++
 			}
 		}
+
+		//add the sender's account info into totalBalances
+		if addSender {
+			totalBalances = append(totalBalances,
+				accountInfo{accountPKH: block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
+		}
+
 		//add the recipient's account info into totalBalances
 		if addRecip {
-			totalBalances = append(totalBalances, accountInfo{accountPKH: contract.RecipPubKeyHash, balance: contract.Value})
+			totalBalances = append(totalBalances,
+				accountInfo{accountPKH: contract.RecipPubKeyHash, balance: int64(contract.Value), nonce: 1})
 		}
 	}
 
 	//insert the accounts in totalBalances into account balance table
-	for _, acc := range totalBalances {
-		err := accounts.InsertAccountIntoAccountBalanceTable(db, acc.accountPKH, acc.balance)
-		if err != nil {
-			return err
-		}
+	if !minting {
+		for _, acc := range totalBalances {
+			var balance int
+			var nonce int
 
-		sqlUpdate := fmt.Sprintf("UPDATE account_balances set nonce=%d WHERE public_key_hash= \"%s\"", acc.nonce, hex.EncodeToString(acc.accountPKH))
-		_, err = db.Exec(sqlUpdate)
-		if err != nil {
-			return errors.New("Failed to execute sqlUpdate for sender: " + err.Error())
-		}
+			sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(acc.accountPKH))
+			row, _ := db.Query(sqlQuery)
+			if row.Next() {
+				row.Scan(&balance, &nonce) // retrieve balance and nonce from account_balances
+				row.Close()
 
+				// update balance and nonce
+				sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"",
+					acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
+				_, err := db.Exec(sqlUpdate)
+				if err != nil {
+					return errors.New("Failed to execute query to update balance and nonce: " + err.Error())
+				}
+			} else {
+				row.Close()
+				return errors.New("Failed to find row to update balance and nonce")
+			}
+
+		}
 	}
-
 	return nil
 }
