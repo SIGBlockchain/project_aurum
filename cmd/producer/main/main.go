@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"time"
 
+	//"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -129,7 +130,8 @@ func main() {
 	}
 
 	for {
-		var dataPool []producer.Data
+		// var dataPool []producer.Data
+		var dataPool []accounts.Contract
 		var ms runtime.MemStats
 		var chainHeight = youngestBlockHeader.Height
 		select {
