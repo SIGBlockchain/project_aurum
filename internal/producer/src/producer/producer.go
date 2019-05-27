@@ -161,7 +161,7 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 		// data := Data{
 		// 	Hdr: DataHeader{
 		// 		Version: version,
-		// 		Type:    0, // WHAT EXACTLY IS TYPE??????************************************************************
+		// 		Type:    0,
 		// 	},
 		// 	Bdy: contract,
 		// }
