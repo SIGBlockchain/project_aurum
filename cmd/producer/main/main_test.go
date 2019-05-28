@@ -67,7 +67,7 @@ func TestLoop(t *testing.T) {
 		t.Errorf("main call returned with: %s.", err.Error())
 		t.Logf("Stderr: %s", string(stderr.Bytes()))
 	}
-	dbc, _ := sql.Open("sqlite3", metadata)
+	dbc, _ := sql.Open("sqlite3", "metadata.tab")
 	defer func() {
 		if err := dbc.Close(); err != nil {
 			t.Errorf("failed to close database connection")
