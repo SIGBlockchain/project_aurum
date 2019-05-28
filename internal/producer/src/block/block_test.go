@@ -1,11 +1,11 @@
 package block
 
 import (
-	"bytes"           // for comparing []bytes
-	"encoding/binary" // for encoding/decoding
-	"reflect"         // to get data type
-	"testing"         // testing
-	"time"            // to get time stamp
+	"bytes"
+	"encoding/binary"
+	"reflect"
+	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -185,4 +185,87 @@ func TestDeserialize(t *testing.T) {
 		t.Errorf("Blocks do not match")
 	}
 
+}
+
+func TestHashBlockHeader(t *testing.T) {
+	expected := BlockHeader{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   HashSHA256([]byte{'x'}),
+		MerkleRootHash: HashSHA256([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+	}
+	type args struct {
+		b BlockHeader
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			args: args{
+				b: expected,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// if got := HashBlockHeader(tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			// 	t.Errorf("HashBlockHeader() = %v, want %v", got, tt.want)
+			// }
+		})
+	}
+}
+
+func TestBlock_GetHeader(t *testing.T) {
+	expected := Block{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   HashSHA256([]byte{'x'}),
+		MerkleRootHash: HashSHA256([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{HashSHA256([]byte{'r'})},
+	}
+	expected.DataLen = uint16(len(expected.Data))
+	tests := []struct {
+		name string
+		b    *Block
+		want BlockHeader
+	}{
+		{
+			b: &expected,
+			want: BlockHeader{
+				Version:        1,
+				Height:         0,
+				PreviousHash:   HashSHA256([]byte{'x'}),
+				MerkleRootHash: HashSHA256([]byte{'q'}),
+				Timestamp:      expected.Timestamp,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.b.GetHeader()
+			v := reflect.ValueOf(got)
+			values := make([]interface{}, v.NumField())
+			for i := 0; i < v.NumField(); i++ {
+				values[i] = v.Field(i).Interface()
+			}
+
+			v = reflect.ValueOf(BlockHeader{
+				Version:        1,
+				Height:         0,
+				PreviousHash:   HashSHA256([]byte{'x'}),
+				MerkleRootHash: HashSHA256([]byte{'q'}),
+				Timestamp:      expected.Timestamp,
+			})
+			for i := 0; i < v.NumField(); i++ {
+				if !reflect.DeepEqual(values[i], v.Field(i).Interface()) {
+					t.Error("fields do not match")
+				}
+			}
+
+		})
+	}
 }

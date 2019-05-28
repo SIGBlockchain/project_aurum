@@ -20,9 +20,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
-	"github.com/SIGBlockchain/project_aurum/client/src/keys"
+	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 // This will check if the client is connected to the internet
