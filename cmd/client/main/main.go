@@ -25,11 +25,13 @@ var wallet = "aurum_wallet.json"
 
 func main() {
 	fl := Flags{
-		help:     getopt.BoolLong("help", '?', "help"),
-		debug:    getopt.BoolLong("debug", 'd', "debug"),
-		version:  getopt.BoolLong("version", 'v', "version"),
-		setup:    getopt.BoolLong("setup", 's', "set up client"),
-		contract: getopt.BoolLong("contract", 'c', "make contract"),
+		help:      getopt.BoolLong("help", '?', "help"),
+		debug:     getopt.BoolLong("debug", 'd', "debug"),
+		version:   getopt.BoolLong("version", 'v', "version"),
+		setup:     getopt.BoolLong("setup", 's', "set up client"),
+		contract:  getopt.BoolLong("contract", 'c', "make contract"),
+		recipient: getopt.StringLong("recipient", 'r', "recipient"),
+		value:     getopt.Uint64Long("value", 'v', 0, "value to send"),
 	}
 	getopt.Parse()
 
@@ -60,6 +62,17 @@ func main() {
 			// TODO: Need function here that returns current balance
 			// TODO: Print all these out on successful setup
 		}
+	}
+
+	if *fl.contract {
+		// TODO: Check for a recipient
+		// TODO: Check for a value
+		// TODO: Get balance, compare with value to see if possible
+		// TODO: Get state nonce
+		// TODO: Get private key
+		// TODO: Make contract
+		// TODO: Serialize contract and send to producer
+		// TODO: Output success of sending to producer (with response)
 	}
 
 }
