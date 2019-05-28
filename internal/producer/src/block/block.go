@@ -26,6 +26,10 @@ type Block struct {
 	Data           [][]byte // Data is an abritrary variable, holding the actual contents of this block
 }
 
+func (b *Block) GetHeader() BlockHeader {
+	return BlockHeader{b.Version, b.Height, b.Timestamp, b.PreviousHash, b.MerkleRootHash}
+}
+
 // Produces a byte string based on the block struct provided
 //
 // Block Header Structure:
@@ -114,6 +118,20 @@ func getMerkleRoot(l *list.List) []byte {
 
 // Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlock(b Block) []byte {
+	const blength = 82 // calculate the total length of the slice
+	concatenated := make([]byte, blength)
+
+	// convert the known variables to byte slices in little endian and add to slice
+	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
+	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
+	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
+	copy(concatenated[18:50], b.PreviousHash)
+	copy(concatenated[50:82], b.MerkleRootHash)
+	return HashSHA256(concatenated)
+}
+
+// Concatenate all the fields of the block header and return its SHA256 hash
+func HashBlockHeader(b BlockHeader) []byte {
 	const blength = 82 // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
