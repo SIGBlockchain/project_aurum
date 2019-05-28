@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -41,8 +42,8 @@ type Flags struct {
 
 var version = uint16(1)
 var ledger = "blockchain.dat"
-var metadata = "metadata.tab"
-var accounts = "accounts.tab"
+var metadataTable = "metadata.tab"
+var accountsTable = "accounts.tab"
 
 func main() {
 	fl := Flags{
@@ -93,7 +94,7 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		err = producer.Airdrop(ledger, metadata, genesisBlock)
+		err = producer.Airdrop(ledger, metadataTable, genesisBlock)
 		if err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
@@ -114,7 +115,7 @@ func main() {
 	} else {
 		lgr.Println("block production interval: " + *fl.interval)
 	}
-	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadata)
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadataTable)
 	if err != nil {
 		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
 	}
@@ -129,7 +130,7 @@ func main() {
 	}
 
 	for {
-		var dataPool []producer.Data
+		var dataPool []accounts.Contract
 		var ms runtime.MemStats
 		var chainHeight = youngestBlockHeader.Height
 		select {
@@ -142,7 +143,7 @@ func main() {
 				// TODO: make account.Validate only validate the transaction
 				// TODO: table should be updated in separate call, after AddBlock
 				// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
-				if err := blockchain.AddBlock(newBlock, ledger, metadata); err != nil {
+				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
 				} else {

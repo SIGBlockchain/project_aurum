@@ -7,7 +7,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -120,48 +119,7 @@ func (bp *BlockProducer) WorkLoop() {
 	}
 }
 
-type DataHeader struct {
-	Version uint16 // Version denotes how the Data piece is structured
-	Type    uint16 // Identifies what the type of the Data Body is
-}
-
-type DataElem interface {
-	Serialize() ([]byte, error) // Call serialize function of DataElem
-	Deserialize([]byte) error
-}
-
-type Data struct {
-	Hdr DataHeader
-	Bdy DataElem
-}
-
-func (d *Data) Serialize() ([]byte, error) {
-	serializedData := make([]byte, 4) // 2 + 2 bytes for Dataheader version and type
-	binary.LittleEndian.PutUint16(serializedData[:2], d.Hdr.Version)
-	binary.LittleEndian.PutUint16(serializedData[2:], d.Hdr.Type)
-
-	dataBdy, err := d.Bdy.Serialize() // serialize data body
-	if err != nil {
-		return nil, errors.New("Failed to serialize data body")
-	}
-	serializedData = append(serializedData, dataBdy...)
-	return serializedData, nil
-}
-
-func (d *Data) Deserialize(serializedData []byte) error {
-	d.Hdr.Version = binary.LittleEndian.Uint16(serializedData[:2]) // data version
-	d.Hdr.Type = binary.LittleEndian.Uint16(serializedData[2:4])   // data type
-
-	d.Bdy = &accounts.Contract{}
-	err := d.Bdy.Deserialize(serializedData[4:]) // data body
-	if err != nil {
-		return errors.New("Failed to deserialize data: " + err.Error())
-	}
-
-	return nil
-}
-
-func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data) (block.Block, error) {
+func CreateBlock(version uint16, height uint64, previousHash []byte, data []accounts.Contract) (block.Block, error) {
 	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
 
 	for i := range data {
@@ -190,7 +148,7 @@ func CreateBlock(version uint16, height uint64, previousHash []byte, data []Data
 func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
 	version := uint16(1)
 	mintAmt := initialAurumSupply / uint64(len(genesisPublicKeyHashes)) // (initialAurumSupply / n supplied key hashes)
-	var datum []Data
+	var datum []accounts.Contract
 
 	for _, pubKeyHash := range genesisPublicKeyHashes {
 		// for every public key hashes, make a nil-sender contract with value indicated by mintAmt
@@ -200,14 +158,14 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 		}
 
 		// data that contains data version and type, and the contract
-		data := Data{
-			Hdr: DataHeader{
-				Version: version,
-				Type:    0,
-			},
-			Bdy: contract,
-		}
-		datum = append(datum, data)
+		// data := Data{
+		// 	Hdr: DataHeader{
+		// 		Version: version,
+		// 		Type:    0,
+		// 	},
+		// 	Bdy: contract,
+		// }
+		datum = append(datum, *contract) // switched second parameter from data to contract
 	}
 
 	// create genesis block with null previous hash
