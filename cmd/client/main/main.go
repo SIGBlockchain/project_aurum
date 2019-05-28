@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,13 +10,14 @@ import (
 )
 
 type Flags struct {
-	help      *bool
-	debug     *bool
-	version   *bool
+	help  *bool
+	debug *bool
+	// version   *bool
 	setup     *bool
 	contract  *bool
 	recipient *string
 	value     *uint64
+	producer  *string
 }
 
 var version = uint16(1)
@@ -25,13 +25,14 @@ var wallet = "aurum_wallet.json"
 
 func main() {
 	fl := Flags{
-		help:      getopt.BoolLong("help", '?', "help"),
-		debug:     getopt.BoolLong("debug", 'd', "debug"),
-		version:   getopt.BoolLong("version", 'v', "version"),
+		help:  getopt.BoolLong("help", '?', "help"),
+		debug: getopt.BoolLong("debug", 'd', "debug"),
+		// version:   getopt.Bool("version", 'v', "version"), // why can't I use this?
 		setup:     getopt.BoolLong("setup", 's', "set up client"),
 		contract:  getopt.BoolLong("contract", 'c', "make contract"),
 		recipient: getopt.StringLong("recipient", 'r', "recipient"),
 		value:     getopt.Uint64Long("value", 'v', 0, "value to send"),
+		producer:  getopt.StringLong("producer", 'p', "", "producer address"),
 	}
 	getopt.Parse()
 
@@ -40,20 +41,20 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *fl.version {
-		fmt.Printf("Aurum client version: %d\n", version)
-		os.Exit(0)
-	}
+	// if *fl.version {
+	// 	fmt.Printf("Aurum client version: %d\n", version)
+	// 	os.Exit(0)
+	// }
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.debug {
-		lgr.SetOutput(os.Stderr)
+		lgr.SetOutput(os.Stdout)
 	}
 
 	if *fl.setup {
 		lgr.Println("Initializing Aurum wallet...")
-		if err := client.SetupWallet(); err != nil {
+		if err := client.SetupWallet(); err != nil { // should return error if already have a wallet
 			lgr.Fatalf("failed to setup wallet: %s", err.Error())
 		} else {
 			lgr.Printf("Wallet setup completed successfully.")
@@ -61,12 +62,14 @@ func main() {
 			// TODO: Need function here that returns public key hash (aka wallet address)
 			// TODO: Need function here that returns current balance
 			// TODO: Print all these out on successful setup
+			os.Exit(0)
 		}
 	}
 
 	if *fl.contract {
 		// TODO: Check for a recipient
 		// TODO: Check for a value
+		// TODO: Check for producer address
 		// TODO: Get balance, compare with value to see if possible
 		// TODO: Get state nonce
 		// TODO: Get private key
