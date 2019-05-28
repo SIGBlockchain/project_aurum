@@ -72,10 +72,8 @@ func main() {
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
-	{
-		if *fl.debug {
-			lgr.SetOutput(os.Stderr)
-		}
+	if *fl.debug {
+		lgr.SetOutput(os.Stderr)
 	}
 
 	if *fl.genesis {
