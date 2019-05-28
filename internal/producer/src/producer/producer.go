@@ -358,18 +358,15 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
   NOTE: the db connection passed in should be open
 */
 func updateAccountTable(db *sql.DB, b *block.Block) error {
-	//first deserialize the data
-	deserializedDatum := make([]Data, len(b.Data))
-	for i, serializedData := range b.Data {
-		dataStruct := &Data{}
-		dataStruct.Deserialize(serializedData)
-		deserializedDatum[i] = *dataStruct
-	}
 
 	//retrieve contracts
-	contracts := make([]*accounts.Contract, len(deserializedDatum))
-	for i, data := range deserializedDatum {
-		contracts[i] = data.Bdy.(*accounts.Contract)
+	contracts := make([]*accounts.Contract, len(b.Data))
+	for i, data := range b.Data {
+		contracts[i] = &accounts.Contract{}
+		err := contracts[i].Deserialize(data)
+		if err != nil {
+			return errors.New("Failed to deserialize contracts: " + err.Error())
+		}
 	}
 
 	//struct to keep track of everyone's account info
