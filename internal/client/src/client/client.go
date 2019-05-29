@@ -275,10 +275,10 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
 
 // READY TO BE IMPLEMENTED
-func GetBalance() (uint64, error) { return 0, errors.New("Incomplete Function") }
+func GetBalance() (uint64, error) { return 99999999, errors.New("Incomplete Function") }
 
 // READY TO BE IMPLEMENTED
-func GetStateNonce() (uint64, error) { return 0, errors.New("Incomplete Function") }
+func GetStateNonce() (uint64, error) { return 999999999, errors.New("Incomplete Function") }
 
 // READY TO BE IMPLEMENTED
 func GetWalletAddress() ([]byte, error) { return nil, errors.New("Incomplete Function") }
