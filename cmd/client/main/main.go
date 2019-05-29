@@ -69,6 +69,7 @@ func main() {
 	if *fl.contract {
 		// TODO: Check for a recipient
 		// TODO: Check for a value
+		// TODO: Check to make sure value is > 0
 		// TODO: Check for producer address
 		// TODO: Get balance, compare with value to see if possible
 		// TODO: Get state nonce
