@@ -397,7 +397,7 @@ func TestGetStateNonce(t *testing.T) {
 	if err != nil {
 		t.Errorf("getNonce() error = %v, wantErr %v", err, false)
 	}
-	var expected = 0
+	var expected uint64 = 0
 	if !reflect.DeepEqual(expected, myNonce) {
 		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myNonce)
 	}
@@ -431,7 +431,7 @@ func TestGetBalance(t *testing.T) {
 	if err != nil {
 		t.Errorf("getBalance() error = %v, wantErr %v", err, false)
 	}
-	var expected = 0
+	var expected uint64 = 0
 	if !reflect.DeepEqual(expected, myBal) {
 		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myBal)
 	}
