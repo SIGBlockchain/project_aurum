@@ -158,6 +158,12 @@ func SetupWallet() error {
 // NOT READY TO BE IMPLEMENTED YET
 func getBalance() error { return errors.New("Not ready to be implemented yet") }
 
+// NOT READY TO BE IMPLEMENTED YET
+func getStateNonce() error { return errors.New("Not ready to be implemented yet") }
+
+// NOT READY TO BE IMPLEMENTED YET
+func getWalletAddress() error { return errors.New("Not ready to be implemented yet") }
+
 // Opens the wallet file and prints out the balance
 func CheckBalance() error {
 	// Opens the wallet
