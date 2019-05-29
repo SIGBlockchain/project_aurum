@@ -396,7 +396,12 @@ func TestGetStateNonce(t *testing.T) {
 	}
 	wd.Nonce = rand.Uint64()
 
-	_, err = json.Marshal(wd)
+	updatedWalletJSON, err := json.Marshal(wd)
+	if err != nil {
+		t.Errorf("Failed to marshal the wallet for the test")
+	}
+
+	_, err = wallet.Write(updatedWalletJSON)
 	if err != nil {
 		t.Errorf("Failed to change the nonce for the test")
 	}
@@ -437,7 +442,12 @@ func TestGetBalance(t *testing.T) {
 	}
 	wd.Balance = rand.Uint64()
 
-	_, err = json.Marshal(wd)
+	updatedWalletJSON, err := json.Marshal(wd)
+	if err != nil {
+		t.Errorf("Failed to marshal the wallet for the test")
+	}
+	// Write into the json file
+	_, err = wallet.Write(updatedWalletJSON)
 	if err != nil {
 		t.Errorf("Failed to change the balance for the test")
 	}
