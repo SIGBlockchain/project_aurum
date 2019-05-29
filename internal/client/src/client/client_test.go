@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"reflect"
@@ -393,13 +394,15 @@ func TestGetStateNonce(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to unmarshall JSON data: %s", err)
 	}
+	wd.Nonce = rand.Uint64()
+
 	myNonce, err := GetStateNonce()
 	if err != nil {
 		t.Errorf("getNonce() error = %v, wantErr %v", err, false)
 	}
-	var expected uint64 = 41
-	if !reflect.DeepEqual(expected, myNonce+41) {
-		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myNonce+41)
+	var expected uint64 = wd.Nonce
+	if !reflect.DeepEqual(expected, myNonce) {
+		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myNonce)
 	}
 }
 
@@ -427,12 +430,14 @@ func TestGetBalance(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to unmarshall JSON data: %s", err)
 	}
+	wd.Balance = rand.Uint64()
+
 	myBal, err := GetBalance()
 	if err != nil {
 		t.Errorf("getBalance() error = %v, wantErr %v", err, false)
 	}
-	var expected uint64 = 11
-	if !reflect.DeepEqual(expected, myBal+11) {
-		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myBal+11)
+	var expected uint64 = wd.Balance
+	if !reflect.DeepEqual(expected, myBal) {
+		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myBal)
 	}
 }
