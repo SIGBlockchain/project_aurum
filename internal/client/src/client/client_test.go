@@ -340,9 +340,9 @@ func TestGetWalletAddress(t *testing.T) {
 		t.Errorf("Failed to open wallet: %s", err)
 	}
 	defer wallet.Close()
-	bytes, _ := ioutil.ReadAll(wallet)
+	myBytes, _ := ioutil.ReadAll(wallet)
 	var wd walletData
-	err = json.Unmarshal(bytes, &wd)
+	err = json.Unmarshal(myBytes, &wd)
 	if err != nil {
 		t.Errorf("Failed to unmarshall JSON data: %s", err)
 	}
