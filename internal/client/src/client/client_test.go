@@ -363,7 +363,7 @@ func TestGetWalletAddress(t *testing.T) {
 		t.Errorf("GetWalletAddress() error = %v, wantErr %v", err, false)
 	}
 	var expected = publicKeyHash
-	if !reflect.DeepEqual(expected, addr) {
+	if !bytes.Equal(expected, addr) {
 		t.Logf(hex.EncodeToString(expected))
 		t.Errorf("Print statement incorrect. Wanted: %s, got %s", hex.EncodeToString(expected), hex.EncodeToString(addr))
 	}
