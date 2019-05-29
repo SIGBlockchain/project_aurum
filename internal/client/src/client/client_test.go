@@ -360,7 +360,7 @@ func TestGetWalletAddress(t *testing.T) {
 	}
 	addr, err := GetWalletAddress()
 	if (err != nil) != false {
-		t.Errorf("getBalance() error = %v, wantErr %v", err, false)
+		t.Errorf("GetWalletAddress() error = %v, wantErr %v", err, false)
 	}
 	var expected = publicKeyHash
 	if !reflect.DeepEqual(expected, addr) {
