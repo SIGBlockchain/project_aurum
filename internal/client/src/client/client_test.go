@@ -366,7 +366,7 @@ func TestGetWalletAddress(t *testing.T) {
 	var expected = publicKeyHash
 	if !bytes.Equal(expected, addr) {
 		t.Logf(hex.EncodeToString(expected))
-		t.Errorf("Print statement incorrect. Wanted: %s, got %s", hex.EncodeToString(expected), hex.EncodeToString(addr))
+		t.Errorf("Values fail to match. Wanted: %s, got %s", hex.EncodeToString(expected), hex.EncodeToString(addr))
 	}
 }
 
@@ -412,7 +412,7 @@ func TestGetStateNonce(t *testing.T) {
 	}
 	var expected uint64 = wd.Nonce
 	if !reflect.DeepEqual(expected, myNonce) {
-		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myNonce)
+		t.Errorf("Values fail to match. Wanted: %v, got %v", expected, myNonce)
 	}
 }
 
@@ -458,6 +458,6 @@ func TestGetBalance(t *testing.T) {
 	}
 	var expected uint64 = wd.Balance
 	if !reflect.DeepEqual(expected, myBal) {
-		t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myBal)
+		t.Errorf("Values fail to match. Wanted: %v, got %v", expected, myBal)
 	}
 }
