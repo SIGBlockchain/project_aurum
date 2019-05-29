@@ -396,6 +396,11 @@ func TestGetStateNonce(t *testing.T) {
 	}
 	wd.Nonce = rand.Uint64()
 
+	_, err = json.Marshal(wd)
+	if err != nil {
+		t.Errorf("Failed to change the nonce for the test")
+	}
+
 	myNonce, err := GetStateNonce()
 	if err != nil {
 		t.Errorf("getNonce() error = %v, wantErr %v", err, false)
@@ -431,6 +436,11 @@ func TestGetBalance(t *testing.T) {
 		t.Errorf("Failed to unmarshall JSON data: %s", err)
 	}
 	wd.Balance = rand.Uint64()
+
+	_, err = json.Marshal(wd)
+	if err != nil {
+		t.Errorf("Failed to change the balance for the test")
+	}
 
 	myBal, err := GetBalance()
 	if err != nil {
