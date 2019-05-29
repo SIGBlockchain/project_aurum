@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -322,7 +322,6 @@ func TestGetPrivateKey(t *testing.T) {
 	}
 }
 
-
 func TestGetWalletAddress(t *testing.T) {
 	if err := SetupWallet(); err != nil {
 		t.Errorf("Failed to setup wallet: %s", err)
@@ -369,25 +368,13 @@ func TestGetWalletAddress(t *testing.T) {
 			if err != nil {
 				t.Errorf("Failed to parse private key: %s", err)
 			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			addr, err := GetWalletAddress() 
-			if(err != nil) != tt.wantErr {
+			addr, err := GetWalletAddress()
+			if (err != nil) != tt.wantErr {
 				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
 			var expected = publicKeyHash
-			if !reflect.DeepEqual(expected, addr) {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, out)
+			if !reflect.DeepEqual(string(expected), string(addr)) {
+				t.Errorf("Print statement incorrect. Wanted: %s, got %s", string(expected), string(addr))
 			}
 		})
 	}
@@ -414,7 +401,7 @@ func TestGetStateNonce(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			type nonceData struct {
-				Nonce    uint64
+				Nonce uint64
 			}
 			wallet, err := os.Open("aurum_wallet.json")
 			if err != nil {
@@ -427,24 +414,13 @@ func TestGetStateNonce(t *testing.T) {
 			if err != nil {
 				t.Errorf("Failed to unmarshall JSON data: %s", err)
 			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if nonce, err := GetStateNonce(); (err != nil) != tt.wantErr {
+			myNonce, err := GetStateNonce()
+			if (err != nil) != tt.wantErr {
 				t.Errorf("getNonce() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "1\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
+			var expected = 1
+			if !reflect.DeepEqual(expected, myNonce) {
+				t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myNonce)
 			}
 		})
 	}
@@ -471,7 +447,7 @@ func TestGetBalance(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			type balanceData struct {
-				Balance    uint64
+				Balance uint64
 			}
 			wallet, err := os.Open("aurum_wallet.json")
 			if err != nil {
@@ -484,26 +460,14 @@ func TestGetBalance(t *testing.T) {
 			if err != nil {
 				t.Errorf("Failed to unmarshall JSON data: %s", err)
 			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if myBal, err := GetBalance(); (err != nil) != tt.wantErr {
+			myBal, err := GetBalance()
+			if (err != nil) != tt.wantErr {
 				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "1\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
+			var expected = 1
+			if !reflect.DeepEqual(expected, myBal) {
+				t.Errorf("Print statement incorrect. Wanted: %v, got %v", expected, myBal)
 			}
 		})
 	}
 }
-
