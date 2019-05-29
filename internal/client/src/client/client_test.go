@@ -135,177 +135,6 @@ func TestSetupWallet(t *testing.T) {
 	}
 }
 
-func TestGetWalletAddress(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type WalletAddressData struct {
-				PrivateKey string
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wal walletAddressData
-			err = json.Unmarshal(bytes, &wal)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := getWalletAddress(); (err != nil) != tt.wantErr {
-				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "0\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
-	}
-}
-
-func TestGetStateNonce(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type nonceData struct {
-				Nonce    uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var nonce nonceData
-			err = json.Unmarshal(bytes, &nonce)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := getStateNonce(); (err != nil) != tt.wantErr {
-				t.Errorf("getNonce() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "1\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
-	}
-}
-
-func TestGetBalance(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type balanceData struct {
-				Balance    uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var bal balanceData
-			err = json.Unmarshal(bytes, &bal)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := getBalance(); (err != nil) != tt.wantErr {
-				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "How do I generate a wallet address to check?\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
-	}
-}
-
 func TestCheckBalance(t *testing.T) {
 	if err := SetupWallet(); err != nil {
 		t.Errorf("Failed to setup wallet: %s", err)
@@ -492,3 +321,189 @@ func TestGetPrivateKey(t *testing.T) {
 		})
 	}
 }
+
+
+func TestGetWalletAddress(t *testing.T) {
+	if err := SetupWallet(); err != nil {
+		t.Errorf("Failed to setup wallet: %s", err)
+	}
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
+		}
+	}()
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			type WalletAddressData struct {
+				PrivateKey string
+			}
+			wallet, err := os.Open("aurum_wallet.json")
+			if err != nil {
+				t.Errorf("Failed to open wallet: %s", err)
+			}
+			defer wallet.Close()
+			bytes, _ := ioutil.ReadAll(wallet)
+			var wal WalletAddressData
+			err = json.Unmarshal(bytes, &wal)
+			if err != nil {
+				t.Errorf("Failed to unmarshall JSON data: %s", err)
+			}
+			privateKeyString, err := hex.DecodeString(wal.PrivateKey)
+			if err != nil {
+				t.Errorf("Failed to decode private key: %s", err)
+			}
+			pemDecodedKey, _ := pem.Decode(privateKeyString)
+			x509Encoded := pemDecodedKey.Bytes
+			privateKey, err := x509.ParseECPrivateKey(x509Encoded)
+			publicKey := privateKey.PublicKey
+			publicKeyHash := block.HashSHA256(keys.EncodePublicKey(&publicKey))
+			if err != nil {
+				t.Errorf("Failed to parse private key: %s", err)
+			}
+			captureStdout := os.Stdout
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Errorf("Pipe function failed: %s", err)
+			}
+			os.Stdout = w
+			addr, err := GetWalletAddress() 
+			if(err != nil) != tt.wantErr {
+				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			w.Close()
+			out, err := ioutil.ReadAll(r)
+			if err != nil {
+				t.Errorf("Failed to read from capture file: %s", err)
+			}
+			os.Stdout = captureStdout
+			var expected = publicKeyHash
+			if !reflect.DeepEqual(expected, addr) {
+				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, out)
+			}
+		})
+	}
+}
+
+func TestGetStateNonce(t *testing.T) {
+	if err := SetupWallet(); err != nil {
+		t.Errorf("Failed to setup wallet: %s", err)
+	}
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
+		}
+	}()
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			type nonceData struct {
+				Nonce    uint64
+			}
+			wallet, err := os.Open("aurum_wallet.json")
+			if err != nil {
+				t.Errorf("Failed to open wallet: %s", err)
+			}
+			defer wallet.Close()
+			bytes, _ := ioutil.ReadAll(wallet)
+			var nonce nonceData
+			err = json.Unmarshal(bytes, &nonce)
+			if err != nil {
+				t.Errorf("Failed to unmarshall JSON data: %s", err)
+			}
+			captureStdout := os.Stdout
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Errorf("Pipe function failed: %s", err)
+			}
+			os.Stdout = w
+			if nonce, err := GetStateNonce(); (err != nil) != tt.wantErr {
+				t.Errorf("getNonce() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			w.Close()
+			out, err := ioutil.ReadAll(r)
+			if err != nil {
+				t.Errorf("Failed to read from capture file: %s", err)
+			}
+			os.Stdout = captureStdout
+			expected := "1\n"
+			if string(out) != expected {
+				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
+			}
+		})
+	}
+}
+
+func TestGetBalance(t *testing.T) {
+	if err := SetupWallet(); err != nil {
+		t.Errorf("Failed to setup wallet: %s", err)
+	}
+	defer func() {
+		err := os.Remove("aurum_wallet.json")
+		if err != nil {
+			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
+		}
+	}()
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			type balanceData struct {
+				Balance    uint64
+			}
+			wallet, err := os.Open("aurum_wallet.json")
+			if err != nil {
+				t.Errorf("Failed to open wallet: %s", err)
+			}
+			defer wallet.Close()
+			bytes, _ := ioutil.ReadAll(wallet)
+			var bal balanceData
+			err = json.Unmarshal(bytes, &bal)
+			if err != nil {
+				t.Errorf("Failed to unmarshall JSON data: %s", err)
+			}
+			captureStdout := os.Stdout
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Errorf("Pipe function failed: %s", err)
+			}
+			os.Stdout = w
+			if myBal, err := GetBalance(); (err != nil) != tt.wantErr {
+				t.Errorf("getBalance() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			w.Close()
+			out, err := ioutil.ReadAll(r)
+			if err != nil {
+				t.Errorf("Failed to read from capture file: %s", err)
+			}
+			os.Stdout = captureStdout
+			expected := "1\n"
+			if string(out) != expected {
+				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
+			}
+		})
+	}
+}
+

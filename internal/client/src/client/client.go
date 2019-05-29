@@ -155,15 +155,6 @@ func SetupWallet() error {
 	return nil
 }
 
-// NOT READY TO BE IMPLEMENTED YET
-func getBalance() error { return errors.New("Not ready to be implemented yet") }
-
-// NOT READY TO BE IMPLEMENTED YET
-func getStateNonce() error { return errors.New("Not ready to be implemented yet") }
-
-// NOT READY TO BE IMPLEMENTED YET
-func getWalletAddress() error { return errors.New("Not ready to be implemented yet") }
-
 // Opens the wallet file and prints out the balance
 func CheckBalance() error {
 	// Opens the wallet
@@ -282,3 +273,12 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 
 // NOT READY TO BE IMPLEMENTED YET
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
+
+// READY TO BE IMPLEMENTED
+func GetBalance() (uint64, error) { return 0, errors.New("Not ready to be implemented yet") }
+
+// READY TO BE IMPLEMENTED
+func GetStateNonce() (uint64, error) { return 0, errors.New("Not ready to be implemented yet") }
+
+// READY TO BE IMPLEMENTED
+func GetWalletAddress() ([]byte, error) { return nil, errors.New("Not ready to be implemented yet") }
