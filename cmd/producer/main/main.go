@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"time"
@@ -38,6 +39,7 @@ type Flags struct {
 	port       *string
 	interval   *string
 	initSupply *uint64
+	numBlocks  *uint64
 }
 
 var version = uint16(1)
@@ -57,6 +59,7 @@ func main() {
 		port:       getopt.StringLong("port", 'p', "13131", "port"),
 		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
 		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
+		numBlocks:  getopt.Uint64Long("blocks", 'b', 0, "number of blocks to generate"),
 	}
 	getopt.Lookup('l').SetOptional()
 	getopt.Parse()
@@ -73,10 +76,8 @@ func main() {
 
 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
-	{
-		if *fl.debug {
-			lgr.SetOutput(os.Stderr)
-		}
+	if *fl.debug {
+		lgr.SetOutput(os.Stdout)
 	}
 
 	if *fl.genesis {
@@ -108,7 +109,32 @@ func main() {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
-	// Main loop
+	var addr = "localhost:"
+	var ln net.Listener
+	if getopt.IsSet('p') {
+		addr += *fl.port
+		ln, err = net.Listen("tcp", addr)
+		if err != nil {
+			lgr.Fatalf("failed to start tcp listener: %s", err.Error())
+		}
+		lgr.Printf("Server listening on port %s.", *fl.port)
+		// byteSliceChan := make(chan []byte)
+		go func() {
+			for {
+				if conn, err := ln.Accept(); err == nil {
+					lgr.Printf("%s connected\n", conn.RemoteAddr())
+					defer conn.Close()
+					buf := make([]byte, 1024)
+					if nBytes, err := conn.Read(buf); err == nil {
+						lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
+						conn.Write(buf)
+					}
+				}
+			}
+			// ln.Close()
+		}()
+	}
+
 	productionInterval, err := time.ParseDuration(*fl.interval)
 	if err != nil {
 		lgr.Fatalln("failed to parse block production interval")
@@ -129,6 +155,7 @@ func main() {
 		go triggerInterval(intervalChannel, time.Duration(diff))
 	}
 
+	// Main loop
 	for {
 		var dataPool []accounts.Contract
 		var ms runtime.MemStats
@@ -155,12 +182,17 @@ func main() {
 			}
 		}
 		// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
-		lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
-		lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
-		lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
-		lgr.Printf("Count of heap objects freed: %d", ms.Frees)
+		// lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
+		// lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
+		// lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
+		// lgr.Printf("Count of heap objects freed: %d", ms.Frees)
 		if *fl.test {
 			break
+		}
+		if getopt.IsSet('b') {
+			if chainHeight >= *fl.numBlocks {
+				break
+			}
 		}
 	}
 }
@@ -169,30 +201,6 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 	time.Sleep(productionInterval)
 	intervalChannel <- true
 }
-
-// func init() {
-// 	if *fl.debug {
-// 		lgr.SetOutput(os.Stderr)
-// 	}
-// 	if getopt.IsSet('l') || getopt.IsSet("log") {
-// 		os.Mkdir(filepath, 0777)
-// 		if *fl.logs == "" {
-// 			filepath += "logs.txt"
-// 		} else {
-// 			filepath += *fl.logs
-// 		}
-// 		f, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE, 0666)
-// 		if err != nil {
-// 			log.Fatalln("failed to open file" + err.Error())
-// 		}
-// 		defer func() {
-// 			if err := f.Close(); err != nil {
-// 				log.Fatalln("failed to close file")
-// 			}
-// 		}()
-// 		lgr.SetOutput(io.Writer(f))
-// 	}
-// }
 
 // func init() {
 // 	if *fl.globalhost {
@@ -234,28 +242,3 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 // 	// Close the server
 // 	ln.Close()
 // }
-
-// var filepath = os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/producer/logs/"
-// 	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-
-// 	if *fl.debug {
-// 		lgr.SetOutput(os.Stderr)
-// 	}
-// 	if getopt.IsSet('l') || getopt.IsSet("log") {
-// 		os.Mkdir(filepath, 0777)
-// 		if *fl.logs == "" {
-// 			filepath += "logs.txt"
-// 		} else {
-// 			filepath += *fl.logs
-// 		}
-// 		f, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE, 0666)
-// 		if err != nil {
-// 			log.Fatalln("failed to open file" + err.Error())
-// 		}
-// 		defer func() {
-// 			if err := f.Close(); err != nil {
-// 				log.Fatalln("failed to close file")
-// 			}
-// 		}()
-// 		lgr.SetOutput(io.Writer(f))
-// 	}
