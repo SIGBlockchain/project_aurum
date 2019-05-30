@@ -383,7 +383,7 @@ func TestGetStateNonce(t *testing.T) {
 		Balance    uint64
 		Nonce      uint64
 	}
-	wallet, err := os.Open("aurum_wallet.json")
+	wallet, err := os.OpenFile("aurum_wallet.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Errorf("Failed to open wallet: %s", err)
 	}
@@ -429,7 +429,7 @@ func TestGetBalance(t *testing.T) {
 		Balance    uint64
 		Nonce      uint64
 	}
-	wallet, err := os.Open("aurum_wallet.json")
+	wallet, err := os.OpenFile("aurum_wallet.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Errorf("Failed to open wallet: %s", err)
 	}
