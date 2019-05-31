@@ -137,7 +137,7 @@ func main() {
 						if strings.Contains(string(buf), "aurum") {
 							lgr.Printf("Got aurum related message")
 						}
-						conn.Write(buf)
+						conn.Write(buf[:nBytes])
 					}
 				}
 			}
@@ -167,6 +167,8 @@ func main() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
+	var numBlocksGenerated uint64
+
 	// Main loop
 	for {
 		var dataPool []accounts.Contract
@@ -187,6 +189,7 @@ func main() {
 					os.Exit(1)
 				} else {
 					lgr.Printf("block produced: #%d\n", chainHeight+1)
+					numBlocksGenerated++
 					youngestBlockHeader = newBlock.GetHeader()
 					go triggerInterval(intervalChannel, productionInterval)
 					runtime.ReadMemStats(&ms)
@@ -202,7 +205,7 @@ func main() {
 		// lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
 		// lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
 		// lgr.Printf("Count of heap objects freed: %d", ms.Frees)
-		if *fl.test || (getopt.IsSet('b') && (chainHeight >= *fl.numBlocks)) {
+		if *fl.test || (getopt.IsSet('b') && (numBlocksGenerated >= *fl.numBlocks)) {
 			break
 		}
 	}
