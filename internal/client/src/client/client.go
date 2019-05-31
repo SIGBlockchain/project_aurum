@@ -273,3 +273,103 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 
 // NOT READY TO BE IMPLEMENTED YET
 func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
+
+// READY TO BE IMPLEMENTED
+func GetBalance() (uint64, error) {
+	fwallet, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return 0, errors.New("Failed to open wallet file: " + err.Error())
+	}
+	defer fwallet.Close()
+
+	jsonEncoded, err := ioutil.ReadAll(fwallet)
+	if err != nil {
+		return 0, errors.New("Failed to read wallet file: " + err.Error())
+	}
+
+	type jsonStruct struct {
+		Balance uint64
+	}
+
+	var j jsonStruct
+	err = json.Unmarshal(jsonEncoded, &j)
+	if err != nil {
+		return 0, errors.New("Failed to parse data from json file: " + err.Error())
+	}
+
+	return j.Balance, nil
+}
+
+// READY TO BE IMPLEMENTED
+func GetStateNonce() (uint64, error) {
+	// Opens the wallet
+	file, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return 0, errors.New("Failed to open wallet")
+	}
+	defer file.Close()
+
+	// Reads the json file and stores the data into the data byte slice
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return 0, errors.New("Failed to read wallet")
+	}
+
+	// Json struct for storing the nonce from the json file
+	type jsonStruct struct {
+		Nonce uint64
+	}
+
+	// Parse the data from the json file into a jsonStruct
+	var j jsonStruct
+	err = json.Unmarshal(data, &j)
+	if err != nil {
+		return 0, errors.New("Failed to parse data from json file: " + err.Error())
+	}
+
+	return j.Nonce, nil
+}
+
+// READY TO BE IMPLEMENTED
+func GetWalletAddress() ([]byte, error) {
+	// Opens the wallet
+	file, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return nil, errors.New("Failed to open wallet")
+	}
+	defer file.Close()
+
+	// Reads the json file and stores the data into a byte slice
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, errors.New("Failed to read wallet")
+	}
+
+	// Json struct for storing the data from the json file
+	type jsonStruct struct {
+		PrivateKey string
+	}
+
+	// Parse the data from the json file into a jsonStruct
+	var j jsonStruct
+	err = json.Unmarshal(data, &j)
+	if err != nil {
+		return nil, errors.New("Failed to parse data from json file")
+	}
+
+	// Get the private key hash
+	privKeyHash, err := hex.DecodeString(j.PrivateKey)
+	if err != nil {
+		return nil, errors.New("Failed to decode private key string")
+	}
+
+	// Get the private key
+	privKey, err := keys.DecodePrivateKey(privKeyHash)
+	if err != nil {
+		return nil, errors.New("Failed to decode private key hash")
+	}
+
+	// Get the PEM encoded public key
+	pubKeyEncoded := keys.EncodePublicKey(&privKey.PublicKey)
+	return block.HashSHA256(pubKeyEncoded), nil
+}
