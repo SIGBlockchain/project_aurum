@@ -371,92 +371,85 @@ func TestGetWalletAddress(t *testing.T) {
 }
 
 func TestGetStateNonce(t *testing.T) {
-	SetupWallet()
 	defer func() {
 		err := os.Remove("aurum_wallet.json")
 		if err != nil {
 			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
 		}
 	}()
+	// Create JSON file for wallet
+	file, err := os.Create("aurum_wallet.json")
+	if err != nil {
+		t.Errorf("Failed to create \"aurum_wallet.json\". Error: %s", err)
+	}
+	defer file.Close()
 	type walletData struct {
 		PrivateKey string
 		Balance    uint64
 		Nonce      uint64
 	}
-	wallet, err := os.OpenFile("aurum_wallet.json", os.O_RDWR, 0755)
-	if err != nil {
-		t.Errorf("Failed to open wallet: %s", err)
-	}
-	defer wallet.Close()
-	bytes, _ := ioutil.ReadAll(wallet)
 	var wd walletData
-	err = json.Unmarshal(bytes, &wd)
-	if err != nil {
-		t.Errorf("Failed to unmarshall JSON data: %s", err)
-	}
 	wd.Nonce = rand.Uint64()
-
-	updatedWalletJSON, err := json.Marshal(wd)
+	// Marshall the jsonStruct
+	jsonEncoded, err := json.Marshal(wd)
 	if err != nil {
-		t.Errorf("Failed to marshal the wallet for the test")
+
+		t.Errorf("Failed to marshal the wallet for the test. Error: %s", err)
 	}
-
-	_, err = wallet.Write(updatedWalletJSON)
+	// Write into the json file
+	_, err = file.Write(jsonEncoded)
 	if err != nil {
-		t.Errorf("Failed to change the nonce for the test")
+		t.Errorf("Failed to write into the json file. Error: %s", err)
 	}
 
 	myNonce, err := GetStateNonce()
 	if err != nil {
 		t.Errorf("getNonce() error = %v, wantErr %v", err, false)
 	}
-	var expected uint64 = wd.Nonce
+	var expected = wd.Nonce
 	if !reflect.DeepEqual(expected, myNonce) {
 		t.Errorf("Values fail to match. Wanted: %v, got %v", expected, myNonce)
 	}
 }
 
 func TestGetBalance(t *testing.T) {
-	SetupWallet()
 	defer func() {
 		err := os.Remove("aurum_wallet.json")
 		if err != nil {
 			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
 		}
 	}()
+	// Create JSON file for wallet
+	file, err := os.Create("aurum_wallet.json")
+	if err != nil {
+		t.Errorf("Failed to create \"aurum_wallet.json\". Error: %s", err)
+	}
+	defer file.Close()
 	type walletData struct {
 		PrivateKey string
 		Balance    uint64
 		Nonce      uint64
 	}
-	wallet, err := os.OpenFile("aurum_wallet.json", os.O_RDWR, 0755)
-	if err != nil {
-		t.Errorf("Failed to open wallet: %s", err)
-	}
-	defer wallet.Close()
-	bytes, _ := ioutil.ReadAll(wallet)
 	var wd walletData
-	err = json.Unmarshal(bytes, &wd)
-	if err != nil {
-		t.Errorf("Failed to unmarshall JSON data: %s", err)
-	}
 	wd.Balance = rand.Uint64()
 
-	updatedWalletJSON, err := json.Marshal(wd)
+	// Marshall the jsonStruct
+	jsonEncoded, err := json.Marshal(wd)
 	if err != nil {
-		t.Errorf("Failed to marshal the wallet for the test")
+
+		t.Errorf("Failed to marshal the wallet for the test. Error: %s", err)
 	}
 	// Write into the json file
-	_, err = wallet.Write(updatedWalletJSON)
+	_, err = file.Write(jsonEncoded)
 	if err != nil {
-		t.Errorf("Failed to change the balance for the test")
+		t.Errorf("Failed to write into the json file. Error: %s", err)
 	}
 
 	myBal, err := GetBalance()
 	if err != nil {
 		t.Errorf("getBalance() error = %v, wantErr %v", err, false)
 	}
-	var expected uint64 = wd.Balance
+	var expected = wd.Balance
 	if !reflect.DeepEqual(expected, myBal) {
 		t.Errorf("Values fail to match. Wanted: %v, got %v", expected, myBal)
 	}
