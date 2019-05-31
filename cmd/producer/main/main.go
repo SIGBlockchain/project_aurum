@@ -16,7 +16,10 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"runtime"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
@@ -117,8 +120,12 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to start tcp listener: %s", err.Error())
 		}
+		defer func() {
+			lgr.Printf("closing listener.")
+			ln.Close()
+		}()
 		lgr.Printf("Server listening on port %s.", *fl.port)
-		// byteSliceChan := make(chan []byte)
+		// contractChan := make(chan []accounts.Contract)
 		go func() {
 			for {
 				if conn, err := ln.Accept(); err == nil {
@@ -127,11 +134,13 @@ func main() {
 					buf := make([]byte, 1024)
 					if nBytes, err := conn.Read(buf); err == nil {
 						lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
+						if strings.Contains(string(buf), "aurum") {
+							lgr.Printf("Got aurum related message")
+						}
 						conn.Write(buf)
 					}
 				}
 			}
-			// ln.Close()
 		}()
 	}
 
@@ -154,6 +163,9 @@ func main() {
 		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
 		go triggerInterval(intervalChannel, time.Duration(diff))
 	}
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
 	// Main loop
 	for {
@@ -180,19 +192,18 @@ func main() {
 					runtime.ReadMemStats(&ms)
 				}
 			}
+		case <-signalCh:
+			fmt.Print("\r")
+			lgr.Println("Interrupt signal encountered, program terminating.")
+			return
 		}
 		// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
 		// lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
 		// lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
 		// lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
 		// lgr.Printf("Count of heap objects freed: %d", ms.Frees)
-		if *fl.test {
+		if *fl.test || (getopt.IsSet('b') && (chainHeight >= *fl.numBlocks)) {
 			break
-		}
-		if getopt.IsSet('b') {
-			if chainHeight >= *fl.numBlocks {
-				break
-			}
 		}
 	}
 }

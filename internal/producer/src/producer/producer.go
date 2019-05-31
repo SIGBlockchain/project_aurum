@@ -27,6 +27,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 )
 
+var secretBytes = block.HashSHA256([]byte("aurum"))[8:16]
+
 // This stores connection information for the producer
 type BlockProducer struct {
 	Server        net.Listener
