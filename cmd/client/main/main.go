@@ -1,7 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"os"
 
@@ -10,29 +11,50 @@ import (
 )
 
 type Flags struct {
-	help  *bool
-	debug *bool
+	help *bool
 	// version   *bool
-	setup     *bool
-	contract  *bool
-	recipient *string
-	value     *uint64
-	producer  *string
+	setup      *bool
+	info       *bool
+	updateInfo *bool
+	contract   *bool
+	recipient  *string
+	value      *uint64
+	producer   *string
 }
 
 var version = uint16(1)
 var wallet = "aurum_wallet.json"
 
+func PrintInfo() error {
+	walletAddr, err := client.GetWalletAddress()
+	if err != nil {
+		return err
+	}
+	stateNonce, err := client.GetStateNonce()
+	if err != nil {
+		return err
+	}
+	balance, err := client.GetBalance()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Wallet Address: %s\n", hex.EncodeToString(walletAddr))
+	fmt.Printf("State nonce: %d\n", stateNonce)
+	fmt.Printf("Balance: %d\n", balance)
+	return nil
+}
+
 func main() {
 	fl := Flags{
-		help:  getopt.BoolLong("help", '?', "help"),
-		debug: getopt.BoolLong("debug", 'd', "debug"),
+		help: getopt.BoolLong("help", '?', "help"),
 		// version:   getopt.Bool("version", 'v', "version"), // why can't I use this?
-		setup:     getopt.BoolLong("setup", 's', "set up client"),
-		contract:  getopt.BoolLong("contract", 'c', "make contract"),
-		recipient: getopt.StringLong("recipient", 'r', "recipient"),
-		value:     getopt.Uint64Long("value", 'v', 0, "value to send"),
-		producer:  getopt.StringLong("producer", 'p', "", "producer address"),
+		setup:      getopt.BoolLong("setup", 's', "set up client"),
+		info:       getopt.BoolLong("info", 'i', "wallet info"),
+		updateInfo: getopt.BoolLong("update", 'u', "update wallet info"),
+		contract:   getopt.BoolLong("contract", 'c', "make contract"),
+		recipient:  getopt.StringLong("recipient", 'r', "recipient"),
+		value:      getopt.Uint64Long("value", 'v', 0, "value to send"),
+		producer:   getopt.StringLong("producer", 'p', "", "producer address"),
 	}
 	getopt.Parse()
 
@@ -46,23 +68,26 @@ func main() {
 	// 	os.Exit(0)
 	// }
 
-	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-
-	if *fl.debug {
-		lgr.SetOutput(os.Stdout)
-	}
+	var lgr = log.New(os.Stderr, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.setup {
-		lgr.Println("Initializing Aurum wallet...")
-		if err := client.SetupWallet(); err != nil { // should return error if already have a wallet
+		fmt.Println("Initializing Aurum wallet...")
+		if err := client.SetupWallet(); err != nil {
+			// TODO: should return error if already have a wallet
 			lgr.Fatalf("failed to setup wallet: %s", err.Error())
 		} else {
-			lgr.Printf("Wallet setup completed successfully.")
-			// TODO: Need function here that returns current state nonce
-			// TODO: Need function here that returns public key hash (aka wallet address)
-			// TODO: Need function here that returns current balance
-			// TODO: Print all these out on successful setup
+			fmt.Println("Wallet setup completed successfully.")
+			if err := PrintInfo(); err != nil {
+				lgr.Fatalf("failed to print wallet info: %s", err.Error())
+			}
 			os.Exit(0)
+		}
+	}
+
+	if *fl.info {
+		fmt.Println("Wallet setup completed successfully.")
+		if err := PrintInfo(); err != nil {
+			lgr.Fatalf("failed to print wallet info: %s", err.Error())
 		}
 	}
 
