@@ -50,7 +50,7 @@ var ledger = "blockchain.dat"
 var metadataTable = "metadata.tab"
 var accountsTable = "accounts.tab"
 
-func RunServer(ln net.Listener, debug bool) {
+func RunServer(ln net.Listener, byteChan chan []byte, debug bool) {
 	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if debug {
 		lgr.SetOutput(os.Stdout)
@@ -61,9 +61,16 @@ func RunServer(ln net.Listener, debug bool) {
 			buf := make([]byte, 1024)
 			if nBytes, err := conn.Read(buf); err == nil {
 				lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
-				if bytes.Equal(buf[:8], producer.SecretBytes) {
+				if (nBytes >= 8) && (bytes.Equal(buf[:8], producer.SecretBytes)) {
 					lgr.Printf("Got aurum related message")
-					conn.Write([]byte("aurum client acknowledged"))
+					if (nBytes >= 9) && (buf[9] == 1) {
+						contract := make([]byte, nBytes-9)
+						copy(contract, buf[10:])
+						byteChan <- contract // WHY DOESN'T THIS WORK?
+						conn.Write([]byte("received contract message"))
+					} else {
+						conn.Write([]byte("aurum client acknowledged"))
+					}
 				} else {
 					conn.Write(buf[:nBytes])
 				}
@@ -137,6 +144,11 @@ func main() {
 
 	var addr = "localhost:"
 	var ln net.Listener
+	defer func() {
+		lgr.Printf("closing listener.")
+		ln.Close()
+	}()
+	var byteChan chan []byte
 	// var dataLock sync.Mutex
 	if getopt.IsSet('p') {
 		addr += *fl.port
@@ -144,14 +156,9 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to start tcp listener: %s", err.Error())
 		}
-		defer func() {
-			lgr.Printf("closing listener.")
-			ln.Close()
-		}()
 		lgr.Printf("Server listening on port %s.", *fl.port)
 		// contractChan := make(chan []accounts.Contract)
-		// TODO: isolate and test this function separately
-		go RunServer(ln, *fl.debug)
+		go RunServer(ln, byteChan, *fl.debug)
 	}
 
 	productionInterval, err := time.ParseDuration(*fl.interval)

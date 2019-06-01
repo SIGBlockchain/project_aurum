@@ -2,11 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"database/sql"
 	"net"
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 )
@@ -78,9 +86,23 @@ func TestRunServer(t *testing.T) {
 		t.Errorf("failed to start listener:\n%s", err.Error())
 	}
 	defer ln.Close()
-	go RunServer(ln, false)
+	var byteChan chan []byte
+	go RunServer(ln, byteChan, false)
 
 	buf := make([]byte, 1024)
+
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPublicKeyHash := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+	contract.SignContract(senderPrivateKey)
+	serializedContract, err := contract.Serialize()
+
+	var contractMessage []byte
+	contractMessage = append(contractMessage, producer.SecretBytes...)
+	contractMessage = append(contractMessage, 1)
+	contractMessage = append(contractMessage, serializedContract...)
+
 	type serverTest struct {
 		name            string
 		messageToBeSent []byte
@@ -96,6 +118,11 @@ func TestRunServer(t *testing.T) {
 			name:            "Aurum Message",
 			messageToBeSent: producer.SecretBytes,
 			messageToBeRcvd: []byte("aurum client acknowledged"),
+		},
+		{
+			name:            "Contract Message",
+			messageToBeSent: contractMessage,
+			messageToBeRcvd: []byte("received contract message"),
 		},
 	}
 
@@ -119,6 +146,13 @@ func TestRunServer(t *testing.T) {
 			if !bytes.Equal(buf[:nRcvd], ta.messageToBeRcvd) {
 				t.Logf("messages don't match: %s != %s", string(buf[:nRcvd]), string(ta.messageToBeRcvd))
 				t.FailNow()
+			}
+			// Below code tests the channel communication
+			if ta.name == "Contract Message" {
+				channelledContract := <-byteChan
+				if !bytes.Equal(channelledContract, serializedContract) {
+					t.Errorf("channel contents does not match desired slice:\n%v != %v", channelledContract, serializedContract)
+				}
 			}
 		})
 
