@@ -18,7 +18,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -50,6 +49,27 @@ var ledger = "blockchain.dat"
 var metadataTable = "metadata.tab"
 var accountsTable = "accounts.tab"
 
+func RunServer(ln net.Listener, debug bool) {
+	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	if debug {
+		lgr.SetOutput(os.Stdout)
+	}
+	for {
+		if conn, err := ln.Accept(); err == nil {
+			lgr.Printf("%s connected\n", conn.RemoteAddr())
+			defer conn.Close()
+			buf := make([]byte, 1024)
+			if nBytes, err := conn.Read(buf); err == nil {
+				lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
+				// if strings.Contains(string(buf), "aurum") {
+				// 	lgr.Printf("Got aurum related message")
+				// }
+				conn.Write(buf[:nBytes])
+			}
+		}
+	}
+}
+
 func main() {
 	fl := Flags{
 		help:       getopt.BoolLong("help", '?', "help"),
@@ -77,7 +97,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	var lgr = log.New(ioutil.Discard, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	var lgr = log.New(ioutil.Discard, "MAIN_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.debug {
 		lgr.SetOutput(os.Stdout)
@@ -114,6 +134,7 @@ func main() {
 
 	var addr = "localhost:"
 	var ln net.Listener
+	// var dataLock sync.Mutex
 	if getopt.IsSet('p') {
 		addr += *fl.port
 		ln, err = net.Listen("tcp", addr)
@@ -126,22 +147,8 @@ func main() {
 		}()
 		lgr.Printf("Server listening on port %s.", *fl.port)
 		// contractChan := make(chan []accounts.Contract)
-		go func() {
-			for {
-				if conn, err := ln.Accept(); err == nil {
-					lgr.Printf("%s connected\n", conn.RemoteAddr())
-					defer conn.Close()
-					buf := make([]byte, 1024)
-					if nBytes, err := conn.Read(buf); err == nil {
-						lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
-						if strings.Contains(string(buf), "aurum") {
-							lgr.Printf("Got aurum related message")
-						}
-						conn.Write(buf[:nBytes])
-					}
-				}
-			}
-		}()
+		// TODO: isolate and test this function separately
+		go RunServer(ln, *fl.debug)
 	}
 
 	productionInterval, err := time.ParseDuration(*fl.interval)

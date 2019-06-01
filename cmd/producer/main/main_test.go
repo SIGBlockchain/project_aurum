@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 )
@@ -71,36 +70,34 @@ func TestSuite(t *testing.T) {
 			}
 		}
 	})
-	t.Run("Communication", func(t *testing.T) {
-		// t.SkipNow()
-		cmd := exec.Command("go", "run", "main.go", "-d", "--interval=2000ms", "--blocks=2", "--port=9001")
-		var stdout bytes.Buffer
-		cmd.Stdout = &stdout
-		if err := cmd.Start(); err != nil {
-			t.Errorf("failed to run main command: %s", err.Error())
-		}
-		dur, _ := time.ParseDuration("1000ms")
-		time.Sleep(dur)
-		conn, err := net.Dial("tcp", "localhost:9001")
-		if err != nil {
-			t.Errorf("failed to connect to producer: %s", err.Error())
-		}
-		defer conn.Close()
-		s := []byte("testing communication")
-		if _, err := conn.Write(s); err != nil {
-			t.Errorf("failed to send message: %s", err.Error())
-		}
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			t.Errorf("failed to read from connections: %s", err.Error())
-		}
-		if err := cmd.Wait(); err != nil {
-			t.Errorf("main call returned with: %s", err.Error())
-			t.Logf("Stdout: %s", string(stdout.Bytes()))
-		}
-		if !bytes.Equal(buf[:n], s) {
-			t.Errorf("buffer does not match: %v != %v", buf[:n], s)
-		}
-	})
+}
+
+func TestRunServer(t *testing.T) {
+	ln, err := net.Listen("tcp", "localhost:13131")
+	if err != nil {
+		t.Errorf("failed to start listener:\n%s", err.Error())
+	}
+	defer ln.Close()
+	go RunServer(ln, false)
+	conn, err := net.Dial("tcp", "localhost:13131")
+	if err != nil {
+		t.Logf("failed to connect to server:\n%s", err.Error())
+		t.FailNow()
+	}
+	msg := []byte("test message")
+	_, err = conn.Write(msg)
+	if err != nil {
+		t.Logf("failed to send message to server:\n%s", err.Error())
+		t.FailNow()
+	}
+	buf := make([]byte, 1024)
+	nRcvd, err := conn.Read(buf)
+	if err != nil {
+		t.Logf("failed to receive bytes from connection:\n%s", err.Error())
+		t.FailNow()
+	}
+	if !bytes.Equal(buf[:nRcvd], msg) {
+		t.Logf("messages don't match: %s != %s", string(msg), string(buf[:nRcvd]))
+		t.FailNow()
+	}
 }
