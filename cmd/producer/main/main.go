@@ -11,6 +11,7 @@ one block and exit.
 */
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -57,15 +58,17 @@ func RunServer(ln net.Listener, debug bool) {
 	for {
 		if conn, err := ln.Accept(); err == nil {
 			lgr.Printf("%s connected\n", conn.RemoteAddr())
-			defer conn.Close()
 			buf := make([]byte, 1024)
 			if nBytes, err := conn.Read(buf); err == nil {
 				lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
-				// if strings.Contains(string(buf), "aurum") {
-				// 	lgr.Printf("Got aurum related message")
-				// }
-				conn.Write(buf[:nBytes])
+				if bytes.Equal(buf[:8], producer.SecretBytes) {
+					lgr.Printf("Got aurum related message")
+					conn.Write([]byte("aurum client acknowledged"))
+				} else {
+					conn.Write(buf[:nBytes])
+				}
 			}
+			conn.Close()
 		}
 	}
 }

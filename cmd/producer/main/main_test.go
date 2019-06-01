@@ -79,25 +79,48 @@ func TestRunServer(t *testing.T) {
 	}
 	defer ln.Close()
 	go RunServer(ln, false)
-	conn, err := net.Dial("tcp", "localhost:13131")
-	if err != nil {
-		t.Logf("failed to connect to server:\n%s", err.Error())
-		t.FailNow()
-	}
-	msg := []byte("test message")
-	_, err = conn.Write(msg)
-	if err != nil {
-		t.Logf("failed to send message to server:\n%s", err.Error())
-		t.FailNow()
-	}
+
 	buf := make([]byte, 1024)
-	nRcvd, err := conn.Read(buf)
-	if err != nil {
-		t.Logf("failed to receive bytes from connection:\n%s", err.Error())
-		t.FailNow()
+	type serverTest struct {
+		name            string
+		messageToBeSent []byte
+		messageToBeRcvd []byte
 	}
-	if !bytes.Equal(buf[:nRcvd], msg) {
-		t.Logf("messages don't match: %s != %s", string(msg), string(buf[:nRcvd]))
-		t.FailNow()
+	testArgs := []serverTest{
+		{
+			name:            "Standard Message",
+			messageToBeSent: []byte("test message"),
+			messageToBeRcvd: []byte("test message"),
+		},
+		{
+			name:            "Aurum Message",
+			messageToBeSent: producer.SecretBytes,
+			messageToBeRcvd: []byte("aurum client acknowledged"),
+		},
+	}
+
+	for _, ta := range testArgs {
+		t.Run(ta.name, func(t *testing.T) {
+			conn, err := net.Dial("tcp", "localhost:13131")
+			if err != nil {
+				t.Logf("failed to connect to server:\n%s", err.Error())
+				t.FailNow()
+			}
+			_, err = conn.Write(ta.messageToBeSent)
+			if err != nil {
+				t.Logf("failed to send message to server:\n%s", err.Error())
+				t.FailNow()
+			}
+			nRcvd, err := conn.Read(buf)
+			if err != nil {
+				t.Logf("failed to receive bytes from connection:\n%s", err.Error())
+				t.FailNow()
+			}
+			if !bytes.Equal(buf[:nRcvd], ta.messageToBeRcvd) {
+				t.Logf("messages don't match: %s != %s", string(buf[:nRcvd]), string(ta.messageToBeRcvd))
+				t.FailNow()
+			}
+		})
+
 	}
 }
