@@ -51,7 +51,7 @@ func TestSuite(t *testing.T) {
 		}
 	})
 	t.Run("Loop", func(t *testing.T) {
-		// t.SkipNow()
+		t.SkipNow()
 		dbc, _ := sql.Open("sqlite3", "metadata.tab")
 		defer func() {
 			if err := dbc.Close(); err != nil {
