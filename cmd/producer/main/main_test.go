@@ -136,6 +136,7 @@ func TestRunServer(t *testing.T) {
 		if !bytes.Equal(res, arg.messageToBeSent) {
 			t.Errorf("result does not match:\n%s != %s", string(res), string(arg.messageToBeSent))
 		}
+		// TODO: check if res[9:] is deserialized to the contract
 	}
 }
 
