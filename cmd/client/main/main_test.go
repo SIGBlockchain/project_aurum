@@ -5,8 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-
-	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 )
 
 func TestSetupFlag(t *testing.T) {
@@ -33,14 +31,14 @@ func TestSetupFlag(t *testing.T) {
 }
 
 func TestContractMessageFromInput(t *testing.T) {
-	if err := client.SetupWallet(); err != nil {
-		t.Errorf("failed to setup wallet: %s", err.Error())
-	}
-	defer func() {
-		if err := os.Remove(wallet); err != nil {
-			t.Errorf("failed to remove wallet: %s", err.Error())
-		}
-	}()
+	// if err := client.SetupWallet(); err != nil {
+	// 	t.Errorf("failed to setup wallet: %s", err.Error())
+	// }
+	// defer func() {
+	// 	if err := os.Remove(wallet); err != nil {
+	// 		t.Errorf("failed to remove wallet: %s", err.Error())
+	// 	}
+	// }()
 
 	type testArg struct {
 		name      string
@@ -49,6 +47,9 @@ func TestContractMessageFromInput(t *testing.T) {
 		wantErr   bool
 	}
 	testArgs := []testArg{
+		{
+			// case where aurum_wallet.json does not exist
+		},
 		{
 			// case where value is negative
 		},
