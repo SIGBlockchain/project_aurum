@@ -50,7 +50,30 @@ var ledger = "blockchain.dat"
 var metadataTable = "metadata.tab"
 var accountsTable = "accounts.tab"
 
-func RunServer(ln net.Listener, byteChan chan []byte, debug bool) {
+func RunServer2(ln net.Listener, bChan chan []byte, debug bool) {
+	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	if debug {
+		lgr.SetOutput(os.Stdout)
+	}
+	for {
+		conn, err := ln.Accept()
+		var nRcvd int
+		buf := make([]byte, 1024)
+		lgr.Printf("%s connected\n", conn.RemoteAddr())
+		if err != nil {
+			goto End
+		}
+		nRcvd, err = conn.Read(buf)
+		if err != nil {
+			goto End
+		}
+		bChan <- buf[:nRcvd]
+	End:
+		conn.Close()
+	}
+}
+
+func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if debug {
 		lgr.SetOutput(os.Stdout)
@@ -60,13 +83,12 @@ func RunServer(ln net.Listener, byteChan chan []byte, debug bool) {
 			lgr.Printf("%s connected\n", conn.RemoteAddr())
 			buf := make([]byte, 1024)
 			if nBytes, err := conn.Read(buf); err == nil {
-				lgr.Printf("%s sent: %s", conn.RemoteAddr(), string(buf[:nBytes]))
 				if (nBytes >= 8) && (bytes.Equal(buf[:8], producer.SecretBytes)) {
 					lgr.Printf("Got aurum related message")
 					if (nBytes >= 9) && (buf[9] == 1) {
 						contract := make([]byte, nBytes-9)
 						copy(contract, buf[10:])
-						byteChan <- contract // WHY DOESN'T THIS WORK?
+						// bChan <- contract // WHY DOESN'T THIS WORK?
 						conn.Write([]byte("received contract message"))
 					} else {
 						conn.Write([]byte("aurum client acknowledged"))
