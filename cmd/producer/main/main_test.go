@@ -101,12 +101,12 @@ func TestRunServer(t *testing.T) {
 		{
 			name:            "Aurum message",
 			messageToBeSent: producer.SecretBytes,
-			messageToBeRcvd: []byte("Thank you."),
+			messageToBeRcvd: []byte("Thank you.\n"),
 		},
 		{
 			name:            "Contract message",
 			messageToBeSent: contractMessage,
-			messageToBeRcvd: []byte("Thank you."),
+			messageToBeRcvd: []byte("Thank you.\n"),
 		},
 	}
 	ln, err := net.Listen("tcp", "localhost:13131")
@@ -137,6 +137,7 @@ func TestRunServer(t *testing.T) {
 			t.Errorf("result does not match:\n%s != %s", string(res), string(arg.messageToBeSent))
 		}
 		// TODO: check if res[9:] is deserialized to the contract
+		// TODO: check regular message output
 	}
 }
 

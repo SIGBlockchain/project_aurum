@@ -58,22 +58,25 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 		conn, err := ln.Accept()
 		var nRcvd int
 		buf := make([]byte, 1024)
-		lgr.Printf("%s connected\n", conn.RemoteAddr())
 		if err != nil {
-			goto End
+			continue
 		}
+		lgr.Printf("%s connected\n", conn.RemoteAddr())
+		defer conn.Close()
 		nRcvd, err = conn.Read(buf)
 		if err != nil {
 			goto End
 		}
-		if (len(buf)) < 8 && (bytes.Equal(buf[:8], producer.SecretBytes)) {
-			// conn.Write([]byte("No thanks."))
+		if nRcvd < 8 && (!bytes.Equal(buf[:8], producer.SecretBytes)) {
+			conn.Write([]byte("No thanks.\n"))
 			goto End
 		} else {
-			conn.Write([]byte("Thank you."))
+			conn.Write([]byte("Thank you.\n"))
 		}
 		bChan <- buf[:nRcvd]
+		goto End
 	End:
+		lgr.Println("Closing connection.")
 		conn.Close()
 	}
 }
