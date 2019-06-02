@@ -331,6 +331,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 
 		// V--- valid contract ---V
 		// update both the sender's and recipient's accounts
+		// TODO: check if this will update table with public key hash that doesn't already exist in table
 		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, senderPubKeyHash, c.RecipPubKeyHash, c.Value)
 		if err != nil {
 			return false, errors.New("Failed to exchange between acccounts: " + err.Error())

@@ -11,8 +11,8 @@ import (
 )
 
 type Flags struct {
-	help *bool
-	// version   *bool
+	help       *bool
+	version    *bool
 	setup      *bool
 	info       *bool
 	updateInfo *bool
@@ -46,8 +46,8 @@ func PrintInfo() error {
 
 func main() {
 	fl := Flags{
-		help: getopt.BoolLong("help", '?', "help"),
-		// version:   getopt.Bool("version", 'v', "version"), // why can't I use this?
+		help:       getopt.BoolLong("help", '?', "help"),
+		version:    getopt.BoolLong("version", 'w', "version"),
 		setup:      getopt.BoolLong("setup", 's', "set up client"),
 		info:       getopt.BoolLong("info", 'i', "wallet info"),
 		updateInfo: getopt.BoolLong("update", 'u', "update wallet info"),
@@ -63,10 +63,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	// if *fl.version {
-	// 	fmt.Printf("Aurum client version: %d\n", version)
-	// 	os.Exit(0)
-	// }
+	if *fl.version {
+		fmt.Printf("Aurum client version: %d\n", version)
+		os.Exit(0)
+	}
 
 	var lgr = log.New(os.Stderr, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
@@ -91,16 +91,15 @@ func main() {
 	}
 
 	if *fl.contract {
-		// TODO: Check for a recipient
-		// TODO: Check for a value
-		// TODO: Check to make sure value is > 0
-		// TODO: Check for producer address
-		// TODO: Get balance, compare with value to see if possible
-		// TODO: Get state nonce
-		// TODO: Get private key
-		// TODO: Make contract
-		// TODO: Serialize contract and send to producer
+		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address
+		// TODO: Get wallet balance, compare with value to see if possible
+		// TODO: Get state nonce, and private key
+		// TODO: Make contract, serialize it, prepend with secret bytes and a uint8(1), then send to producer
 		// TODO: Output success of sending to producer (with response)
+	}
+
+	if *fl.updateInfo {
+		// TODO: Send a update info message, receive the response and update the wallet balance/nonce
 	}
 
 }
