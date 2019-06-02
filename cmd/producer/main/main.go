@@ -132,7 +132,7 @@ func main() {
 	var lgr = log.New(ioutil.Discard, "MAIN_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.debug {
-		lgr.SetOutput(os.Stdout)
+		lgr.SetOutput(os.Stderr)
 	}
 
 	if *fl.genesis {
