@@ -110,6 +110,12 @@ func PrintGithubLink() {
 // This will initialize a JSON file called "aurum_wallet.json"
 // with the hex encoded privatekey, balance, and nonce
 func SetupWallet() error {
+	// if the JSON file already exists, return error
+	_, err := os.Stat("aurum_wallet.json")
+	if err == nil {
+		return errors.New("JSON file for aurum_wallet already exists")
+	}
+
 	// Create JSON file for wallet
 	file, err := os.Create("aurum_wallet.json")
 	if err != nil {

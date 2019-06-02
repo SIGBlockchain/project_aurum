@@ -8,7 +8,7 @@ import (
 )
 
 func TestSetupFlag(t *testing.T) {
-	cmd := exec.Command("go", "run", "main.go", "-d", "-s")
+	cmd := exec.Command("go", "run", "main.go", "-s")
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

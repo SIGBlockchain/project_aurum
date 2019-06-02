@@ -77,62 +77,52 @@ func TestSendToProducer(t *testing.T) {
 }
 
 func TestSetupWallet(t *testing.T) {
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
+	if err := SetupWallet(); err != nil {
+		t.Errorf("SetupWallet() returned error")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := SetupWallet(); (err != nil) != tt.wantErr {
-				t.Errorf("SetupWallet() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			defer func() {
-				err := os.Remove("aurum_wallet.json")
-				if err != nil {
-					t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-				}
-			}()
-			if _, err := os.Stat("aurum_wallet.json"); os.IsNotExist(err) {
-				t.Errorf("\"aurum_wallet.json\" does not exist. Error: %s", err)
-			}
-			type walletData struct {
-				PrivateKey string
-				Balance    uint64
-				Nonce      uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wd walletData
-			err = json.Unmarshal(bytes, &wd)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			if wd.Balance != 0 {
-				t.Errorf("Incorrect balance. Want %d, got %d", 0, wd.Balance)
-			}
-			if wd.Nonce != 0 {
-				t.Errorf("Incorrect nonce. Want %d, got %d", 0, wd.Nonce)
+	defer func() {
+		if err := os.Remove("aurum_wallet.json"); err != nil {
+			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
+		}
+	}()
+	if _, err := os.Stat("aurum_wallet.json"); os.IsNotExist(err) {
+		t.Errorf("\"aurum_wallet.json\" does not exist. Error: %s", err)
+	}
+	type walletData struct {
+		PrivateKey string
+		Balance    uint64
+		Nonce      uint64
+	}
+	wallet, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		t.Errorf("Failed to open wallet: %s", err)
+	}
+	defer wallet.Close()
+	bytes, _ := ioutil.ReadAll(wallet)
+	var wd walletData
+	err = json.Unmarshal(bytes, &wd)
+	if err != nil {
+		t.Errorf("Failed to unmarshall JSON data: %s", err)
+	}
+	if wd.Balance != 0 {
+		t.Errorf("Incorrect balance. Want %d, got %d", 0, wd.Balance)
+	}
+	if wd.Nonce != 0 {
+		t.Errorf("Incorrect nonce. Want %d, got %d", 0, wd.Nonce)
 
-			}
-			privateKeyString, err := hex.DecodeString(wd.PrivateKey)
-			if err != nil {
-				t.Errorf("Failed to decode private key: %s", err)
-			}
-			pemDecodedKey, _ := pem.Decode(privateKeyString)
-			x509Encoded := pemDecodedKey.Bytes
-			_, err = x509.ParseECPrivateKey(x509Encoded)
-			if err != nil {
-				t.Errorf("Failed to parse private key: %s", err)
-			}
-		})
+	}
+	privateKeyString, err := hex.DecodeString(wd.PrivateKey)
+	if err != nil {
+		t.Errorf("Failed to decode private key: %s", err)
+	}
+	pemDecodedKey, _ := pem.Decode(privateKeyString)
+	x509Encoded := pemDecodedKey.Bytes
+	_, err = x509.ParseECPrivateKey(x509Encoded)
+	if err != nil {
+		t.Errorf("Failed to parse private key: %s", err)
+	}
+	if err := SetupWallet(); err == nil {
+		t.Errorf("supposed to cause error when attempting to call SetupWallet() when wallet already exists")
 	}
 }
 
