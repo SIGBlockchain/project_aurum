@@ -18,7 +18,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -50,7 +49,7 @@ var ledger = "blockchain.dat"
 var metadataTable = "metadata.tab"
 var accountsTable = "accounts.tab"
 
-func RunServer2(ln net.Listener, bChan chan []byte, debug bool) {
+func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if debug {
 		lgr.SetOutput(os.Stdout)
@@ -67,38 +66,15 @@ func RunServer2(ln net.Listener, bChan chan []byte, debug bool) {
 		if err != nil {
 			goto End
 		}
+		if (len(buf)) < 8 && (bytes.Equal(buf[:8], producer.SecretBytes)) {
+			// conn.Write([]byte("No thanks."))
+			goto End
+		} else {
+			conn.Write([]byte("Thank you."))
+		}
 		bChan <- buf[:nRcvd]
 	End:
 		conn.Close()
-	}
-}
-
-func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
-	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-	if debug {
-		lgr.SetOutput(os.Stdout)
-	}
-	for {
-		if conn, err := ln.Accept(); err == nil {
-			lgr.Printf("%s connected\n", conn.RemoteAddr())
-			buf := make([]byte, 1024)
-			if nBytes, err := conn.Read(buf); err == nil {
-				if (nBytes >= 8) && (bytes.Equal(buf[:8], producer.SecretBytes)) {
-					lgr.Printf("Got aurum related message")
-					if (nBytes >= 9) && (buf[9] == 1) {
-						contract := make([]byte, nBytes-9)
-						copy(contract, buf[10:])
-						// bChan <- contract // WHY DOESN'T THIS WORK?
-						conn.Write([]byte("received contract message"))
-					} else {
-						conn.Write([]byte("aurum client acknowledged"))
-					}
-				} else {
-					conn.Write(buf[:nBytes])
-				}
-			}
-			conn.Close()
-		}
 	}
 }
 
@@ -132,7 +108,7 @@ func main() {
 	var lgr = log.New(ioutil.Discard, "MAIN_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
 
 	if *fl.debug {
-		lgr.SetOutput(os.Stderr)
+		lgr.SetOutput(os.Stdout)
 	}
 
 	if *fl.genesis {
@@ -166,10 +142,7 @@ func main() {
 
 	var addr = "localhost:"
 	var ln net.Listener
-	defer func() {
-		lgr.Printf("closing listener.")
-		ln.Close()
-	}()
+
 	var byteChan chan []byte
 	// var dataLock sync.Mutex
 	if getopt.IsSet('p') {
@@ -178,8 +151,11 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to start tcp listener: %s", err.Error())
 		}
+		defer func() {
+			lgr.Printf("closing listener.")
+			ln.Close()
+		}()
 		lgr.Printf("Server listening on port %s.", *fl.port)
-		// contractChan := make(chan []accounts.Contract)
 		go RunServer(ln, byteChan, *fl.debug)
 	}
 
@@ -211,7 +187,7 @@ func main() {
 	// Main loop
 	for {
 		var dataPool []accounts.Contract
-		var ms runtime.MemStats
+		// var ms runtime.MemStats
 		var chainHeight = youngestBlockHeader.Height
 		select {
 		case <-intervalChannel:
@@ -231,7 +207,7 @@ func main() {
 					numBlocksGenerated++
 					youngestBlockHeader = newBlock.GetHeader()
 					go triggerInterval(intervalChannel, productionInterval)
-					runtime.ReadMemStats(&ms)
+					// runtime.ReadMemStats(&ms)
 				}
 			}
 		case <-signalCh:
@@ -245,6 +221,7 @@ func main() {
 		// lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
 		// lgr.Printf("Count of heap objects freed: %d", ms.Frees)
 		if *fl.test || (getopt.IsSet('b') && (numBlocksGenerated >= *fl.numBlocks)) {
+			lgr.Printf("Limit reached\n")
 			break
 		}
 	}
@@ -263,35 +240,4 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 // 		addr = fmt.Sprintf("localhost:")
 // 		lgr.Println("Listening on local IP addresses")
 // 	}
-// }
-
-// func main() {
-// 	ln, err := net.Listen("tcp", addr+*fl.port)
-// 	if err != nil {
-// 		lgr.Fatalln("Failed to start server.")
-// 	}
-// 	lgr.Printf("Server listening on port %s.", *fl.port)
-// 	newDataChan := make(chan producer.Data)
-// 	go func() {
-// 		for {
-// 			conn, err := ln.Accept()
-// 			if err != nil {
-// 				continue
-// 			}
-// 			lgr.Printf("%s connection\n", conn.RemoteAddr())
-// 			go func() {
-// 				defer conn.Close()
-// 				buf := make([]byte, 1024)
-// 				_, err := conn.Read(buf)
-// 				if err != nil {
-// 					return
-// 				}
-// 				// Handle message
-// 				conn.Write(buf)
-// 			}()
-// 		}
-// 	}()
-
-// 	// Close the server
-// 	ln.Close()
 // }
