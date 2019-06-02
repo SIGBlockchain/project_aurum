@@ -73,7 +73,6 @@ func main() {
 	if *fl.setup {
 		fmt.Println("Initializing Aurum wallet...")
 		if err := client.SetupWallet(); err != nil {
-			// TODO: should return error if already have a wallet
 			lgr.Fatalf("failed to setup wallet: %s", err.Error())
 		} else {
 			fmt.Println("Wallet setup completed successfully.")
