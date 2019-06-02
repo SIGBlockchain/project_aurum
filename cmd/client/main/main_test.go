@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 )
 
 func TestSetupFlag(t *testing.T) {
@@ -28,4 +30,43 @@ func TestSetupFlag(t *testing.T) {
 			t.Errorf("failed to remove wallet: %s", err.Error())
 		}
 	}()
+}
+
+func TestContractMessageFromInput(t *testing.T) {
+	if err := client.SetupWallet(); err != nil {
+		t.Errorf("failed to setup wallet: %s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove(wallet); err != nil {
+			t.Errorf("failed to remove wallet: %s", err.Error())
+		}
+	}()
+
+	type testArg struct {
+		name      string
+		value     string
+		recipient string
+		wantErr   bool
+	}
+	testArgs := []testArg{
+		{
+			// case where value is negative
+		},
+		{
+			// case where value is zero
+		},
+		{
+			// case where value is greater than wallet balance
+		},
+		{
+			// case where recipient cannot be converted to size 32 byte
+		},
+		{
+			// valid case,
+			//check to make sure there's secret bytes, uint8(1), serialized signed contract
+		},
+	}
+	t.Logf("%v", testArgs) // delete this when for loop is complete
+
+	// for _, arg := range testArgs {}
 }

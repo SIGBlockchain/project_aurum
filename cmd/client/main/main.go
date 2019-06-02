@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -91,10 +92,8 @@ func main() {
 	}
 
 	if *fl.contract {
-		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address
-		// TODO: Get wallet balance, compare with value to see if possible
-		// TODO: Get state nonce, and private key
-		// TODO: Make contract, serialize it, prepend with secret bytes and a uint8(1), then send to producer
+		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address; if any are missing, lgr.Fatal()
+		// TODO: Call ContractMessageFromInput(...) and Send to producer
 		// TODO: Output success of sending to producer (with response)
 	}
 
@@ -104,6 +103,20 @@ func main() {
 
 }
 
+// Convert value to uint64; if unsuccessful output an error
+// If value is zero, output error
+// GetBalance(), if value is > than wallet balance, output an error
+// GetStateNonce(), GetPrivateKey()
+// Convert recipient to []byte; if unsuccessful output an error
+// MakeContract(...) (use version global), SignContract(...)
+// Output a contract message, with the following structure:
+// producer.SecretBytes + uint8(1) + serializedContract
+// NOTE: The uint8(1) here will let the producer know that this is a contract message
+func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
+	return nil, errors.New("Incomplete function")
+}
+
+// ---------------------------------------------------------------------------
 // func main() {
 // 	// List of Options
 // 	helpFlag := getopt.Bool('?', "Display Valid Flags")
