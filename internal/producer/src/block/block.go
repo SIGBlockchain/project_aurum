@@ -151,7 +151,7 @@ func Deserialize(block []byte) Block {
 	index := 84
 
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
-		elementLen := int(binary.LittleEndian.Uint16(block[index:index+2]))
+		elementLen := int(binary.LittleEndian.Uint16(block[index : index+2]))
 		index += 2
 		data[i] = make([]byte, elementLen)
 		copy(data[i], block[index:index+elementLen])
@@ -173,4 +173,9 @@ func Deserialize(block []byte) Block {
 		Data:           data,
 	}
 	return deserializeBlock
+}
+
+// Compares two block structs and returns true if all the fields in both blocks are equal, false otherwise
+func Equals(block1 Block, block2 Block) bool {
+	return false /*** Incomplete function ***/
 }
