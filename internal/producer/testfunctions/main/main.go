@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	testfunctions "github.com/SIGBlockchain/project_aurum/test/src/testfunctions"
+	testfunctions "github.com/SIGBlockchain/project_aurum/internal/producer/testfunctions"
 	"github.com/pborman/getopt"
 )
 
