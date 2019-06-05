@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"database/sql"
 	"net"
 	"os"
 	"os/exec"
@@ -41,11 +40,15 @@ func TestSuite(t *testing.T) {
 	testArgs := []testArg{
 		{
 			name:       "Genesis",
-			runCommand: []string{"go", "run", "main.go", "-d", "-g", "--supply=100", "-t"},
+			runCommand: []string{"go", "run", "main.go", "-d", "-g", "--supply=100"},
 		},
+		// {
+		// 	name:       "Loop",
+		// 	runCommand: []string{"go", "run", "main.go", "-d", "--interval=1000ms", "--blocks=3"},
+		// },
 		{
-			name:       "Loop",
-			runCommand: []string{"go", "run", "main.go", "-d", "--interval=1000ms", "--blocks=3"},
+			name:       "Bytechannel",
+			runCommand: []string{"go", "run", "main.go", "-d", "--interval=3000ms", "-t", "--port=13131"},
 		},
 	}
 	var stdout bytes.Buffer
@@ -56,28 +59,73 @@ func TestSuite(t *testing.T) {
 			if err := cmd.Start(); err != nil {
 				t.Errorf("failed to run main command because: %s", err.Error())
 			}
+			if arg.name == "Bytechannel" {
+				// senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+				// recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+				// recipientPublicKeyHash := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+				// contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+				// contract.SignContract(senderPrivateKey)
+				// serializedContract, _ := contract.Serialize()
+
+				// var contractMessage []byte
+				// contractMessage = append(contractMessage, producer.SecretBytes...)
+				// contractMessage = append(contractMessage, 1)
+				// contractMessage = append(contractMessage, serializedContract...)
+				_, err := net.Dial("tcp", "localhost:13131")
+				if err != nil {
+					t.Errorf("failed to connect to server:\n%s", err.Error())
+				}
+
+				// _, err = conn.Write(contractMessage)
+				// if err != nil {
+				// 	t.Errorf("failed to send message")
+				// }
+				// buf := make([]byte, 1024)
+				// nRead, err := conn.Read(buf)
+				// if err != nil {
+				// 	t.Errorf("failed to read from connections:\n%s", err.Error())
+				// } else {
+				// 	t.Logf("Buff: %s", string(buf))
+				// }
+				// if !bytes.Equal(buf[:nRead], []byte("Thank you.\n")) {
+				// 	t.Errorf("did not received desired message:\n%s != %s", string(buf[:nRead]), string([]byte("Thank you.\n")))
+				// }
+			}
 			if err := cmd.Wait(); err != nil {
 				t.Errorf("main call returned with: %s.", err.Error())
 				t.Logf("Stdout: %s", string(stdout.Bytes()))
 			}
 		})
 	}
-	dbc, err := sql.Open("sqlite3", "metadata.tab")
-	if err != nil {
-		t.Errorf("failed to open sqlite database")
-	}
-	defer func() {
-		if err := dbc.Close(); err != nil {
-			t.Errorf("failed to close database connection")
-		}
-	}()
-	var count int
-	if err := dbc.QueryRow("SELECT COUNT(*) FROM METADATA").Scan(&count); err != nil {
-		t.Errorf("failed to query rows")
-	}
-	if count != 4 {
-		t.Errorf("invalid number of blocks: %d != %d", count, 4)
-	}
+	t.Logf("%s", string(stdout.Bytes()))
+
+	// dbc, err := sql.Open("sqlite3", "metadata.tab")
+	// if err != nil {
+	// 	t.Errorf("failed to open sqlite database")
+	// }
+	// defer func() {
+	// 	if err := dbc.Close(); err != nil {
+	// 		t.Errorf("failed to close database connection")
+	// 	}
+	// }()
+	// var count int
+	// var expectedCount = 5
+	// if err := dbc.QueryRow("SELECT COUNT(*) FROM METADATA").Scan(&count); err != nil {
+	// 	t.Errorf("failed to query rows")
+	// }
+	// if count != expectedCount {
+	// 	t.Errorf("invalid number of blocks: %d != %d", count, expectedCount)
+	// }
+	// youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadataTable)
+	// if err != nil {
+	// 	t.Errorf("failed to get youngest block:\n%s", err.Error())
+	// }
+	// t.Logf("%v", youngestBlock)
+	// data := youngestBlock.Data[0]
+	// var compContract accounts.Contract
+	// if err := compContract.Deserialize(data); err != nil {
+	// 	t.Errorf("failed to deserialize data:\n%s", err.Error())
+	// }
 }
 
 func TestRunServer(t *testing.T) {

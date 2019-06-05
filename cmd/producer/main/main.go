@@ -18,6 +18,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -55,11 +56,13 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 		lgr.SetOutput(os.Stdout)
 	}
 	for {
+		lgr.Println("Waiting for connection...")
 		conn, err := ln.Accept()
 		var nRcvd int
 		buf := make([]byte, 1024)
 		if err != nil {
-			continue
+			lgr.Printf("%s failed to connect\n", conn.RemoteAddr())
+			goto End
 		}
 		lgr.Printf("%s connected\n", conn.RemoteAddr())
 		defer conn.Close()
@@ -147,7 +150,6 @@ func main() {
 	var ln net.Listener
 
 	var byteChan chan []byte
-	// var dataLock sync.Mutex
 	if getopt.IsSet('p') {
 		addr += *fl.port
 		ln, err = net.Listen("tcp", addr)
@@ -158,8 +160,8 @@ func main() {
 			lgr.Printf("closing listener.")
 			ln.Close()
 		}()
-		lgr.Printf("Server listening on port %s.", *fl.port)
 		go RunServer(ln, byteChan, *fl.debug)
+		lgr.Printf("Server listening on port %s.", *fl.port)
 	}
 
 	productionInterval, err := time.ParseDuration(*fl.interval)
@@ -201,7 +203,6 @@ func main() {
 			} else {
 				// TODO: make account.Validate only validate the transaction
 				// TODO: table should be updated in separate call, after AddBlock
-				// TODO: use a sync.Mutex.Lock()/Unlock() for editing tables
 				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
@@ -212,22 +213,36 @@ func main() {
 					go triggerInterval(intervalChannel, productionInterval)
 					// runtime.ReadMemStats(&ms)
 				}
+				// TODO: empty dataPool
+			}
+		case message := <-byteChan:
+			lgr.Printf("Main received: %s\n", string(message))
+			// TODO: determine if contract, then deserialize and add to dataPool
+			if message[8] == 1 {
+				lgr.Println("Received contract")
+				var newContract accounts.Contract
+				if err := newContract.Deserialize(message[9:]); err == nil {
+					dataPool = append(dataPool, newContract)
+				}
 			}
 		case <-signalCh:
 			fmt.Print("\r")
 			lgr.Println("Interrupt signal encountered, program terminating.")
 			return
 		}
-		// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
-		// lgr.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
-		// lgr.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
-		// lgr.Printf("Count of heap objects allocated: %d", ms.Mallocs)
-		// lgr.Printf("Count of heap objects freed: %d", ms.Frees)
 		if *fl.test || (getopt.IsSet('b') && (numBlocksGenerated >= *fl.numBlocks)) {
 			lgr.Printf("Limit reached\n")
 			break
 		}
 	}
+}
+
+func printMemstats(ms runtime.MemStats) {
+	// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
+	fmt.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
+	fmt.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
+	fmt.Printf("Count of heap objects allocated: %d", ms.Mallocs)
+	fmt.Printf("Count of heap objects freed: %d", ms.Frees)
 }
 
 func triggerInterval(intervalChannel chan bool, productionInterval time.Duration) {
