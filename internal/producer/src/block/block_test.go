@@ -278,7 +278,7 @@ func TestEquals(t *testing.T) {
 		PreviousHash:   HashSHA256([]byte{'a'}),
 		MerkleRootHash: HashSHA256([]byte{'b'}),
 		DataLen:        1,
-		Data:           [][]byte{HashSHA256([]byte{'c'})},
+		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
 	}
 
 	blocks := make([]Block, 7)
@@ -291,7 +291,7 @@ func TestEquals(t *testing.T) {
 	blocks[3].PreviousHash = HashSHA256([]byte{'d'})
 	blocks[4].MerkleRootHash = HashSHA256([]byte{'e'})
 	blocks[5].DataLen = 15
-	blocks[6].Data = [][]byte{HashSHA256([]byte{'f'})}
+	blocks[6].Data = [][]byte{HashSHA256([]byte{'f'}), HashSHA256([]byte{'o'})}
 
 	tests := []struct {
 		name string
