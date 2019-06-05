@@ -99,6 +99,11 @@ func TestRunServer(t *testing.T) {
 	}
 	testArgs := []testArg{
 		{
+			name:            "Regular message",
+			messageToBeSent: []byte("hello\n"),
+			messageToBeRcvd: []byte("No thanks.\n"),
+		},
+		{
 			name:            "Aurum message",
 			messageToBeSent: producer.SecretBytes,
 			messageToBeRcvd: []byte("Thank you.\n"),
@@ -132,11 +137,20 @@ func TestRunServer(t *testing.T) {
 		if !bytes.Equal(buf[:nRead], arg.messageToBeRcvd) {
 			t.Errorf("did not received desired message:\n%s != %s", string(buf[:nRead]), string(arg.messageToBeRcvd))
 		}
-		res := <-byteChan
-		if !bytes.Equal(res, arg.messageToBeSent) {
-			t.Errorf("result does not match:\n%s != %s", string(res), string(arg.messageToBeSent))
+		if arg.name != "Regular message" {
+			res := <-byteChan
+			if !bytes.Equal(res, arg.messageToBeSent) {
+				t.Errorf("result does not match:\n%s != %s", string(res), string(arg.messageToBeSent))
+			}
+			if arg.name == "Contract message" {
+				var contract accounts.Contract
+				if err := contract.Deserialize(res[9:]); err != nil {
+					t.Errorf("failed to deserialize contract:\n%s", err.Error())
+				}
+				if !bytes.Equal(res[9:], serializedContract) {
+					t.Errorf("serialized contracts do not match:\n%v != %v", res[9:], serializedContract)
+				}
+			}
 		}
-		// TODO: check if res[9:] is deserialized to the contract
-		// TODO: check regular message output
 	}
 }
