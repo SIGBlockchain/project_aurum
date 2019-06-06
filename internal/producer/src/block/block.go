@@ -2,9 +2,11 @@
 package block
 
 import (
+	"bytes"
 	"container/list"
 	"crypto/sha256"   // for hashing
 	"encoding/binary" // for converting to uints to byte slices
+	"reflect"
 )
 
 type BlockHeader struct {
@@ -151,7 +153,7 @@ func Deserialize(block []byte) Block {
 	index := 84
 
 	for i := 0; i < int(dataLen); i++ { // deserialize each individual element in Data
-		elementLen := int(binary.LittleEndian.Uint16(block[index:index+2]))
+		elementLen := int(binary.LittleEndian.Uint16(block[index : index+2]))
 		index += 2
 		data[i] = make([]byte, elementLen)
 		copy(data[i], block[index:index+elementLen])
@@ -173,4 +175,34 @@ func Deserialize(block []byte) Block {
 		Data:           data,
 	}
 	return deserializeBlock
+}
+
+// Compares two block structs and returns true if all the fields in both blocks are equal, false otherwise
+func Equals(block1 Block, block2 Block) bool {
+
+	blk1value := reflect.ValueOf(block1) // get an instance of the Value struct with block1 values
+	blk2value := reflect.ValueOf(block2) // get an instance of the Value struct with block2 values
+
+	for i := 0; i < blk1value.NumField(); i++ { // loop through the fields of both blocks
+		finterface1 := blk1value.Field(i).Interface() // get the value of the current field from block1 as an interface{}
+		finterface2 := blk2value.Field(i).Interface() // get the value of the current field from block2 as an interface{}
+
+		switch finterface1.(type) { // type switch
+		case uint16, uint64, int64:
+			if finterface1 != finterface2 {
+				return false
+			}
+		case []byte:
+			if !bytes.Equal(finterface1.([]byte), finterface2.([]byte)) {
+				return false
+			}
+		case [][]byte:
+			for i := 0; i < len(finterface1.([][]byte)); i++ {
+				if !bytes.Equal(finterface1.([][]byte)[i], finterface2.([][]byte)[i]) {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
