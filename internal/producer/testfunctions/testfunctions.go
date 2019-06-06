@@ -1,14 +1,14 @@
 package testfunctions
 
 import (
-	"errors"
 	"crypto/ecdsa"
-	"crypto/x509"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"os"
 )
 
@@ -31,8 +31,8 @@ func GenerateNRandomKeys(filename string, n uint32) error {
 		Privates []ecdsa.PrivateKey
 	}
 
-	var keys []string 	// This will hold all pem encoded private key strings
-	var i uint32 = 0 	// Iterator, is uint32 to be able to compare with n
+	var keys []string // This will hold all pem encoded private key strings
+	var i uint32 = 0  // Iterator, is uint32 to be able to compare with n
 
 	// Create n private keys
 	for ; i < n; i++ {
