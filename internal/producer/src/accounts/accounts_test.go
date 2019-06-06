@@ -615,8 +615,9 @@ func TestValidateContract(t *testing.T) {
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	keyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&keyNotInTable.PublicKey))
 
-	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 2)
+	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 1)
 	validOneExistingAccountsContract.SignContract(sender)
+	InsertAccountIntoAccountBalanceTable(dbc, keyNotInTablePKH, 500)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	anotherKeyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
@@ -626,7 +627,6 @@ func TestValidateContract(t *testing.T) {
 
 	type args struct {
 		c                 *Contract
-		table             string
 		authorizedMinters [][]byte
 	}
 	tests := []struct {
@@ -639,7 +639,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Zero value",
 			args: args{
 				c:                 zeroValueContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -649,7 +648,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Unauthorized minting",
 			args: args{
 				c:                 falseMintingContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -659,7 +657,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Authorized minting",
 			args: args{
 				c:                 validMintingContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    true,
@@ -669,7 +666,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid signature",
 			args: args{
 				c:                 invalidSignatureContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -679,7 +675,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Insufficient funds",
 			args: args{
 				c:                 insufficentFundsContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -689,7 +684,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid nonce",
 			args: args{
 				c:                 invalidNonceContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -699,7 +693,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Invalid nonce 2",
 			args: args{
 				c:                 invalidNonceContract2,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    false,
@@ -709,7 +702,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Totally valid with old accounts",
 			args: args{
 				c:                 validTwoExistingAccountsContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    true,
@@ -719,7 +711,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Totally valid with a new account",
 			args: args{
 				c:                 validOneExistingAccountsContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    true,
@@ -729,7 +720,6 @@ func TestValidateContract(t *testing.T) {
 			name: "Totally valid with a new account to newer account",
 			args: args{
 				c:                 newAccountToANewerAccountContract,
-				table:             dbName,
 				authorizedMinters: authMinters,
 			},
 			want:    true,
@@ -738,120 +728,13 @@ func TestValidateContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ValidateContract(tt.args.c, tt.args.table, tt.args.authorizedMinters)
+			got, err := ValidateContract(tt.args.c, tt.args.authorizedMinters)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
 				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
-			}
-			var pkhash string
-			var balance uint64
-			var nonce uint64
-			rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-			if err != nil {
-				t.Errorf("Failed to acquire rows from table")
-			}
-			defer rows.Close()
-			switch tt.name {
-			case "Unauthorized minting":
-				for rows.Next() {
-					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, senderPKH) {
-						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
-			case "Authorized minting":
-				for rows.Next() {
-					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, minterPKH) {
-						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
-			case "Zero value":
-			case "Invalid signature":
-			case "Insufficient funds":
-			case "Invalid nonce":
-			case "Invalid nonce 2":
-				for rows.Next() {
-					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
-						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
-			case "Totally valid with old accounts":
-				for rows.Next() {
-					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, senderPKH) {
-						if err := checkBalanceAndNonce(balance, 500, nonce, 1); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-					if bytes.Equal(decodedPkhash, recipientPKH) {
-						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
-			case "Totally valid with a new account":
-				for rows.Next() {
-					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, senderPKH) {
-						if err := checkBalanceAndNonce(balance, 0, nonce, 2); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-					if bytes.Equal(decodedPkhash, keyNotInTablePKH) {
-						if err := checkBalanceAndNonce(balance, 500, nonce, 0); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
-			case "Totally valid with a new account to newer account":
-				for rows.Next() {
-					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
-						t.Errorf("failed to scan rows: %s", err)
-					}
-					decodedPkhash, _ := hex.DecodeString(pkhash)
-					if bytes.Equal(decodedPkhash, keyNotInTablePKH) {
-						if err := checkBalanceAndNonce(balance, 0, nonce, 1); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-					if bytes.Equal(decodedPkhash, anotherKeyNotInTablePKH) {
-						if err := checkBalanceAndNonce(balance, 500, nonce, 0); err != nil {
-							t.Errorf(err.Error())
-						}
-					}
-				}
-				break
 			}
 		})
 	}
@@ -1060,3 +943,306 @@ func TestGetAccountInfo(t *testing.T) {
 		})
 	}
 }
+
+// func TestValidateContract(t *testing.T) {
+// 	dbName := "accountBalanceTable.tab"
+// 	dbc, _ := sql.Open("sqlite3", dbName)
+// 	defer func() {
+// 		err := dbc.Close()
+// 		if err != nil {
+// 			t.Errorf("Failed to remove database: %s", err)
+// 		}
+// 		err = os.Remove(dbName)
+// 		if err != nil {
+// 			t.Errorf("Failed to remove database: %s", err)
+// 		}
+// 	}()
+// 	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+// 	statement.Exec()
+
+// 	minter, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// 	minterPKH := block.HashSHA256(keys.EncodePublicKey(&minter.PublicKey))
+// 	err := InsertAccountIntoAccountBalanceTable(dbc, minterPKH, 1000)
+// 	if err != nil {
+// 		t.Errorf("Failed to insert minter account")
+// 	}
+// 	authMinters := [][]byte{minterPKH}
+
+// 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// 	senderPKH := block.HashSHA256(keys.EncodePublicKey(&sender.PublicKey))
+// 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// 	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
+// 	err = InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
+// 	if err != nil {
+// 		t.Errorf("Failed to insert zero Sender account")
+// 	}
+// 	err = InsertAccountIntoAccountBalanceTable(dbc, recipientPKH, 1000)
+// 	if err != nil {
+// 		t.Errorf("Failed to insert zero Sender account")
+// 	}
+// 	zeroValueContract, _ := MakeContract(1, sender, recipientPKH, 0, 1)
+// 	zeroValueContract.SignContract(sender)
+
+// 	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
+
+// 	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500, 1)
+
+// 	invalidSignatureContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
+// 	invalidSignatureContract.SignContract(recipient)
+
+// 	insufficentFundsContract, _ := MakeContract(1, sender, recipientPKH, 2000000, 1)
+// 	insufficentFundsContract.SignContract(sender)
+
+// 	invalidNonceContract, _ := MakeContract(1, sender, recipientPKH, 20, 0)
+// 	invalidNonceContract.SignContract(sender)
+
+// 	invalidNonceContract2, _ := MakeContract(1, sender, recipientPKH, 20, 2)
+// 	invalidNonceContract2.SignContract(sender)
+
+// 	validTwoExistingAccountsContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
+// 	validTwoExistingAccountsContract.SignContract(sender)
+
+// 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// 	keyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&keyNotInTable.PublicKey))
+
+// 	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 2)
+// 	validOneExistingAccountsContract.SignContract(sender)
+
+// 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// 	anotherKeyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
+
+// 	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
+// 	newAccountToANewerAccountContract.SignContract(keyNotInTable)
+
+// 	type args struct {
+// 		c                 *Contract
+// 		table             string
+// 		authorizedMinters [][]byte
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    bool
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "Zero value",
+// 			args: args{
+// 				c:                 zeroValueContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Unauthorized minting",
+// 			args: args{
+// 				c:                 falseMintingContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Authorized minting",
+// 			args: args{
+// 				c:                 validMintingContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    true,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Invalid signature",
+// 			args: args{
+// 				c:                 invalidSignatureContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Insufficient funds",
+// 			args: args{
+// 				c:                 insufficentFundsContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Invalid nonce",
+// 			args: args{
+// 				c:                 invalidNonceContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Invalid nonce 2",
+// 			args: args{
+// 				c:                 invalidNonceContract2,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    false,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Totally valid with old accounts",
+// 			args: args{
+// 				c:                 validTwoExistingAccountsContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    true,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Totally valid with a new account",
+// 			args: args{
+// 				c:                 validOneExistingAccountsContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    true,
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "Totally valid with a new account to newer account",
+// 			args: args{
+// 				c:                 newAccountToANewerAccountContract,
+// 				table:             dbName,
+// 				authorizedMinters: authMinters,
+// 			},
+// 			want:    true,
+// 			wantErr: false,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			got, err := ValidateContract(tt.args.c, tt.args.table, tt.args.authorizedMinters)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if got != tt.want {
+// 				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
+// 			}
+// 			var pkhash string
+// 			var balance uint64
+// 			var nonce uint64
+// 			rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+// 			if err != nil {
+// 				t.Errorf("Failed to acquire rows from table")
+// 			}
+// 			defer rows.Close()
+// 			switch tt.name {
+// 			case "Unauthorized minting":
+// 				for rows.Next() {
+// 					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, senderPKH) {
+// 						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			case "Authorized minting":
+// 				for rows.Next() {
+// 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, minterPKH) {
+// 						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			case "Zero value":
+// 			case "Invalid signature":
+// 			case "Insufficient funds":
+// 			case "Invalid nonce":
+// 			case "Invalid nonce 2":
+// 				for rows.Next() {
+// 					if err := rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, senderPKH) || bytes.Equal(decodedPkhash, recipientPKH) {
+// 						if err := checkBalanceAndNonce(balance, 1000, nonce, 0); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			case "Totally valid with old accounts":
+// 				for rows.Next() {
+// 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, senderPKH) {
+// 						if err := checkBalanceAndNonce(balance, 500, nonce, 1); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 					if bytes.Equal(decodedPkhash, recipientPKH) {
+// 						if err := checkBalanceAndNonce(balance, 1500, nonce, 1); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			case "Totally valid with a new account":
+// 				for rows.Next() {
+// 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, senderPKH) {
+// 						if err := checkBalanceAndNonce(balance, 0, nonce, 2); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 					if bytes.Equal(decodedPkhash, keyNotInTablePKH) {
+// 						if err := checkBalanceAndNonce(balance, 500, nonce, 0); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			case "Totally valid with a new account to newer account":
+// 				for rows.Next() {
+// 					if err = rows.Scan(&pkhash, &balance, &nonce); err != nil {
+// 						t.Errorf("failed to scan rows: %s", err)
+// 					}
+// 					decodedPkhash, _ := hex.DecodeString(pkhash)
+// 					if bytes.Equal(decodedPkhash, keyNotInTablePKH) {
+// 						if err := checkBalanceAndNonce(balance, 0, nonce, 1); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 					if bytes.Equal(decodedPkhash, anotherKeyNotInTablePKH) {
+// 						if err := checkBalanceAndNonce(balance, 500, nonce, 0); err != nil {
+// 							t.Errorf(err.Error())
+// 						}
+// 					}
+// 				}
+// 				break
+// 			}
+// 		})
+// 	}
+// }

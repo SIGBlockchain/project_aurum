@@ -260,13 +260,7 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
-func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
-	db, err := sql.Open("sqlite3", table)
-	if err != nil {
-		return false, errors.New("Failed to open table")
-	}
-	defer db.Close()
-
+func ValidateContract(c *Contract, authorizedMinters [][]byte) (bool, error) {
 	// check for zero value transaction
 	if c.Value == 0 {
 		return false, nil
@@ -277,12 +271,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 		// check for unauthorized minting contracts
 		for _, mintersPubKHash := range authorizedMinters {
 			if bytes.Equal(c.RecipPubKeyHash, mintersPubKHash) {
-				// authorized minting
-				err = MintAurumUpdateAccountBalanceTable(db, c.RecipPubKeyHash, c.Value)
-				if err != nil {
-					return false, errors.New("Failed to mint aurum with a valid minting contract: " + err.Error())
-				}
-
+				/* valid contract */
 				return true, nil
 			}
 		}
@@ -329,13 +318,7 @@ func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bo
 			return false, nil
 		}
 
-		// V--- valid contract ---V
-		// update both the sender's and recipient's accounts
-		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, senderPubKeyHash, c.RecipPubKeyHash, c.Value)
-		if err != nil {
-			return false, errors.New("Failed to exchange between acccounts: " + err.Error())
-		}
-
+		/* valid contract */
 		c.SigLen = copyOfSigLen
 		return true, nil
 	}
@@ -434,3 +417,86 @@ func GetAccountInfo(pkhash []byte) (*AccountInfo, error) {
 
 	return &AccountInfo{balance: balance, stateNonce: stateNonce}, nil
 }
+
+// func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
+// 	db, err := sql.Open("sqlite3", table)
+// 	if err != nil {
+// 		return false, errors.New("Failed to open table")
+// 	}
+// 	defer db.Close()
+
+// 	// check for zero value transaction
+// 	if c.Value == 0 {
+// 		return false, nil
+// 	}
+
+// 	// if contract is for minting
+// 	if c.SenderPubKey == nil {
+// 		// check for unauthorized minting contracts
+// 		for _, mintersPubKHash := range authorizedMinters {
+// 			if bytes.Equal(c.RecipPubKeyHash, mintersPubKHash) {
+// 				// authorized minting
+// 				err = MintAurumUpdateAccountBalanceTable(db, c.RecipPubKeyHash, c.Value)
+// 				if err != nil {
+// 					return false, errors.New("Failed to mint aurum with a valid minting contract: " + err.Error())
+// 				}
+
+// 				return true, nil
+// 			}
+// 		}
+// 		// unauthorized minting
+// 		return false, nil
+// 	}
+
+// 	// verify the signature in the contract
+// 	// Serialize the Contract
+// 	copyOfSigLen := c.SigLen
+// 	c.SigLen = 0
+// 	serializedContract, err := c.Serialize()
+// 	if err != nil {
+// 		return false, errors.New(err.Error())
+// 	}
+// 	hashedContract := block.HashSHA256(serializedContract)
+
+// 	// stores r and s values needed for ecdsa.Verify
+// 	var esig struct {
+// 		R, S *big.Int
+// 	}
+// 	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
+// 		return false, errors.New("Failed to unmarshal signature")
+// 	}
+
+// 	// if ecdsa.Verify returns false, the signature is invalid
+// 	if !ecdsa.Verify(c.SenderPubKey, hashedContract, esig.R, esig.S) {
+// 		return false, nil
+// 	}
+
+// 	// retrieve sender's balance from account balance table
+// 	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
+// 	senderAccountInfo, errAccount := GetAccountInfo(senderPubKeyHash)
+
+// 	if errAccount == nil {
+// 		// check insufficient funds
+// 		if senderAccountInfo.balance < c.Value {
+// 			// invalid contract because the sender's balance is less than the contract amount
+// 			return false, nil
+// 		}
+
+// 		if senderAccountInfo.stateNonce+1 != c.StateNonce {
+// 			// invalid contract because contract state nonce is not the expected number
+// 			return false, nil
+// 		}
+
+// 		// V--- valid contract ---V
+// 		// update both the sender's and recipient's accounts
+// 		err = ExchangeBetweenAccountsUpdateAccountBalanceTable(db, senderPubKeyHash, c.RecipPubKeyHash, c.Value)
+// 		if err != nil {
+// 			return false, errors.New("Failed to exchange between acccounts: " + err.Error())
+// 		}
+
+// 		c.SigLen = copyOfSigLen
+// 		return true, nil
+// 	}
+
+// 	return false, errors.New("Failed to validate contract")
+// }
