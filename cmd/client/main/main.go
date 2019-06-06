@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/pborman/getopt"
@@ -113,6 +116,33 @@ func main() {
 // producer.SecretBytes + uint8(1) + serializedContract
 // NOTE: The uint8(1) here will let the producer know that this is a contract message
 func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
+	//get user input
+	newReader := bufio.NewReader(os.Stdin)
+	text, err := newReader.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	// Ensures no newline characters in input
+	text = strings.Replace(text, "\n", "", -1)
+
+	//convert value to uint64
+	str2uint64, err := strconv.ParseUint(text, 10, 64)
+	if err != nil {
+		return nil, errors.New("Unable to convert input to uint64")
+	}
+	// case input is zero
+	if str2uint64 == 0 {
+		return nil, errors.New("Input is zero")
+	}
+	// case balance < input
+	balance, err := client.GetBalance()
+	if err != nil {
+		return nil, err
+	}
+	if balance < str2uint64 {
+		return nil, errors.New("Input is greater than available balance")
+	}
+
 	return nil, errors.New("Incomplete function")
 }
 
