@@ -4,10 +4,10 @@ package main
 Usage:
 Must have genesis-hashes file, or will fail.
 Run go run main.go with -g --supply=[x] for genesis
-Running go run main.go with --interval=[x]ms will generate
-a block every x milliseconds (must be milliseconds) indefinitely
-Running the same command with -t flag will generate only
-one block and exit.
+Running go run main.go with --interval=[x]ms will generate a block every x milliseconds (must be milliseconds) indefinitely
+Running that command with -t flag will generate only one block and exit.
+Running that command with --numBlocks=x will generate only x amount of blocks.
+Running that command with --port=x will accept connections on port x.
 */
 
 import (
@@ -32,17 +32,19 @@ import (
 )
 
 type Flags struct {
-	help       *bool
-	debug      *bool
-	version    *bool
-	height     *bool
-	genesis    *bool
-	test       *bool
-	logs       *string
-	port       *string
-	interval   *string
-	initSupply *uint64
-	numBlocks  *uint64
+	help        *bool
+	debug       *bool
+	version     *bool
+	height      *bool
+	genesis     *bool
+	test        *bool
+	globalhost  *bool
+	memoryStats *bool
+	logs        *string
+	port        *string
+	interval    *string
+	initSupply  *uint64
+	numBlocks   *uint64
 }
 
 var version = uint16(1)
@@ -100,14 +102,6 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
 	}
 	var intervalChannel = make(chan bool)
-	// var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
-	// timeSince := time.Since(lastTimestamp)
-	// if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
-	// 	go triggerInterval(intervalChannel, time.Duration(0))
-	// } else {
-	// 	diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
-	// 	go triggerInterval(intervalChannel, time.Duration(diff))
-	// }
 	go triggerInterval(intervalChannel, productionInterval)
 
 	signalCh := make(chan os.Signal, 1)
@@ -115,10 +109,11 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 
 	var numBlocksGenerated uint64
 
+	var dataPool []accounts.Contract
+	var ms runtime.MemStats
+
 	// Main loop
 	for {
-		var dataPool []accounts.Contract
-		// var ms runtime.MemStats
 		var chainHeight = youngestBlockHeader.Height
 		select {
 		case <-intervalChannel:
@@ -137,10 +132,12 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					numBlocksGenerated++
 					youngestBlockHeader = newBlock.GetHeader()
 					go triggerInterval(intervalChannel, productionInterval)
-					// runtime.ReadMemStats(&ms)
+					dataPool = nil
+					if *fl.memoryStats {
+						runtime.ReadMemStats(&ms)
+						printMemstats(ms)
+					}
 				}
-				// TODO: empty dataPool
-				dataPool = nil
 			}
 		case message := <-byteChan:
 			lgr.Printf("Main received: %s\n", string(message))
@@ -169,17 +166,19 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 
 func main() {
 	fl := Flags{
-		help:       getopt.BoolLong("help", '?', "help"),
-		debug:      getopt.BoolLong("debug", 'd', "debug"),
-		version:    getopt.BoolLong("version", 'v', "version"),
-		height:     getopt.BoolLong("height", 'h', "height"),
-		genesis:    getopt.BoolLong("genesis", 'g', "genesis"),
-		test:       getopt.BoolLong("test", 't', "test mode"),
-		logs:       getopt.StringLong("log", 'l', "logs.txt", "log file"),
-		port:       getopt.StringLong("port", 'p', "13131", "port"),
-		interval:   getopt.StringLong("interval", 'i', "", "production interval"),
-		initSupply: getopt.Uint64Long("supply", 'y', 0, "initial supply"),
-		numBlocks:  getopt.Uint64Long("blocks", 'b', 0, "number of blocks to generate"),
+		help:        getopt.BoolLong("help", '?', "help"),
+		debug:       getopt.BoolLong("debug", 'd', "debug"),
+		version:     getopt.BoolLong("version", 'v', "version"),
+		height:      getopt.BoolLong("height", 'h', "height"),
+		genesis:     getopt.BoolLong("genesis", 'g', "genesis"),
+		test:        getopt.BoolLong("test", 't', "test mode"),
+		globalhost:  getopt.BoolLong("globalhost", 'o', "global host mode"),
+		memoryStats: getopt.BoolLong("memstats", 'm', "gather memory statistics"),
+		logs:        getopt.StringLong("log", 'l', "logs.txt", "log file"),
+		port:        getopt.StringLong("port", 'p', "13131", "port"),
+		interval:    getopt.StringLong("interval", 'i', "", "production interval"),
+		initSupply:  getopt.Uint64Long("supply", 'y', 0, "initial supply"),
+		numBlocks:   getopt.Uint64Long("blocks", 'b', 0, "number of blocks to generate"),
 	}
 	getopt.Lookup('l').SetOptional()
 	getopt.Parse()
@@ -228,8 +227,16 @@ func main() {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
-	var addr = "localhost:"
+	var addr string
 	var ln net.Listener
+
+	if *fl.globalhost {
+		addr = ":"
+		lgr.Println("Listening on all IP addresses")
+	} else {
+		addr = "localhost:"
+		lgr.Println("Listening on local IP addresses")
+	}
 
 	var byteChan chan []byte
 	if getopt.IsSet('p') {
@@ -250,7 +257,7 @@ func main() {
 }
 
 func printMemstats(ms runtime.MemStats) {
-	// useful commands: go run -gcflags='-m -m' main.go -d -t --interval=2000ms
+	// useful commands: go run -gcflags='-m -m' main.go <main flags>
 	fmt.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
 	fmt.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
 	fmt.Printf("Count of heap objects allocated: %d", ms.Mallocs)
@@ -262,12 +269,11 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 	intervalChannel <- true
 }
 
-// func init() {
-// 	if *fl.globalhost {
-// 		addr = ":"
-// 		lgr.Println("Listening on all IP addresses")
-// 	} else {
-// 		addr = fmt.Sprintf("localhost:")
-// 		lgr.Println("Listening on local IP addresses")
-// 	}
+// var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
+// timeSince := time.Since(lastTimestamp)
+// if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
+// 	go triggerInterval(intervalChannel, time.Duration(0))
+// } else {
+// 	diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
+// 	go triggerInterval(intervalChannel, time.Duration(diff))
 // }
