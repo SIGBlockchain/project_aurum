@@ -591,38 +591,49 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 			t.Errorf("Failed to insert pkhash (%v) into account table: %s", pkhashes[i], err.Error())
 		}
 	}
-	acctsDB.Close()
 
 	// Create 3 contracts
 	contracts := make([]accounts.Contract, 3)
 
+	// Contract 1
 	recipPKHash := block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
 	contract1, _ := accounts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.SignContract(somePVKeys[0])
-	valid, err := accounts.ValidateContract(contract1, accts, make([][]byte, 0))
+	valid, err := accounts.ValidateContract(contract1, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash := block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[0].PublicKey)))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
+
+	// Contract 2
 	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[2].PublicKey)))
 	contract2, _ := accounts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.SignContract(somePVKeys[1])
-	valid, err = accounts.ValidateContract(contract2, accts, make([][]byte, 0))
+	valid, err = accounts.ValidateContract(contract2, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash = block.HashSHA256(keys.EncodePublicKey(&somePVKeys[1].PublicKey))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
+
+	// Contract 3
 	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
 	contract3, _ := accounts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.SignContract(somePVKeys[2])
-	valid, err = accounts.ValidateContract(contract3, accts, make([][]byte, 0))
+	valid, err = accounts.ValidateContract(contract3, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash = block.HashSHA256(keys.EncodePublicKey(&somePVKeys[2].PublicKey))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
+	acctsDB.Close()
 
 	contracts[0] = *contract1
 	contracts[1] = *contract2
