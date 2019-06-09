@@ -252,7 +252,6 @@ func main() {
 		go RunServer(ln, byteChan, *fl.debug)
 		lgr.Printf("Server listening on port %s.", *fl.port)
 	}
-
 	ProduceBlocks(byteChan, fl, getopt.IsSet('b'))
 }
 
