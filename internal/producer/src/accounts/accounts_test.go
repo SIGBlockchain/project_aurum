@@ -944,6 +944,97 @@ func TestGetAccountInfo(t *testing.T) {
 	}
 }
 
+func TestEquals(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	contract1 := Contract{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+		Value:           1000000000,
+		StateNonce:      1,
+	}
+
+	contracts := make([]Contract, 7)
+	for i := 0; i < 7; i++ {
+		contracts[i] = contract1
+	}
+	contracts[0].Version = 9001
+	anotherSenderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	contracts[1].SenderPubKey = &anotherSenderPrivateKey.PublicKey
+	contracts[2].SigLen = 9
+	contracts[3].Signature = make([]byte, 100)
+	contracts[4].RecipPubKeyHash = block.HashSHA256(keys.EncodePublicKey(&anotherSenderPrivateKey.PublicKey))
+	contracts[5].Value = 9002
+	contracts[6].StateNonce = 9
+
+	tests := []struct {
+		name string
+		c1   Contract
+		c2   Contract
+		want bool
+	}{
+		{
+			name: "equal contracts",
+			c1:   contract1,
+			c2:   contract1,
+			want: true,
+		},
+		{
+			name: "different contract version",
+			c1:   contract1,
+			c2:   contracts[0],
+			want: false,
+		},
+		{
+			name: "different contract SenderPubKey",
+			c1:   contract1,
+			c2:   contracts[1],
+			want: false,
+		},
+		{
+			name: "different contract signature lengths",
+			c1:   contract1,
+			c2:   contracts[2],
+			want: false,
+		},
+		{
+			name: "different contract signatures",
+			c1:   contract1,
+			c2:   contracts[3],
+			want: false,
+		},
+		{
+			name: "different contract RecipPubKeyHash",
+			c1:   contract1,
+			c2:   contracts[4],
+			want: false,
+		},
+		{
+			name: "different contract Values",
+			c1:   contract1,
+			c2:   contracts[5],
+			want: false,
+		},
+		{
+			name: "different contract StateNonce",
+			c1:   contract1,
+			c2:   contracts[6],
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := Equals(tt.c1, tt.c2); result != tt.want {
+				t.Errorf("Error: Equals() returned %v for %s\n Wanted: %v", result, tt.name, tt.want)
+			}
+		})
+	}
+
+}
+
 // func TestValidateContract(t *testing.T) {
 // 	dbName := "accountBalanceTable.tab"
 // 	dbc, _ := sql.Open("sqlite3", dbName)
