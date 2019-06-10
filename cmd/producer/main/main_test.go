@@ -185,17 +185,17 @@ func TestByteChannel(t *testing.T) {
 		t.Errorf("failed to start server:\n%s", err.Error())
 	}
 	byteChan := make(chan []byte)
-	debug := true
+	debug := false
 
 	go RunServer(ln, byteChan, debug)
-	testMode := false
+	testMode := true
 	prodInterval := "2000ms"
-	nb := uint64(2)
+	memStats := false
 	fl := Flags{
-		debug:     &debug,
-		interval:  &prodInterval,
-		test:      &testMode,
-		numBlocks: &nb,
+		debug:       &debug,
+		interval:    &prodInterval,
+		test:        &testMode,
+		memoryStats: &memStats,
 	}
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -208,7 +208,6 @@ func TestByteChannel(t *testing.T) {
 	contractMessage = append(contractMessage, producer.SecretBytes...)
 	contractMessage = append(contractMessage, 1)
 	contractMessage = append(contractMessage, serializedContract...)
-	ProduceBlocks(byteChan, fl, true)
 
 	conn, err := net.Dial("tcp", "localhost:9001")
 	if err != nil {
@@ -218,9 +217,9 @@ func TestByteChannel(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to send message")
 	}
+	ProduceBlocks(byteChan, fl, true)
 
 	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadataTable)
-	t.Logf("youngest block data: %v", youngestBlock.Data)
 	if err != nil {
 		t.Errorf("failed to get youngest block:\n%s", err.Error())
 	}
@@ -228,5 +227,8 @@ func TestByteChannel(t *testing.T) {
 	var compContract accounts.Contract
 	if err := compContract.Deserialize(data); err != nil {
 		t.Errorf("failed to deserialize data:\n%s", err.Error())
+	}
+	if !bytes.Equal(serializedContract, data) {
+		t.Errorf("data does not match:\n%s != %s", string(serializedContract), string(data))
 	}
 }

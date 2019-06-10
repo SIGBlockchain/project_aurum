@@ -79,7 +79,7 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 		}
 
 		// Determine the type of message
-		if nRcvd < 8 && (!bytes.Equal(buf[:8], producer.SecretBytes)) {
+		if nRcvd < 8 || (!bytes.Equal(buf[:8], producer.SecretBytes)) {
 			conn.Write([]byte("No thanks.\n"))
 			goto End
 		} else {
@@ -134,12 +134,12 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		case <-intervalChannel:
 			// Triggered if it's time to produce a block
 			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+			lgr.Printf("Production block dataPool: %v", dataPool)
 			if newBlock, err := producer.CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
 				lgr.Fatalf("failed to add block %s", err.Error())
 				os.Exit(1)
 			} else {
-				// TODO: make account.Validate only validate the transaction
-				// TODO: table should be updated in separate call, after AddBlock
+
 				// Add the block
 				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
@@ -150,6 +150,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					youngestBlockHeader = newBlock.GetHeader()
 					go triggerInterval(intervalChannel, productionInterval)
 
+					// TODO: for each contract in the dataPool, update the accounts table
 					// Reset the pending transaction pool
 					dataPool = nil
 
@@ -158,18 +159,31 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 						runtime.ReadMemStats(&ms)
 						printMemstats(ms)
 					}
+					// If in test mode, break the loop
+					if *fl.test {
+						lgr.Printf("Test mode: breaking loop")
+						return
+					}
+
+					// If reached limit of blocks desired to be generated, break the loop
+					if limit && (numBlocksGenerated >= *fl.numBlocks) {
+						lgr.Printf("Limit reached: # blocks generated: %d, blocks desired: %d\n", numBlocksGenerated, *fl.numBlocks)
+						return
+					}
 				}
+
 			}
 		case message := <-byteChan:
 
 			// Determine contents of message
-			lgr.Printf("Main received: %s\n", string(message))
+			lgr.Printf("Main received: %v\n", message)
 
 			// If it's a contract, add it to the contract pool
 			if message[8] == 1 {
 				lgr.Println("Received contract")
 				var newContract accounts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
+					// TODO: Validate the contract prior to adding
 					dataPool = append(dataPool, newContract)
 				}
 			}
@@ -181,17 +195,6 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			return
 		}
 
-		// If in test mode, break the loop
-		if *fl.test {
-			lgr.Printf("Test mode: breaking loop")
-			break
-		}
-
-		// If reached limit of blocks desired to be generated, break the loop
-		if limit && (numBlocksGenerated >= *fl.numBlocks) {
-			lgr.Printf("Limit reached: # blocks generated: %d, blocks desired: %d\n", numBlocksGenerated, *fl.numBlocks)
-			break
-		}
 	}
 }
 
@@ -304,11 +307,13 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 	intervalChannel <- true
 }
 
-// var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
-// timeSince := time.Since(lastTimestamp)
-// if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
-// 	go triggerInterval(intervalChannel, time.Duration(0))
-// } else {
-// 	diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
-// 	go triggerInterval(intervalChannel, time.Duration(diff))
-// }
+func calculateInterval(youngestBlockHeader block.BlockHeader, productionInterval time.Duration, intervalChannel chan bool) {
+	var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
+	timeSince := time.Since(lastTimestamp)
+	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
+		go triggerInterval(intervalChannel, time.Duration(0))
+	} else {
+		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
+		go triggerInterval(intervalChannel, time.Duration(diff))
+	}
+}
