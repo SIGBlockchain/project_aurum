@@ -1,16 +1,17 @@
 package main
 
 import (
-	"bufio"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
 )
 
@@ -116,17 +117,8 @@ func main() {
 // producer.SecretBytes + uint8(1) + serializedContract
 // NOTE: The uint8(1) here will let the producer know that this is a contract message
 func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
-	//get user input
-	newReader := bufio.NewReader(os.Stdin)
-	text, err := newReader.ReadString('\n')
-	if err != nil {
-		return nil, err
-	}
-	// Ensures no newline characters in input
-	text = strings.Replace(text, "\n", "", -1)
-
 	//convert value to uint64
-	str2uint64, err := strconv.ParseUint(text, 10, 64)
+	str2uint64, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return nil, errors.New("Unable to convert input to uint64")
 	}
@@ -143,7 +135,37 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 		return nil, errors.New("Input is greater than available balance")
 	}
 
-	return nil, errors.New("Incomplete function")
+	//walletAddr, err := client.GetWalletAddress()
+	if err != nil {
+		return nil, err
+	}
+	stateNonce, err := client.GetStateNonce()
+	if err != nil {
+		return nil, err
+	}
+
+	// need to fail if unsuccessful
+	recipBytes := []byte(recipient)
+
+	senderPubKey, _ := client.GetPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, str2uint64, stateNonce)
+	if err != nil {
+		return nil, err
+	}
+
+	contract.SignContract(senderPubKey)
+
+	totalSize := (2 + 178 + 1 + int(contract.SigLen) + 32 + 8 + 8)
+	contractMessage := make([]byte, 10+totalSize)
+	copy(contractMessage[0:8], producer.SecretBytes)
+	binary.LittleEndian.PutUint16(contractMessage[8:10], version)
+	serializedContract, err := contract.Serialize()
+	copy(contractMessage[10:], serializedContract)
+	return contractMessage, err
 }
 
 // ---------------------------------------------------------------------------

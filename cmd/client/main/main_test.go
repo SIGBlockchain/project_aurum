@@ -2,9 +2,16 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 func TestSetupFlag(t *testing.T) {
@@ -31,14 +38,18 @@ func TestSetupFlag(t *testing.T) {
 }
 
 func TestContractMessageFromInput(t *testing.T) {
-	// if err := client.SetupWallet(); err != nil {
-	// 	t.Errorf("failed to setup wallet: %s", err.Error())
-	// }
-	// defer func() {
-	// 	if err := os.Remove(wallet); err != nil {
-	// 		t.Errorf("failed to remove wallet: %s", err.Error())
-	// 	}
-	// }()
+	if err := client.SetupWallet(); err != nil {
+		t.Errorf("failed to setup wallet: %s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove(wallet); err != nil {
+			t.Errorf("failed to remove wallet: %s", err.Error())
+		}
+	}()
+
+	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
+	testValue := 9000
 
 	type testArg struct {
 		name      string
@@ -48,26 +59,49 @@ func TestContractMessageFromInput(t *testing.T) {
 	}
 	testArgs := []testArg{
 		{
-			// case where aurum_wallet.json does not exist
+			name:      "case where aurum_wallet.json does not exist",
+			value:     string(testValue),
+			recipient: string(recipientPKH),
+			wantErr:   false,
 		},
 		{
-			// case where value is negative
+			name:      "case where value is negative",
+			value:     string(testValue * -1),
+			recipient: string(recipientPKH),
+			wantErr:   false,
 		},
 		{
-			// case where value is zero
+			name:      "case where value is zero",
+			value:     string(testValue - testValue),
+			recipient: string(recipientPKH),
+			wantErr:   false,
 		},
 		{
-			// case where value is greater than wallet balance
+			name:      "case where value is greater than wallet balance",
+			value:     string(testValue),
+			recipient: string(recipientPKH),
+			wantErr:   false,
 		},
 		{
-			// case where recipient cannot be converted to size 32 byte
+			name:      "case where recipient cannot be converted to size 32 byte",
+			value:     string(testValue),
+			recipient: string(recipientPKH),
+			wantErr:   false,
 		},
 		{
-			// valid case,
-			//check to make sure there's secret bytes, uint8(1), serialized signed contract
+			name:      "check to make sure there's secret bytes, uint8(1), serialized signed contract",
+			value:     string(testValue),
+			recipient: string(recipientPKH),
+			wantErr:   true,
 		},
 	}
-	t.Logf("%v", testArgs) // delete this when for loop is complete
 
-	// for _, arg := range testArgs {}
+	for _, tt := range testArgs {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ContractMessageFromInput(tt.recipient, tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ContractMessageFromInput() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
