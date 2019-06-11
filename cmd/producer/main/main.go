@@ -262,6 +262,8 @@ func main() {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
+	// TODO: Add RecoverMetadata here
+
 	var addr string
 	var ln net.Listener
 
