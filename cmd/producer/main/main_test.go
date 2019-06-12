@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -230,5 +231,116 @@ func TestByteChannel(t *testing.T) {
 	}
 	if !bytes.Equal(serializedContract, data) {
 		t.Errorf("data does not match:\n%s != %s", string(serializedContract), string(data))
+	}
+}
+
+func TestResponseToAccountInfoRequest(t *testing.T) {
+	if err := client.SetupWallet(); err != nil {
+		t.Errorf("failed to setup wallet:\n%s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove("aurum_wallet.json"); err != nil {
+			t.Errorf("failed to remove aurum_wallet.json:\n%s", err.Error())
+		}
+	}()
+	dbName := "accountBalanceTable.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+	walletAddress, err := client.GetWalletAddress()
+	// t.Logf("Wallet address: %v", walletAddress)
+	if err != nil {
+		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
+	}
+	ln, err := net.Listen("tcp", "localhost:9001")
+	if err != nil {
+		t.Errorf("failed to start server:\n%s", err.Error())
+	}
+	byteChan := make(chan []byte)
+	debug := false
+
+	go RunServer(ln, byteChan, debug)
+
+	// Request
+	var requestInfoMessage []byte
+	requestInfoMessage = append(requestInfoMessage, producer.SecretBytes...)
+	requestInfoMessage = append(requestInfoMessage, 2)
+	requestInfoMessage = append(requestInfoMessage, walletAddress...)
+	conn, err := net.Dial("tcp", "localhost:9001")
+	if err != nil {
+		t.Errorf("failed to connect to server:\n%s", err.Error())
+	}
+	// t.Logf("Sending message: %v", requestInfoMessage)
+	if _, err := conn.Write(requestInfoMessage); err != nil {
+		t.Errorf("failed to send request info message:\n%s", err.Error())
+	}
+	buf := make([]byte, 1024)
+	nRead, err := conn.Read(buf)
+	if err != nil {
+		t.Errorf("failed to read from socket:\n%s", err.Error())
+	}
+	if !bytes.Equal(buf[:nRead], []byte("Thank you.\n")) {
+		t.Errorf("expected different response: %v != %v", string(buf[:nRead]), string([]byte("Thank you\n")))
+	}
+	buf = make([]byte, 1024)
+	nRead, err = conn.Read(buf)
+	if err != nil {
+		t.Errorf("failed to read from socket:\n%s", err.Error())
+	}
+	if buf[8] != 1 {
+		t.Errorf("failed to get errored response from producer")
+	}
+	conn.Close()
+
+	// Check for successful insertion
+	if err := accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 1000); err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+	_, err = accounts.GetAccountInfo(walletAddress)
+	if err != nil {
+		t.Errorf("failed to retrieve account info:\n%s", err.Error())
+	}
+	// t.Logf("account info: %v", accInfo)
+	dbc.Close()
+
+	// New request
+	conn, err = net.Dial("tcp", "localhost:9001")
+	if err != nil {
+		t.Errorf("failed to connect to server:\n%s", err.Error())
+	}
+	// t.Logf("Sending message: %v", requestInfoMessage)
+	if _, err := conn.Write(requestInfoMessage); err != nil {
+		t.Errorf("failed to send request info message:\n%s", err.Error())
+	}
+	buf = make([]byte, 1024)
+	nRead, err = conn.Read(buf)
+	if err != nil {
+		t.Errorf("failed to read from socket:\n%s", err.Error())
+	}
+	if !bytes.Equal(buf[:nRead], []byte("Thank you.\n")) {
+		t.Errorf("expected different response: %v != %v", string(buf[:nRead]), string([]byte("Thank you\n")))
+	}
+	buf = make([]byte, 1024)
+	nRead, err = conn.Read(buf)
+	if err != nil {
+		t.Errorf("failed to read from socket:\n%s", err.Error())
+	}
+
+	if buf[8] != 0 {
+		t.Errorf("failed to get success response from producer: %d != %d", buf[8], 0)
+	}
+	var accInfo accounts.AccountInfo
+	if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
+		t.Errorf("failed to deserialize account info:\n%s", err.Error())
 	}
 }
