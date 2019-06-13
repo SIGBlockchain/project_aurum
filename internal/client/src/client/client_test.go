@@ -444,3 +444,66 @@ func TestGetBalance(t *testing.T) {
 		t.Errorf("Values fail to match. Wanted: %v, got %v", expected, myBal)
 	}
 }
+
+func TestUpdateWallet(t *testing.T) {
+	wallet := "aurum_wallet.json"
+	if err := SetupWallet(); err != nil {
+		t.Errorf("failed to set up wallet: %s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove(wallet); err != nil {
+			t.Errorf("failed to remove wallet: %s", err.Error())
+		}
+	}()
+	private, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to get private key: %s", err.Error())
+	}
+	currentBalance, err := GetBalance()
+	if err != nil {
+		t.Errorf("failed to get initial balance: %s", err.Error())
+	}
+	if currentBalance != 0 {
+		t.Errorf("current balance not what was expected: %d != %d", currentBalance, 0)
+	}
+	currentNonce, err := GetStateNonce()
+	if err != nil {
+		t.Errorf("failed to get initial nonce: %s", err.Error())
+	}
+	if currentNonce != 0 {
+		t.Errorf("current nonce not what was expected: %d != %d", currentNonce, 0)
+	}
+	if err := UpdateWallet(100000, 15); err != nil {
+		t.Errorf("failed to update wallet: %s", err.Error())
+	}
+	newBalance, err := GetBalance()
+	if err != nil {
+		t.Errorf("failed to get new balance: %s", err.Error())
+	}
+	if newBalance != 100000 {
+		t.Errorf("new balance not what was expected: %d != %d", newBalance, 100000)
+	}
+	newNonce, err := GetStateNonce()
+	if err != nil {
+		t.Errorf("failed to get initial nonce: %s", err.Error())
+	}
+	if newNonce != 15 {
+		t.Errorf("new nonce not what was expected: %d != %d", currentNonce, 15)
+	}
+	// Check if private key was unchanged
+	unchangedPrivate, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to get private key second time: %s", err.Error())
+	}
+	encPrivExpected, err := keys.EncodePrivateKey(private)
+	if err != nil {
+		t.Errorf("failed to encode private key: %s", err.Error())
+	}
+	encPrivActual, err := keys.EncodePrivateKey(unchangedPrivate)
+	if err != nil {
+		t.Errorf("failed to encode private key: %s", err.Error())
+	}
+	if !bytes.Equal(encPrivActual, encPrivExpected) {
+		t.Errorf("private keys do not match: %v != %v", encPrivActual, encPrivExpected)
+	}
+}

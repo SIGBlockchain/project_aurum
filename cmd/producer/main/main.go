@@ -2,11 +2,11 @@ package main
 
 /*
 Usage:
-Must have genesis-hashes file, or will fail.
-Run go run main.go with -g --supply=[x] for genesis
-Running go run main.go with --interval=[x]ms will generate a block every x milliseconds (must be milliseconds) indefinitely
+Must have genesis_hashes.txt file, or will fail.
+Run `go run main.go` with -g --supply=[x] for genesis
+Running `go run main.go` with --interval=[x]ms will generate a block every x milliseconds (must be milliseconds) indefinitely
 Running that command with -t flag will generate only one block and exit.
-Running that command with --numBlocks=x will generate only x amount of blocks.
+Running that command with --numBlocks=x will generate only x number of blocks.
 Running that command with --port=x will accept connections on port x.
 */
 
@@ -50,6 +50,8 @@ type Flags struct {
 var version = uint16(1)
 var ledger = "blockchain.dat"
 var metadataTable = "metadata.tab"
+
+// TODO: Will need to change the name to support get functions
 var accountsTable = "accounts.tab"
 
 func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
@@ -79,11 +81,30 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 		}
 
 		// Determine the type of message
+		// lgr.Printf("Received following message: %v", buf[:nRcvd])
 		if nRcvd < 8 || (!bytes.Equal(buf[:8], producer.SecretBytes)) {
 			conn.Write([]byte("No thanks.\n"))
 			goto End
 		} else {
 			conn.Write([]byte("Thank you.\n"))
+			if buf[8] == 2 {
+				lgr.Println("Received account info request")
+				// TODO: Will require a sync.Mutex lock here eventually
+				accInfo, err := accounts.GetAccountInfo(buf[9:nRcvd])
+				var responseMessage []byte
+				responseMessage = append(responseMessage, producer.SecretBytes...)
+				if err != nil {
+					lgr.Printf("Failed to get account info for %v: %s", buf[9:nRcvd], err.Error())
+					responseMessage = append(responseMessage, 1)
+				} else {
+					responseMessage = append(responseMessage, 0)
+					if serializedAccInfo, err := accInfo.Serialize(); err == nil {
+						responseMessage = append(responseMessage, serializedAccInfo...)
+					}
+				}
+				conn.Write(responseMessage)
+				goto End
+			}
 		}
 
 		// Send to channel if aurum-related message
@@ -151,6 +172,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					go triggerInterval(intervalChannel, productionInterval)
 
 					// TODO: for each contract in the dataPool, update the accounts table
+					// TODO: will require a sync.Mutex for the accounts table
 					// Reset the pending transaction pool
 					dataPool = nil
 
@@ -179,13 +201,15 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			lgr.Printf("Main received: %v\n", message)
 
 			// If it's a contract, add it to the contract pool
-			if message[8] == 1 {
+			switch message[8] {
+			case 1:
 				lgr.Println("Received contract")
 				var newContract accounts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
 					// TODO: Validate the contract prior to adding
 					dataPool = append(dataPool, newContract)
 				}
+				break
 			}
 		case <-signalCh:
 
@@ -261,6 +285,8 @@ func main() {
 	if err != nil {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
+
+	// TODO: Add RecoverMetadata here
 
 	var addr string
 	var ln net.Listener

@@ -277,9 +277,6 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// NOT READY TO BE IMPLEMENTED YET
-func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
-
 // READY TO BE IMPLEMENTED
 func GetBalance() (uint64, error) {
 	fwallet, err := os.Open("aurum_wallet.json")
@@ -378,4 +375,38 @@ func GetWalletAddress() ([]byte, error) {
 	// Get the PEM encoded public key
 	pubKeyEncoded := keys.EncodePublicKey(&privKey.PublicKey)
 	return block.HashSHA256(pubKeyEncoded), nil
+}
+
+func UpdateWallet(balance, stateNonce uint64) error {
+	wallet := "aurum_wallet.json"
+	if _, err := os.Stat(wallet); os.IsNotExist(err) {
+		return errors.New("wallet file not detected: " + err.Error())
+	}
+	type walletData struct {
+		PrivateKey string
+		Balance    uint64
+		Nonce      uint64
+	}
+	f, err := os.Open(wallet)
+	if err != nil {
+		return errors.New("failed to open wallet: " + err.Error())
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	var jsonData walletData
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return errors.New("failed to unmarshall data: %s" + err.Error())
+	}
+	jsonData.Balance = balance
+	jsonData.Nonce = stateNonce
+
+	dumpData, err := json.Marshal(jsonData)
+	if err != nil {
+		return errors.New("failed to marshal dump data: " + err.Error())
+	}
+	if err := ioutil.WriteFile(wallet, dumpData, 0644); err != nil {
+		return errors.New("failed to write to file: " + err.Error())
+	}
+
+	return nil
 }
