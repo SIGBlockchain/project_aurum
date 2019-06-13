@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -156,16 +155,14 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	contract.SignContract(senderPubKey)
+	serializedContract, _ := contract.Serialize()
 
-	totalSize := (2 + 178 + 1 + int(contract.SigLen) + 32 + 8 + 8)
-	contractMessage := make([]byte, 10+totalSize)
-	copy(contractMessage[0:8], producer.SecretBytes)
-	binary.LittleEndian.PutUint16(contractMessage[8:10], version)
-	serializedContract, err := contract.Serialize()
-	copy(contractMessage[10:], serializedContract)
-	return contractMessage, err
+	var contractMessage []byte
+	contractMessage = append(contractMessage, producer.SecretBytes...)
+	contractMessage = append(contractMessage, 1)
+	contractMessage = append(contractMessage, serializedContract...)
+	return contractMessage, nil
 }
 
 // ---------------------------------------------------------------------------
