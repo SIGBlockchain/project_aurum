@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -590,38 +591,49 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 			t.Errorf("Failed to insert pkhash (%v) into account table: %s", pkhashes[i], err.Error())
 		}
 	}
-	acctsDB.Close()
 
 	// Create 3 contracts
 	contracts := make([]accounts.Contract, 3)
 
+	// Contract 1
 	recipPKHash := block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
 	contract1, _ := accounts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.SignContract(somePVKeys[0])
-	valid, err := accounts.ValidateContract(contract1, accts, make([][]byte, 0))
+	valid, err := accounts.ValidateContract(contract1, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash := block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[0].PublicKey)))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
+
+	// Contract 2
 	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[2].PublicKey)))
 	contract2, _ := accounts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.SignContract(somePVKeys[1])
-	valid, err = accounts.ValidateContract(contract2, accts, make([][]byte, 0))
+	valid, err = accounts.ValidateContract(contract2, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash = block.HashSHA256(keys.EncodePublicKey(&somePVKeys[1].PublicKey))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
+
+	// Contract 3
 	recipPKHash = block.HashSHA256(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
 	contract3, _ := accounts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.SignContract(somePVKeys[2])
-	valid, err = accounts.ValidateContract(contract3, accts, make([][]byte, 0))
+	valid, err = accounts.ValidateContract(contract3, make([][]byte, 0))
 	if err != nil {
 		t.Error("Failed to validate contract: " + err.Error())
 	} else if !valid {
 		t.Error("Invalid contract")
 	}
+	senderPKHash = block.HashSHA256(keys.EncodePublicKey(&somePVKeys[2].PublicKey))
+	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
+	acctsDB.Close()
 
 	contracts[0] = *contract1
 	contracts[1] = *contract2
@@ -723,5 +735,72 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 				row.Close()
 			}
 		})
+	}
+}
+
+func TestGenerateNRandomKeys(t *testing.T) {
+	type args struct {
+		filename string
+		n        uint32
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test with N = 0",
+			args: args{
+				filename: "testfile.json",
+				n:        0,
+			},
+			wantErr: true,
+			// Error should say "must generate at least 1 key"
+		},
+		{
+			name: "Test with N = 100",
+			args: args{
+				filename: "testfile.json",
+				n:        100,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := GenerateNRandomKeys(tt.args.filename, tt.args.n)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenerateNRandomKeys() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			//			if tt.args.n == 0 && err != errors.New("Must generate at least one private key") {
+			//				t.Errorf("Wrong error message generated. Should say: %s, instead says: %s", "\"Must generate at least one private key\"", err)
+			//			}
+			if _, err := os.Stat(tt.args.filename); os.IsNotExist(err) {
+				t.Errorf("Test file for keys not detected: %s", err)
+			}
+			if tt.args.n > 0 {
+				jsonFile, err := os.Open(tt.args.filename)
+				if err != nil {
+					t.Errorf("Failed to open json file: %s", err)
+				}
+				defer jsonFile.Close()
+				var keys []string
+				byteKeys, err := ioutil.ReadAll(jsonFile)
+				if err != nil {
+					t.Errorf("Failed to read in keys from json file: %s", err)
+				}
+				err = json.Unmarshal(byteKeys, &keys)
+				if err != nil {
+					t.Errorf("Failed to unmarshall keys because: %s", err)
+				}
+				if uint32(len(keys)) != tt.args.n {
+					t.Errorf("Number of private keys do not match n: %d", len(keys))
+				}
+
+			}
+		})
+	}
+	if err := os.Remove("testfile.json"); err != nil {
+		t.Errorf("Failed to remove file: %s because: %s", "testfile.json", err)
 	}
 }
