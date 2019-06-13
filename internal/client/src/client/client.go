@@ -280,9 +280,6 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// NOT READY TO BE IMPLEMENTED YET
-func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
-
 // READY TO BE IMPLEMENTED
 func GetBalance() (uint64, error) {
 	fwallet, err := os.Open("aurum_wallet.json")
@@ -385,7 +382,6 @@ func GetWalletAddress() ([]byte, error) {
 
 func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 	var accInfo accounts.AccountInfo
-	var retErr error
 	walletAddress, err := GetWalletAddress()
 	if err != nil {
 		return accInfo, errors.New("failed to get wallet address: " + err.Error())
@@ -398,17 +394,53 @@ func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 	if _, err := conn.Write(requestInfoMessage); err != nil {
 		return accInfo, errors.New("failed to send message to producer: " + err.Error())
 	}
-
 	// Should receive Thank you first
 	buf := make([]byte, 1024)
 	nRead, err := conn.Read(buf)
 	// Should receive message next
 	buf = make([]byte, 1024)
 	nRead, err = conn.Read(buf)
-	if buf[8] == 0 {
+	if buf[8] == 1 {
+		return accounts.AccountInfo{}, errors.New("got back failure message from producer")
+	} else if buf[8] == 0 {
 		if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
-			retErr = errors.New("failed to deserialize account info: " + err.Error())
+			return accounts.AccountInfo{}, errors.New("failed to deserialize account info: " + err.Error())
 		}
 	}
-	return accInfo, retErr
+	return accInfo, nil
+}
+
+func UpdateWallet(balance, stateNonce uint64) error {
+	wallet := "aurum_wallet.json"
+	if _, err := os.Stat(wallet); os.IsNotExist(err) {
+		return errors.New("wallet file not detected: " + err.Error())
+	}
+	type walletData struct {
+		PrivateKey string
+		Balance    uint64
+		Nonce      uint64
+	}
+	f, err := os.OpenFile(wallet, os.O_WRONLY, 0660)
+	if err != nil {
+		return errors.New("failed to open wallet: " + err.Error())
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	var jsonData walletData
+	err = json.Unmarshal(data, &jsonData)
+	if jsonData.Balance != balance {
+		jsonData.Balance = balance
+	}
+	if jsonData.Nonce != stateNonce {
+		jsonData.Nonce = stateNonce
+	}
+	dumpData, err := json.Marshal(jsonData)
+	if err != nil {
+		return errors.New("failed to marshal dump data: " + err.Error())
+	}
+	_, err = f.Write(dumpData)
+	if err != nil {
+		return errors.New("failed to write to file: " + err.Error())
+	}
+	return nil
 }
