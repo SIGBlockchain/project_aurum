@@ -445,8 +445,6 @@ func TestGetBalance(t *testing.T) {
 	}
 }
 
-func TestRequestWalletInfo(t *testing.T) {}
-
 func TestUpdateWallet(t *testing.T) {
 	wallet := "aurum_wallet.json"
 	if err := SetupWallet(); err != nil {
