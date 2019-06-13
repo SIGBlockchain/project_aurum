@@ -457,10 +457,10 @@ func TestUpdateWallet(t *testing.T) {
 			t.Errorf("failed to remove wallet: %s", err.Error())
 		}
 	}()
-	// private, err := GetPrivateKey()
-	// if err != nil {
-	// 	t.Errorf("failed to get private key: %s", err.Error())
-	// }
+	private, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to get private key: %s", err.Error())
+	}
 	currentBalance, err := GetBalance()
 	if err != nil {
 		t.Errorf("failed to get initial balance: %s", err.Error())
@@ -491,5 +491,21 @@ func TestUpdateWallet(t *testing.T) {
 	}
 	if newNonce != 15 {
 		t.Errorf("new nonce not what was expected: %d != %d", currentNonce, 15)
+	}
+	// Check if private key was unchanged
+	unchangedPrivate, err := GetPrivateKey()
+	if err != nil {
+		t.Errorf("failed to get private key second time: %s", err.Error())
+	}
+	encPrivExpected, err := keys.EncodePrivateKey(private)
+	if err != nil {
+		t.Errorf("failed to encode private key: %s", err.Error())
+	}
+	encPrivActual, err := keys.EncodePrivateKey(unchangedPrivate)
+	if err != nil {
+		t.Errorf("failed to encode private key: %s", err.Error())
+	}
+	if !bytes.Equal(encPrivActual, encPrivExpected) {
+		t.Errorf("private keys do not match: %v != %v", encPrivActual, encPrivExpected)
 	}
 }

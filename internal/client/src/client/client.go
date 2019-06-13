@@ -420,27 +420,26 @@ func UpdateWallet(balance, stateNonce uint64) error {
 		Balance    uint64
 		Nonce      uint64
 	}
-	f, err := os.OpenFile(wallet, os.O_WRONLY, 0660)
+	f, err := os.Open(wallet)
 	if err != nil {
 		return errors.New("failed to open wallet: " + err.Error())
 	}
 	defer f.Close()
 	data, err := ioutil.ReadAll(f)
 	var jsonData walletData
-	err = json.Unmarshal(data, &jsonData)
-	if jsonData.Balance != balance {
-		jsonData.Balance = balance
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return errors.New("failed to unmarshall data: %s" + err.Error())
 	}
-	if jsonData.Nonce != stateNonce {
-		jsonData.Nonce = stateNonce
-	}
+	jsonData.Balance = balance
+	jsonData.Nonce = stateNonce
+
 	dumpData, err := json.Marshal(jsonData)
 	if err != nil {
 		return errors.New("failed to marshal dump data: " + err.Error())
 	}
-	_, err = f.Write(dumpData)
-	if err != nil {
+	if err := ioutil.WriteFile(wallet, dumpData, 0644); err != nil {
 		return errors.New("failed to write to file: " + err.Error())
 	}
+
 	return nil
 }
