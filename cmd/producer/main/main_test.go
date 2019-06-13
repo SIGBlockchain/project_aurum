@@ -262,7 +262,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
 	}
-	ln, err := net.Listen("tcp", "localhost:9001")
+	ln, err := net.Listen("tcp", "localhost:10000")
 	if err != nil {
 		t.Errorf("failed to start server:\n%s", err.Error())
 	}
@@ -276,7 +276,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	requestInfoMessage = append(requestInfoMessage, producer.SecretBytes...)
 	requestInfoMessage = append(requestInfoMessage, 2)
 	requestInfoMessage = append(requestInfoMessage, walletAddress...)
-	conn, err := net.Dial("tcp", "localhost:9001")
+	conn, err := net.Dial("tcp", "localhost:10000")
 	if err != nil {
 		t.Errorf("failed to connect to server:\n%s", err.Error())
 	}

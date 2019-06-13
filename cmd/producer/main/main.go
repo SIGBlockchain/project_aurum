@@ -2,11 +2,11 @@ package main
 
 /*
 Usage:
-Must have genesis-hashes file, or will fail.
-Run go run main.go with -g --supply=[x] for genesis
-Running go run main.go with --interval=[x]ms will generate a block every x milliseconds (must be milliseconds) indefinitely
+Must have genesis_hashes.txt file, or will fail.
+Run `go run main.go` with -g --supply=[x] for genesis
+Running `go run main.go` with --interval=[x]ms will generate a block every x milliseconds (must be milliseconds) indefinitely
 Running that command with -t flag will generate only one block and exit.
-Running that command with --numBlocks=x will generate only x amount of blocks.
+Running that command with --numBlocks=x will generate only x number of blocks.
 Running that command with --port=x will accept connections on port x.
 */
 
@@ -210,16 +210,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					dataPool = append(dataPool, newContract)
 				}
 				break
-
 			}
-			// if message[8] == 1 {
-			// 	lgr.Println("Received contract")
-			// 	var newContract accounts.Contract
-			// 	if err := newContract.Deserialize(message[9:]); err == nil {
-			// 		// TODO: Validate the contract prior to adding
-			// 		dataPool = append(dataPool, newContract)
-			// 	}
-			// }
 		case <-signalCh:
 
 			// If you receive a SIGINT, exit the loop
