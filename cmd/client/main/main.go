@@ -117,42 +117,42 @@ func main() {
 // producer.SecretBytes + uint8(1) + serializedContract
 // NOTE: The uint8(1) here will let the producer know that this is a contract message
 func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
-	//convert value to uint64
-	str2uint64, err := strconv.ParseUint(value, 10, 64)
+	intVal, err := strconv.Atoi(value) // convert value (string) to int
 	if err != nil {
-		return nil, errors.New("Unable to convert input to uint64")
+		return nil, errors.New("Unable to convert input to int " + err.Error())
 	}
-	// case input is zero
-	if str2uint64 == 0 {
-		return nil, errors.New("Input is zero")
+
+	// case input is zero or less
+	if intVal <= 0 {
+		return nil, errors.New("Input value is less than or equal to zero")
 	}
+
 	// case balance < input
 	balance, err := client.GetBalance()
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Failed to get balance: " + err.Error())
 	}
-	if balance < str2uint64 {
+	if balance < uint64(intVal) {
 		return nil, errors.New("Input is greater than available balance")
 	}
 
-	//walletAddr, err := client.GetWalletAddress()
-	if err != nil {
-		return nil, err
-	}
 	stateNonce, err := client.GetStateNonce()
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Failed to get stateNonce: " + err.Error())
 	}
 
-	// need to fail if unsuccessful
+	// case recipBytes != 32
 	recipBytes := []byte(recipient)
+	if len(recipBytes) != 32 {
+		return nil, errors.New("Failed to convert recipient to size 32 byte slice")
+	}
 
 	senderPubKey, _ := client.GetPrivateKey()
 	if err != nil {
 		return nil, err
 	}
 
-	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, str2uint64, stateNonce)
+	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce)
 	if err != nil {
 		return nil, err
 	}
