@@ -1035,6 +1035,28 @@ func TestEquals(t *testing.T) {
 
 }
 
+func TestContractToString(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	testContract := Contract{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+		Value:           1000000000,
+		StateNonce:      1,
+	}
+
+	stringOfTheContract := fmt.Sprintf("%v\n %v\n %v\n %v\n %v\n %v\n %v\n", testContract.Version, 
+		testContract.SenderPubKey, testContract.SigLen, hex.EncodeToString(testContract.Signature), 
+		hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
+
+	if result := ContractToString(&testContract); result != stringOfTheContract {
+		t.Error("Contract String is not equal to test String")
+	}
+
+}
+
 // func TestValidateContract(t *testing.T) {
 // 	dbName := "accountBalanceTable.tab"
 // 	dbc, _ := sql.Open("sqlite3", dbName)
