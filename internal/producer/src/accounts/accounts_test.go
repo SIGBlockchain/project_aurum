@@ -1054,7 +1054,6 @@ func TestContractToString(t *testing.T) {
 	if result := ContractToString(&testContract); result != stringOfTheContract {
 		t.Error("Contract String is not equal to test String")
 	}
-
 }
 
 // func TestValidateContract(t *testing.T) {
