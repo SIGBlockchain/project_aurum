@@ -3,7 +3,10 @@ package block
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -353,6 +356,67 @@ func TestEquals(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if result := Equals(tt.b1, tt.b2); result != tt.want {
 				t.Errorf("Error: Equals() returned %v for %s\n Wanted: %v", result, tt.name, tt.want)
+			}
+		})
+	}
+}
+
+func TestBlockToString(t *testing.T) {
+	testBlock := Block{
+		Version:        1,
+		Height:         1,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   HashSHA256([]byte{'a'}),
+		MerkleRootHash: HashSHA256([]byte{'b'}),
+		DataLen:        1,
+		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
+	}
+	nilblock := Block{}
+
+	tests := []struct {
+		blk Block
+	}{
+		{
+			blk: testBlock,
+		},
+		{
+			blk: nilblock,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			actual := tt.blk.toString()
+			fields := strings.Split(actual, "\n")
+			if len(fields) < 7 { // fail if amount of substrings < amount of fields in block struct
+				t.Errorf("Failed to convert block struct into string")
+				return
+			}
+
+			vers, _ := strconv.ParseUint(fields[0], 10, 16)
+			height, _ := strconv.ParseUint(fields[1], 10, 64)
+			timestamp, _ := strconv.ParseInt(fields[2], 10, 64)
+			prevHash, _ := hex.DecodeString(fields[3])
+			merkleHash, _ := hex.DecodeString(fields[4])
+			dataLen, _ := strconv.ParseUint(fields[5], 10, 16)
+			var data [][]byte
+			for i := 6; i < len(fields); i++ {
+				str, _ := hex.DecodeString(fields[i])
+				data = append(data, str)
+			}
+
+			actualBlock := Block{
+				Version:        uint16(vers),
+				Height:         height,
+				Timestamp:      timestamp,
+				PreviousHash:   prevHash,
+				MerkleRootHash: merkleHash,
+				DataLen:        uint16(dataLen),
+				Data:           data,
+			}
+
+			if !Equals(tt.blk, actualBlock) {
+				t.Errorf("The blocks are not equal\nExpected: %+v\nActual: %+v", tt.blk, actualBlock)
 			}
 		})
 	}
