@@ -224,6 +224,5 @@ func (b Block) toString() string {
 
 	blockStr := fmt.Sprintf("%v\n%v\n%v\n", b.Version, b.Height, b.Timestamp)
 	blockStr += prevHash + merkleHash + fmt.Sprintf("%v\n", b.DataLen) + data
-	fmt.Println(blockStr)
 	return blockStr
 }

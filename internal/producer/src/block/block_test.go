@@ -388,10 +388,6 @@ func TestBlockToString(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			actual := tt.blk.toString()
 			fields := strings.Split(actual, "\n")
-			if len(fields) < 7 { // fail if amount of substrings < amount of fields in block struct
-				t.Errorf("Failed to convert block struct into string")
-				return
-			}
 
 			vers, _ := strconv.ParseUint(fields[0], 10, 16)
 			height, _ := strconv.ParseUint(fields[1], 10, 64)
@@ -401,8 +397,8 @@ func TestBlockToString(t *testing.T) {
 			dataLen, _ := strconv.ParseUint(fields[5], 10, 16)
 			var data [][]byte
 			for i := 6; i < len(fields); i++ {
-				str, _ := hex.DecodeString(fields[i])
-				data = append(data, str)
+				dSlice, _ := hex.DecodeString(fields[i])
+				data = append(data, dSlice)
 			}
 
 			actualBlock := Block{
