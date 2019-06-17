@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"reflect"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -386,33 +385,18 @@ func TestBlockToString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			actual := tt.blk.toString()
-			fields := strings.Split(actual, "\n")
+			actual := tt.blk.ToString()
 
-			vers, _ := strconv.ParseUint(fields[0], 10, 16)
-			height, _ := strconv.ParseUint(fields[1], 10, 64)
-			timestamp, _ := strconv.ParseInt(fields[2], 10, 64)
-			prevHash, _ := hex.DecodeString(fields[3])
-			merkleHash, _ := hex.DecodeString(fields[4])
-			dataLen, _ := strconv.ParseUint(fields[5], 10, 16)
-			var data [][]byte
-			for i := 6; i < len(fields); i++ {
-				dSlice, _ := hex.DecodeString(fields[i])
-				data = append(data, dSlice)
+			expected := fmt.Sprintf("Version: %v\nHeight: %v\nTimestamp: %v\nPrevious Hash: %v\nMerkle Root Hash: %v\nDataLen: %v\n",
+				tt.blk.Version, tt.blk.Height, tt.blk.Timestamp, hex.EncodeToString(tt.blk.PreviousHash),
+				hex.EncodeToString(tt.blk.MerkleRootHash), tt.blk.DataLen)
+			data := "Data:\n"
+			for _, d := range tt.blk.Data {
+				data += hex.EncodeToString(d) + "\n"
 			}
-
-			actualBlock := Block{
-				Version:        uint16(vers),
-				Height:         height,
-				Timestamp:      timestamp,
-				PreviousHash:   prevHash,
-				MerkleRootHash: merkleHash,
-				DataLen:        uint16(dataLen),
-				Data:           data,
-			}
-
-			if !Equals(tt.blk, actualBlock) {
-				t.Errorf("The blocks are not equal\nExpected: %+v\nActual: %+v", tt.blk, actualBlock)
+			expected += data
+			if actual != expected {
+				t.Errorf("The strings are not equal\nExpected:\n%+v\nActual:\n%+v", expected, actual)
 			}
 		})
 	}

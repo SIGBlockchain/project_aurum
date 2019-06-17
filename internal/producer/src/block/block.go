@@ -210,19 +210,15 @@ func Equals(block1 Block, block2 Block) bool {
 }
 
 // Returns a string of the block
-func (b Block) toString() string {
-	prevHash := hex.EncodeToString(b.PreviousHash) + "\n"
-	merkleHash := hex.EncodeToString(b.MerkleRootHash) + "\n"
-	var data string
-	for i, d := range b.Data {
-		if i == len(b.Data)-1 {
-			data += hex.EncodeToString(d)
-		} else {
-			data += hex.EncodeToString(d) + "\n"
-		}
+func (b Block) ToString() string {
+	prevHash := "Previous Hash: " + hex.EncodeToString(b.PreviousHash) + "\n"
+	merkleHash := "Merkle Root Hash: " + hex.EncodeToString(b.MerkleRootHash) + "\n"
+	data := "Data:\n"
+	for _, d := range b.Data {
+		data += hex.EncodeToString(d) + "\n"
 	}
 
-	blockStr := fmt.Sprintf("%v\n%v\n%v\n", b.Version, b.Height, b.Timestamp)
-	blockStr += prevHash + merkleHash + fmt.Sprintf("%v\n", b.DataLen) + data
+	blockStr := fmt.Sprintf("Version: %v\nHeight: %v\nTimestamp: %v\n", b.Version, b.Height, b.Timestamp)
+	blockStr += prevHash + merkleHash + fmt.Sprintf("DataLen: %v\n", b.DataLen) + data
 	return blockStr
 }
