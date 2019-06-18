@@ -22,10 +22,11 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
+
+var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
 
 // This will check if the client is connected to the internet
 //
@@ -386,7 +387,7 @@ func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 		return accInfo, errors.New("failed to get wallet address: " + err.Error())
 	}
 	var requestInfoMessage []byte
-	requestInfoMessage = append(requestInfoMessage, producer.SecretBytes...)
+	requestInfoMessage = append(requestInfoMessage, SecretBytes...)
 	requestInfoMessage = append(requestInfoMessage, 2)
 	requestInfoMessage = append(requestInfoMessage, walletAddress...)
 	conn, err := net.Dial("tcp", producerAddr)
@@ -401,7 +402,7 @@ func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 	// Should receive message next
 	buf = make([]byte, 1024)
 	nRead, err := conn.Read(buf)
-	if _, err := conn.Read(buf); err != nil {
+	if err != nil {
 		return accInfo, errors.New("failed to get response message: " + err.Error())
 	}
 	if buf[8] == 1 {

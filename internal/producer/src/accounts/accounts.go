@@ -204,7 +204,7 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 	if errSenderAccount == nil {
 		// update sender's balance by subtracting the amount indicated by value and adding one to nonce
 		sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"",
-			int(senderAccountInfo.balance-value), int(senderAccountInfo.stateNonce+1), hex.EncodeToString(senderPKH))
+			int(senderAccountInfo.Balance-value), int(senderAccountInfo.StateNonce+1), hex.EncodeToString(senderPKH))
 		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to execute sqlUpdate for sender")
@@ -217,8 +217,8 @@ func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, send
 	var updatedNonce, updatedBal int
 	if errRecipientAccount == nil {
 		// if recipient's account is found
-		updatedBal = int(recipientAccountInfo.balance + value)
-		updatedNonce = int(recipientAccountInfo.stateNonce + 1)
+		updatedBal = int(recipientAccountInfo.Balance + value)
+		updatedNonce = int(recipientAccountInfo.StateNonce + 1)
 	} else {
 		// if recipient's account is not found, insert recipient's account into table
 		err := InsertAccountIntoAccountBalanceTable(dbConnection, recipPKH, 0)
@@ -250,7 +250,7 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	if errAccount == nil {
 		// update pkhash's balance by adding the amount indicated by value, and add one to nonce
 		sqlUpdate := fmt.Sprintf("UPDATE account_balances SET balance= %d, nonce= %d WHERE public_key_hash= \"%s\"",
-			int(accountInfo.balance)+int(value), int(accountInfo.stateNonce)+1, hex.EncodeToString(pkhash))
+			int(accountInfo.Balance)+int(value), int(accountInfo.StateNonce)+1, hex.EncodeToString(pkhash))
 		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to update phash's balance")
@@ -309,12 +309,12 @@ func ValidateContract(c *Contract, authorizedMinters [][]byte) (bool, error) {
 
 	if errAccount == nil {
 		// check insufficient funds
-		if senderAccountInfo.balance < c.Value {
+		if senderAccountInfo.Balance < c.Value {
 			// invalid contract because the sender's balance is less than the contract amount
 			return false, nil
 		}
 
-		if senderAccountInfo.stateNonce+1 != c.StateNonce {
+		if senderAccountInfo.StateNonce+1 != c.StateNonce {
 			// invalid contract because contract state nonce is not the expected number
 			return false, nil
 		}
@@ -328,24 +328,24 @@ func ValidateContract(c *Contract, authorizedMinters [][]byte) (bool, error) {
 }
 
 type AccountInfo struct {
-	balance    uint64
-	stateNonce uint64
+	Balance    uint64
+	StateNonce uint64
 }
 
 func NewAccountInfo(balance uint64, stateNonce uint64) *AccountInfo {
-	return &AccountInfo{balance: balance, stateNonce: stateNonce}
+	return &AccountInfo{Balance: balance, StateNonce: stateNonce}
 }
 
 func (accInfo *AccountInfo) Serialize() ([]byte, error) {
 	serializedAccount := make([]byte, 16) // 8 + 8 bytes for balance and stateNonce
-	binary.LittleEndian.PutUint64(serializedAccount[:8], accInfo.balance)
-	binary.LittleEndian.PutUint64(serializedAccount[8:], accInfo.stateNonce)
+	binary.LittleEndian.PutUint64(serializedAccount[:8], accInfo.Balance)
+	binary.LittleEndian.PutUint64(serializedAccount[8:], accInfo.StateNonce)
 	return serializedAccount, nil
 }
 
 func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
-	accInfo.balance = binary.LittleEndian.Uint64(serializedAccountInfo[:8])
-	accInfo.stateNonce = binary.LittleEndian.Uint64(serializedAccountInfo[8:])
+	accInfo.Balance = binary.LittleEndian.Uint64(serializedAccountInfo[:8])
+	accInfo.StateNonce = binary.LittleEndian.Uint64(serializedAccountInfo[8:])
 	return nil
 }
 
@@ -416,7 +416,7 @@ func GetAccountInfo(pkhash []byte) (*AccountInfo, error) {
 		return nil, errors.New("Failed to retreive stateNonce: " + err.Error())
 	}
 
-	return &AccountInfo{balance: balance, stateNonce: stateNonce}, nil
+	return &AccountInfo{Balance: balance, StateNonce: stateNonce}, nil
 }
 
 // compare two contracts and return true only if all fields match
