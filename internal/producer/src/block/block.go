@@ -6,6 +6,8 @@ import (
 	"container/list"
 	"crypto/sha256"   // for hashing
 	"encoding/binary" // for converting to uints to byte slices
+	"encoding/hex"
+	"fmt"
 	"reflect"
 )
 
@@ -205,4 +207,18 @@ func Equals(block1 Block, block2 Block) bool {
 		}
 	}
 	return true
+}
+
+// Returns a string of the block
+func (b Block) ToString() string {
+	prevHash := "Previous Hash: " + hex.EncodeToString(b.PreviousHash) + "\n"
+	merkleHash := "Merkle Root Hash: " + hex.EncodeToString(b.MerkleRootHash) + "\n"
+	data := "Data:\n"
+	for _, d := range b.Data {
+		data += hex.EncodeToString(d) + "\n"
+	}
+
+	blockStr := fmt.Sprintf("Version: %v\nHeight: %v\nTimestamp: %v\n", b.Version, b.Height, b.Timestamp)
+	blockStr += prevHash + merkleHash + fmt.Sprintf("DataLen: %v\n", b.DataLen) + data
+	return blockStr
 }
