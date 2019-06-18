@@ -351,7 +351,7 @@ func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
 
 func GetBalance(pkhash []byte) (uint64, error) {
 	// open account balance table
-	db, err := sql.Open("sqlite3", "accountBalanceTable.tab")
+	db, err := sql.Open("sqlite3", "accounts.tab")
 	if err != nil {
 		return 0, errors.New("Failed to open account balance table")
 	}
@@ -378,7 +378,7 @@ func GetBalance(pkhash []byte) (uint64, error) {
 
 func GetStateNonce(pkhash []byte) (uint64, error) {
 	// open account balance table
-	db, err := sql.Open("sqlite3", "accountBalanceTable.tab")
+	db, err := sql.Open("sqlite3", "accounts.tab")
 	if err != nil {
 		return 0, errors.New("Failed to open account balance table")
 	}

@@ -16,10 +16,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -29,6 +31,29 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 )
+
+type Flags struct {
+	Help        *bool
+	Debug       *bool
+	Version     *bool
+	Height      *bool
+	Genesis     *bool
+	Test        *bool
+	Globalhost  *bool
+	MemoryStats *bool
+	Logs        *string
+	Port        *string
+	Interval    *string
+	InitSupply  *uint64
+	NumBlocks   *uint64
+}
+
+var version = uint16(1)
+var ledger = "blockchain.dat"
+var metadataTable = "metadata.tab"
+
+// TODO: Will need to change the name to support get functions
+var accountsTable = "accounts.tab"
 
 var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
 
@@ -123,6 +148,199 @@ func (bp *BlockProducer) WorkLoop() {
 				Reset last block metadata
 			*/
 		}
+	}
+}
+
+func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
+	// Set logger
+	var lgr = log.New(ioutil.Discard, "SRVR_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	if debug {
+		lgr.SetOutput(os.Stdout)
+	}
+	for {
+		lgr.Println("Waiting for connection...")
+
+		// Block for connection
+		conn, err := ln.Accept()
+		var nRcvd int
+		buf := make([]byte, 1024)
+		if err != nil {
+			lgr.Println("connection failed")
+			goto End
+		}
+		lgr.Printf("%s connected\n", conn.RemoteAddr())
+		defer conn.Close()
+
+		// Block for receiving message
+		nRcvd, err = conn.Read(buf)
+		if err != nil {
+			goto End
+		}
+
+		// Determine the type of message
+		// lgr.Printf("Received following message: %v", buf[:nRcvd])
+		if nRcvd < 8 || (!bytes.Equal(buf[:8], SecretBytes)) {
+			conn.Write([]byte("No thanks.\n"))
+			goto End
+		} else {
+			conn.Write([]byte("Thank you.\n"))
+			if buf[8] == 2 {
+				lgr.Println("Received account info request")
+				// TODO: Will require a sync.Mutex lock here eventually
+				accInfo, err := accounts.GetAccountInfo(buf[9:nRcvd])
+				var responseMessage []byte
+				responseMessage = append(responseMessage, SecretBytes...)
+				if err != nil {
+					lgr.Printf("Failed to get account info for %v: %s", buf[9:nRcvd], err.Error())
+					responseMessage = append(responseMessage, 1)
+				} else {
+					responseMessage = append(responseMessage, 0)
+					if serializedAccInfo, err := accInfo.Serialize(); err == nil {
+						responseMessage = append(responseMessage, serializedAccInfo...)
+					}
+				}
+				conn.Write(responseMessage)
+				goto End
+			}
+		}
+
+		// Send to channel if aurum-related message
+		bChan <- buf[:nRcvd]
+		goto End
+	End:
+		lgr.Println("Closing connection.")
+		conn.Close()
+	}
+}
+
+func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
+	// Set logger
+	var lgr = log.New(ioutil.Discard, "PROD_LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	if *fl.Debug {
+		lgr.SetOutput(os.Stdout)
+	}
+
+	// Retrieve youngest block header
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadataTable)
+	if err != nil {
+		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
+	}
+
+	// Set up SIGINT channel
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// Initialize other variables
+	var numBlocksGenerated uint64
+	var dataPool []accounts.Contract
+	var ms runtime.MemStats
+
+	// Determine production interval and start trigger goroutine
+	productionInterval, err := time.ParseDuration(*fl.Interval)
+	if err != nil {
+		lgr.Fatalln("failed to parse block production interval")
+	} else {
+		lgr.Println("block production interval: " + *fl.Interval)
+	}
+	var intervalChannel = make(chan bool)
+	go triggerInterval(intervalChannel, productionInterval)
+
+	// Main loop
+	for {
+		var chainHeight = youngestBlockHeader.Height
+		select {
+		case <-intervalChannel:
+			// Triggered if it's time to produce a block
+			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
+			lgr.Printf("Production block dataPool: %v", dataPool)
+			if newBlock, err := CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
+				lgr.Fatalf("failed to add block %s", err.Error())
+				os.Exit(1)
+			} else {
+
+				// Add the block
+				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
+					lgr.Fatalf("failed to add block: %s", err.Error())
+					os.Exit(1)
+				} else {
+					lgr.Printf("block produced: #%d\n", chainHeight+1)
+					numBlocksGenerated++
+					youngestBlockHeader = newBlock.GetHeader()
+					go triggerInterval(intervalChannel, productionInterval)
+
+					// TODO: for each contract in the dataPool, update the accounts table
+					// TODO: will require a sync.Mutex for the accounts table
+					// Reset the pending transaction pool
+					dataPool = nil
+
+					// Memory stats
+					if *fl.MemoryStats {
+						runtime.ReadMemStats(&ms)
+						printMemstats(ms)
+					}
+					// If in test mode, break the loop
+					if *fl.Test {
+						lgr.Printf("Test mode: breaking loop")
+						return
+					}
+
+					// If reached limit of blocks desired to be generated, break the loop
+					if limit && (numBlocksGenerated >= *fl.NumBlocks) {
+						lgr.Printf("Limit reached: # blocks generated: %d, blocks desired: %d\n", numBlocksGenerated, *fl.NumBlocks)
+						return
+					}
+				}
+
+			}
+		case message := <-byteChan:
+
+			// Determine contents of message
+			lgr.Printf("Main received: %v\n", message)
+
+			// If it's a contract, add it to the contract pool
+			switch message[8] {
+			case 1:
+				lgr.Println("Received contract")
+				var newContract accounts.Contract
+				if err := newContract.Deserialize(message[9:]); err == nil {
+					// TODO: Validate the contract prior to adding
+					dataPool = append(dataPool, newContract)
+				}
+				break
+			}
+		case <-signalCh:
+
+			// If you receive a SIGINT, exit the loop
+			fmt.Print("\r")
+			lgr.Println("Interrupt signal encountered, program terminating.")
+			return
+		}
+
+	}
+}
+
+func printMemstats(ms runtime.MemStats) {
+	// useful commands: go run -gcflags='-m -m' main.go <main flags>
+	fmt.Printf("Bytes of allocated heap objects: %d", ms.Alloc)
+	fmt.Printf("Cumulative bytes allocated for heap objects: %d", ms.TotalAlloc)
+	fmt.Printf("Count of heap objects allocated: %d", ms.Mallocs)
+	fmt.Printf("Count of heap objects freed: %d", ms.Frees)
+}
+
+func triggerInterval(intervalChannel chan bool, productionInterval time.Duration) {
+	// Triggers block production case
+	time.Sleep(productionInterval)
+	intervalChannel <- true
+}
+
+func calculateInterval(youngestBlockHeader block.BlockHeader, productionInterval time.Duration, intervalChannel chan bool) {
+	var lastTimestamp = time.Unix(0, youngestBlockHeader.Timestamp)
+	timeSince := time.Since(lastTimestamp)
+	if timeSince.Nanoseconds() >= productionInterval.Nanoseconds() {
+		go triggerInterval(intervalChannel, time.Duration(0))
+	} else {
+		diff := productionInterval.Nanoseconds() - timeSince.Nanoseconds()
+		go triggerInterval(intervalChannel, time.Duration(diff))
 	}
 }
 
