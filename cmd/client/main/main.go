@@ -101,7 +101,33 @@ func main() {
 	}
 
 	if *fl.updateInfo {
-		// TODO: Send a update info message, receive the response and update the wallet balance/nonce
+		fmt.Println("Checking for new wallet info...")
+		accountInfo, err := client.RequestWalletInfo(*fl.producer)
+		if err != nil {
+			lgr.Fatalf("failed to request wallet info: %s", err.Error())
+		}
+
+		currBal, err := client.GetBalance()
+		if err != nil {
+			lgr.Fatalf("failed to get local wallet balance: %s", err.Error())
+		}
+		currNonce, err := client.GetStateNonce()
+		if err != nil {
+			lgr.Fatalf("failed to get local wallet state nonce: %s", err.Error())
+		}
+
+		if currBal != accountInfo.Balance || currNonce != accountInfo.StateNonce {
+			fmt.Println("Updating wallet info...")
+			if err := client.UpdateWallet(accountInfo.Balance, accountInfo.StateNonce); err != nil {
+				lgr.Fatalf("failed to update wallet info: %s", err.Error())
+			}
+		} else {
+			fmt.Println("Wallet is already up to date!")
+		}
+
+		if err := PrintInfo(); err != nil {
+			lgr.Fatalf("failed to print wallet info: %s", err.Error())
+		}
 	}
 
 }
