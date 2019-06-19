@@ -266,7 +266,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
 	}
-	ln, err := net.Listen("tcp", "localhost:10000")
+	ln, err := net.Listen("tcp", "localhost:10500")
 	if err != nil {
 		t.Errorf("failed to start server:\n%s", err.Error())
 	}
@@ -280,7 +280,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	requestInfoMessage = append(requestInfoMessage, SecretBytes...)
 	requestInfoMessage = append(requestInfoMessage, 2)
 	requestInfoMessage = append(requestInfoMessage, walletAddress...)
-	conn, err := net.Dial("tcp", "localhost:10000")
+	conn, err := net.Dial("tcp", "localhost:10500")
 	if err != nil {
 		t.Errorf("failed to connect to server:\n%s", err.Error())
 	}
@@ -318,7 +318,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	dbc.Close()
 
 	// New request
-	conn, err = net.Dial("tcp", "localhost:9001")
+	conn, err = net.Dial("tcp", "localhost:10500")
 	if err != nil {
 		t.Errorf("failed to connect to server:\n%s", err.Error())
 	}
