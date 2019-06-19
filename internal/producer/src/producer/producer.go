@@ -199,6 +199,8 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 						responseMessage = append(responseMessage, serializedAccInfo...)
 					}
 				}
+
+				time.Sleep(3 * time.Second)
 				conn.Write(responseMessage)
 				goto End
 			}
