@@ -543,34 +543,6 @@ func TestRequestWalletInfo(t *testing.T) {
 		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
 	}
 
-	rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
-	if err != nil {
-		t.Errorf("failed to create rows for queries")
-	}
-
-	walletAddrExist := false
-	var accBal int
-	var accNonce int
-
-	for rows.Next() {
-		var pkHStr string
-		rows.Scan(&pkHStr, &accBal, &accNonce)
-		if pkHash, _ := hex.DecodeString(pkHStr); bytes.Equal(walletAddress, pkHash) {
-			walletAddrExist = true
-			break
-		}
-	}
-	rows.Close()
-
-	if !walletAddrExist {
-		err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 15)
-		if err != nil {
-			t.Errorf("failed to insert account into account balance table")
-		}
-		accBal = 15
-		accNonce = 0
-	}
-
 	ln, err := net.Listen("tcp", "localhost:10000")
 	if err != nil {
 		t.Errorf("failed to start server:\n%s", err.Error())
@@ -579,15 +551,48 @@ func TestRequestWalletInfo(t *testing.T) {
 	debug := false
 
 	go producer.RunServer(ln, byteChan, debug)
-	accountInfo, err := RequestWalletInfo("localhost:10000")
-	if err != nil {
-		t.Errorf("failed to request wallet info: %s", err)
+
+	tests := []struct {
+		name          string
+		expectedBal   uint64
+		expectedNonce uint64
+		wantErr       bool
+	}{
+		{
+			name:          "Wallet address not in table",
+			expectedBal:   0,
+			expectedNonce: 0,
+			wantErr:       true,
+		},
+		{
+			name:          "Wallet address in table",
+			expectedBal:   15,
+			expectedNonce: 0,
+			wantErr:       false,
+		},
 	}
 
-	if accountInfo.Balance != uint64(accBal) {
-		t.Errorf("balance does not match")
-	}
-	if accountInfo.StateNonce != uint64(accNonce) {
-		t.Errorf("state nonce does not match")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Wallet address in table" {
+				err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, tt.expectedBal)
+				if err != nil {
+					t.Errorf("failed to insert account into account balance table")
+				}
+			}
+
+			accountInfo, err := RequestWalletInfo("localhost:10000")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RequestWalletInfo() error:\nWantErr: %v\nActualErr: %v", tt.wantErr, err.Error())
+			}
+
+			if accountInfo.Balance != tt.expectedBal {
+				t.Errorf("Account balance from producer does not match")
+			}
+			if accountInfo.StateNonce != tt.expectedNonce {
+				t.Errorf("Account state nonce from producer does not match")
+			}
+
+		})
 	}
 }
