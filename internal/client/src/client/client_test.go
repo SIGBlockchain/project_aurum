@@ -543,9 +543,32 @@ func TestRequestWalletInfo(t *testing.T) {
 		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
 	}
 
-	err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 15)
+	rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
 	if err != nil {
-		t.Errorf("failed to insert account into account balance table")
+		t.Errorf("failed to create rows for queries")
+	}
+
+	walletAddrExist := false
+	var accBal int
+	var accNonce int
+
+	for rows.Next() {
+		var pkHStr string
+		rows.Scan(&pkHStr, &accBal, &accNonce)
+		if pkHash, _ := hex.DecodeString(pkHStr); bytes.Equal(walletAddress, pkHash) {
+			walletAddrExist = true
+			break
+		}
+	}
+	rows.Close()
+
+	if !walletAddrExist {
+		err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 15)
+		if err != nil {
+			t.Errorf("failed to insert account into account balance table")
+		}
+		accBal = 15
+		accNonce = 0
 	}
 
 	ln, err := net.Listen("tcp", "localhost:10000")
@@ -561,10 +584,10 @@ func TestRequestWalletInfo(t *testing.T) {
 		t.Errorf("failed to request wallet info: %s", err)
 	}
 
-	if accountInfo.Balance != 15 {
+	if accountInfo.Balance != uint64(accBal) {
 		t.Errorf("balance does not match")
 	}
-	if accountInfo.StateNonce != 0 {
+	if accountInfo.StateNonce != uint64(accNonce) {
 		t.Errorf("state nonce does not match")
 	}
 }
