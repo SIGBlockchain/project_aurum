@@ -1047,8 +1047,8 @@ func TestContractToString(t *testing.T) {
 		StateNonce:      1,
 	}
 
-	stringOfTheContract := fmt.Sprintf("%v\n %v\n %v\n %v\n %v\n %v\n %v\n", testContract.Version, 
-		testContract.SenderPubKey, testContract.SigLen, hex.EncodeToString(testContract.Signature), 
+	stringOfTheContract := fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n", testContract.Version,
+		testContract.SenderPubKey, testContract.SigLen, hex.EncodeToString(testContract.Signature),
 		hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
 
 	if result := ContractToString(&testContract); result != stringOfTheContract {

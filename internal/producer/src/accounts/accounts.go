@@ -456,7 +456,7 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 
 // ContractToString takes in a Contract and return a string version
 func ContractToString(c *Contract) string {
-	return fmt.Sprintf("%v\n %v\n %v\n %v\n %v\n %v\n %v\n", c.Version,
+	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n", c.Version,
 		c.SenderPubKey, c.SigLen, hex.EncodeToString(c.Signature),
 		hex.EncodeToString(c.RecipPubKeyHash), c.Value, c.StateNonce)
 }
