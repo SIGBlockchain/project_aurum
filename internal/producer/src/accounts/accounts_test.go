@@ -318,7 +318,7 @@ func TestContract_SignContract(t *testing.T) {
 
 func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -390,7 +390,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
 	rpkh := block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -477,7 +477,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -555,7 +555,7 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 //// Completely valid contract
 
 func TestValidateContract(t *testing.T) {
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -741,7 +741,7 @@ func TestAccountInfo_Deserialize(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -796,7 +796,7 @@ func TestGetBalance(t *testing.T) {
 func TestGetStateNonce(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -851,7 +851,7 @@ func TestGetStateNonce(t *testing.T) {
 func TestGetAccountInfo(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := block.HashSHA256(keys.EncodePublicKey(&somePrivateKey.PublicKey))
-	dbName := "accountBalanceTable.tab"
+	dbName := "accounts.tab"
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -995,7 +995,7 @@ func TestEquals(t *testing.T) {
 }
 
 // func TestValidateContract(t *testing.T) {
-// 	dbName := "accountBalanceTable.tab"
+// 	dbName := "accounts.tab"
 // 	dbc, _ := sql.Open("sqlite3", dbName)
 // 	defer func() {
 // 		err := dbc.Close()

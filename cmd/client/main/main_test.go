@@ -17,6 +17,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
+var removeWallet = true
+
 func TestSetupFlag(t *testing.T) {
 	cmd := exec.Command("go", "run", "main.go", "-s")
 
@@ -44,7 +46,11 @@ func TestContractMessageFromInput(t *testing.T) {
 	if err := client.SetupWallet(); err != nil {
 		t.Errorf("failed to setup wallet: %s", err.Error())
 	}
-	defer os.Remove(wallet)
+	defer func() {
+		if removeWallet {
+			os.Remove(wallet)
+		}
+	}()
 
 	file, err := os.Open(wallet)
 	if err != nil {

@@ -101,7 +101,23 @@ func main() {
 	}
 
 	if *fl.updateInfo {
-		// TODO: Send a update info message, receive the response and update the wallet balance/nonce
+		if *fl.producer == "" {
+			lgr.Fatalf("Producer address is required to update wallet info")
+		}
+
+		fmt.Println("Updating wallet info...")
+		accountInfo, err := client.RequestWalletInfo(*fl.producer)
+		if err != nil {
+			lgr.Fatalf("failed to request wallet info: %s", err.Error())
+		}
+
+		if err := client.UpdateWallet(accountInfo.Balance, accountInfo.StateNonce); err != nil {
+			lgr.Fatalf("failed to update wallet info: %s", err.Error())
+		}
+
+		if err := PrintInfo(); err != nil {
+			lgr.Fatalf("failed to print wallet info: %s", err.Error())
+		}
 	}
 
 }
