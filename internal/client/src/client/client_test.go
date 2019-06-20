@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/x509"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
@@ -16,6 +17,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
@@ -505,5 +508,91 @@ func TestUpdateWallet(t *testing.T) {
 	}
 	if !bytes.Equal(encPrivActual, encPrivExpected) {
 		t.Errorf("private keys do not match: %v != %v", encPrivActual, encPrivExpected)
+	}
+}
+
+func TestRequestWalletInfo(t *testing.T) {
+	if err := SetupWallet(); err != nil {
+		t.Errorf("failed to setup wallet:\n%s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove("aurum_wallet.json"); err != nil {
+			t.Errorf("failed to remove aurum_wallet.json:\n%s", err.Error())
+		}
+	}()
+
+	dbName := "accounts.tab"
+	dbc, _ := sql.Open("sqlite3", dbName)
+	defer func() {
+		err := dbc.Close()
+		if err != nil {
+			t.Errorf("Failed to close database: %s", err)
+		}
+		err = os.Remove(dbName)
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+	}()
+	_, err := dbc.Exec("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		t.Errorf("Failed to create table in database: %s", err)
+	}
+
+	walletAddress, err := GetWalletAddress()
+	if err != nil {
+		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
+	}
+
+	ln, err := net.Listen("tcp", "localhost:10000")
+	if err != nil {
+		t.Errorf("failed to start server:\n%s", err.Error())
+	}
+	byteChan := make(chan []byte)
+	debug := false
+
+	go producer.RunServer(ln, byteChan, debug)
+
+	tests := []struct {
+		name          string
+		expectedBal   uint64
+		expectedNonce uint64
+		wantErr       bool
+	}{
+		{
+			name:          "Wallet address not in table",
+			expectedBal:   0,
+			expectedNonce: 0,
+			wantErr:       true,
+		},
+		{
+			name:          "Wallet address in table",
+			expectedBal:   15,
+			expectedNonce: 0,
+			wantErr:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Wallet address in table" {
+				err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, tt.expectedBal)
+				if err != nil {
+					t.Errorf("failed to insert account into account balance table")
+				}
+			}
+
+			accountInfo, err := RequestWalletInfo("localhost:10000")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RequestWalletInfo() error:\nWantErr: %v\nActualErr: %v", tt.wantErr, err.Error())
+			}
+
+			if accountInfo.Balance != tt.expectedBal {
+				t.Errorf("Account balance from producer does not match")
+			}
+			if accountInfo.StateNonce != tt.expectedNonce {
+				t.Errorf("Account state nonce from producer does not match")
+			}
+
+		})
 	}
 }
