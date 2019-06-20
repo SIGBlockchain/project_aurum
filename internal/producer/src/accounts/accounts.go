@@ -261,22 +261,14 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
-func ValidateContract(c *Contract, authorizedMinters [][]byte) (bool, error) {
+func ValidateContract(c *Contract) (bool, error) {
 	// check for zero value transaction
 	if c.Value == 0 {
 		return false, nil
 	}
 
-	// if contract is for minting
-	if c.SenderPubKey == nil {
-		// check for unauthorized minting contracts
-		for _, mintersPubKHash := range authorizedMinters {
-			if bytes.Equal(c.RecipPubKeyHash, mintersPubKHash) {
-				/* valid contract */
-				return true, nil
-			}
-		}
-		// unauthorized minting
+	// check for nil sender public key and recip == sha-256 hash of senderPK
+	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))) {
 		return false, nil
 	}
 

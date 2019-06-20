@@ -570,19 +570,11 @@ func TestValidateContract(t *testing.T) {
 	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
 	statement.Exec()
 
-	minter, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	minterPKH := block.HashSHA256(keys.EncodePublicKey(&minter.PublicKey))
-	err := InsertAccountIntoAccountBalanceTable(dbc, minterPKH, 1000)
-	if err != nil {
-		t.Errorf("Failed to insert minter account")
-	}
-	authMinters := [][]byte{minterPKH}
-
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	senderPKH := block.HashSHA256(keys.EncodePublicKey(&sender.PublicKey))
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
-	err = InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
+	err := InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
@@ -593,9 +585,10 @@ func TestValidateContract(t *testing.T) {
 	zeroValueContract, _ := MakeContract(1, sender, recipientPKH, 0, 1)
 	zeroValueContract.SignContract(sender)
 
-	falseMintingContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
+	nilSenderContract, _ := MakeContract(1, nil, senderPKH, 500, 1)
 
-	validMintingContract, _ := MakeContract(1, nil, minterPKH, 500, 1)
+	senderRecipContract, _ := MakeContract(1, sender, senderPKH, 500, 1)
+	senderRecipContract.SignContract(sender)
 
 	invalidSignatureContract, _ := MakeContract(1, sender, recipientPKH, 500, 1)
 	invalidSignatureContract.SignContract(recipient)
@@ -625,110 +618,76 @@ func TestValidateContract(t *testing.T) {
 	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.SignContract(keyNotInTable)
 
-	type args struct {
-		c                 *Contract
-		authorizedMinters [][]byte
-	}
 	tests := []struct {
 		name    string
-		args    args
+		c       *Contract
 		want    bool
 		wantErr bool
 	}{
 		{
-			name: "Zero value",
-			args: args{
-				c:                 zeroValueContract,
-				authorizedMinters: authMinters,
-			},
+			name:    "Zero value",
+			c:       zeroValueContract,
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "Unauthorized minting",
-			args: args{
-				c:                 falseMintingContract,
-				authorizedMinters: authMinters,
-			},
+			name:    "Nil sender",
+			c:       nilSenderContract,
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "Authorized minting",
-			args: args{
-				c:                 validMintingContract,
-				authorizedMinters: authMinters,
-			},
+			name:    "Sender == Recipient",
+			c:       senderRecipContract,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid signature",
+			c:       invalidSignatureContract,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Insufficient funds",
+			c:       insufficentFundsContract,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid nonce",
+			c:       invalidNonceContract,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid nonce 2",
+			c:       invalidNonceContract2,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Totally valid with old accounts",
+			c:       validTwoExistingAccountsContract,
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "Invalid signature",
-			args: args{
-				c:                 invalidSignatureContract,
-				authorizedMinters: authMinters,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "Insufficient funds",
-			args: args{
-				c:                 insufficentFundsContract,
-				authorizedMinters: authMinters,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "Invalid nonce",
-			args: args{
-				c:                 invalidNonceContract,
-				authorizedMinters: authMinters,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "Invalid nonce 2",
-			args: args{
-				c:                 invalidNonceContract2,
-				authorizedMinters: authMinters,
-			},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name: "Totally valid with old accounts",
-			args: args{
-				c:                 validTwoExistingAccountsContract,
-				authorizedMinters: authMinters,
-			},
+			name:    "Totally valid with a new account",
+			c:       validOneExistingAccountsContract,
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "Totally valid with a new account",
-			args: args{
-				c:                 validOneExistingAccountsContract,
-				authorizedMinters: authMinters,
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Totally valid with a new account to newer account",
-			args: args{
-				c:                 newAccountToANewerAccountContract,
-				authorizedMinters: authMinters,
-			},
+			name:    "Totally valid with a new account to newer account",
+			c:       newAccountToANewerAccountContract,
 			want:    true,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ValidateContract(tt.args.c, tt.args.authorizedMinters)
+			got, err := ValidateContract(tt.c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
 				return
