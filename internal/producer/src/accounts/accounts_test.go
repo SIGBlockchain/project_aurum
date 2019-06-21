@@ -1051,7 +1051,7 @@ func TestContractToString(t *testing.T) {
 						   testContract.SenderPubKey, testContract.SigLen, hex.EncodeToString(testContract.Signature),
 						   hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
 	
-	if result := ContractToString(&testContract); result != stringOfTheContract {
+	if result := testContract.ToString(); result != stringOfTheContract {
 				 t.Error("Contract String is not equal to test String")
 	}
 }
