@@ -261,15 +261,15 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
-func ValidateContract(c *Contract) (bool, error) {
+func ValidateContract(c *Contract) error {
 	// check for zero value transaction
 	if c.Value == 0 {
-		return false, nil
+		return errors.New("Invalid contract: zero value transaction")
 	}
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
 	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))) {
-		return false, nil
+		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 
 	// verify the signature in the contract
@@ -278,7 +278,7 @@ func ValidateContract(c *Contract) (bool, error) {
 	c.SigLen = 0
 	serializedContract, err := c.Serialize()
 	if err != nil {
-		return false, errors.New(err.Error())
+		return errors.New(err.Error())
 	}
 	hashedContract := block.HashSHA256(serializedContract)
 
@@ -287,12 +287,12 @@ func ValidateContract(c *Contract) (bool, error) {
 		R, S *big.Int
 	}
 	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
-		return false, errors.New("Failed to unmarshal signature")
+		return errors.New("Failed to unmarshal signature")
 	}
 
 	// if ecdsa.Verify returns false, the signature is invalid
 	if !ecdsa.Verify(c.SenderPubKey, hashedContract, esig.R, esig.S) {
-		return false, nil
+		return errors.New("Invalid contract: signature is invalid")
 	}
 
 	// retrieve sender's balance from account balance table
@@ -303,20 +303,20 @@ func ValidateContract(c *Contract) (bool, error) {
 		// check insufficient funds
 		if senderAccountInfo.Balance < c.Value {
 			// invalid contract because the sender's balance is less than the contract amount
-			return false, nil
+			return errors.New("Invalid contract: sender's balance is less than the contract amount")
 		}
 
 		if senderAccountInfo.StateNonce+1 != c.StateNonce {
 			// invalid contract because contract state nonce is not the expected number
-			return false, nil
+			return errors.New("Invalid contract: contract state nonce is not the expected number")
 		}
 
 		/* valid contract */
 		c.SigLen = copyOfSigLen
-		return true, nil
+		return nil
 	}
 
-	return false, errors.New("Failed to validate contract")
+	return errors.New("Failed to validate contract")
 }
 
 type AccountInfo struct {
