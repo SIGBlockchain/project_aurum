@@ -3,6 +3,8 @@ package block
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -266,6 +268,136 @@ func TestBlock_GetHeader(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestEquals(t *testing.T) {
+	block1 := Block{
+		Version:        1,
+		Height:         1,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   HashSHA256([]byte{'a'}),
+		MerkleRootHash: HashSHA256([]byte{'b'}),
+		DataLen:        1,
+		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
+	}
+
+	blocks := make([]Block, 7)
+	for i := 0; i < 7; i++ {
+		blocks[i] = block1
+	}
+	blocks[0].Version = 5
+	blocks[1].Height = 10
+	blocks[2].Timestamp = time.Now().UnixNano() + 100
+	blocks[3].PreviousHash = HashSHA256([]byte{'d'})
+	blocks[4].MerkleRootHash = HashSHA256([]byte{'e'})
+	blocks[5].DataLen = 15
+	blocks[6].Data = [][]byte{HashSHA256([]byte{'f'}), HashSHA256([]byte{'o'})}
+
+	tests := []struct {
+		name string
+		b1   Block
+		b2   Block
+		want bool
+	}{
+		{
+			name: "equal blocks",
+			b1:   block1,
+			b2:   block1,
+			want: true,
+		},
+		{
+			name: "different block version",
+			b1:   block1,
+			b2:   blocks[0],
+			want: false,
+		},
+		{
+			name: "different block height",
+			b1:   block1,
+			b2:   blocks[1],
+			want: false,
+		},
+		{
+			name: "different block timestamp",
+			b1:   block1,
+			b2:   blocks[2],
+			want: false,
+		},
+		{
+			name: "different block previousHash",
+			b1:   block1,
+			b2:   blocks[3],
+			want: false,
+		},
+		{
+			name: "different block merklerootHash",
+			b1:   block1,
+			b2:   blocks[4],
+			want: false,
+		},
+		{
+			name: "different block dataLen",
+			b1:   block1,
+			b2:   blocks[5],
+			want: false,
+		},
+		{
+			name: "different block data",
+			b1:   block1,
+			b2:   blocks[6],
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := Equals(tt.b1, tt.b2); result != tt.want {
+				t.Errorf("Error: Equals() returned %v for %s\n Wanted: %v", result, tt.name, tt.want)
+			}
+		})
+	}
+}
+
+func TestBlockToString(t *testing.T) {
+	testBlock := Block{
+		Version:        1,
+		Height:         1,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   HashSHA256([]byte{'a'}),
+		MerkleRootHash: HashSHA256([]byte{'b'}),
+		DataLen:        1,
+		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
+	}
+	nilblock := Block{}
+
+	tests := []struct {
+		blk Block
+	}{
+		{
+			blk: testBlock,
+		},
+		{
+			blk: nilblock,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			actual := tt.blk.ToString()
+
+			expected := fmt.Sprintf("Version: %v\nHeight: %v\nTimestamp: %v\nPrevious Hash: %v\nMerkle Root Hash: %v\nDataLen: %v\n",
+				tt.blk.Version, tt.blk.Height, tt.blk.Timestamp, hex.EncodeToString(tt.blk.PreviousHash),
+				hex.EncodeToString(tt.blk.MerkleRootHash), tt.blk.DataLen)
+			data := "Data:\n"
+			for _, d := range tt.blk.Data {
+				data += hex.EncodeToString(d) + "\n"
+			}
+			expected += data
+			if actual != expected {
+				t.Errorf("The strings are not equal\nExpected:\n%+v\nActual:\n%+v", expected, actual)
+			}
 		})
 	}
 }

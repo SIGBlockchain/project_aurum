@@ -20,10 +20,13 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
 	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
+
+var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
 
 // This will check if the client is connected to the internet
 //
@@ -110,6 +113,12 @@ func PrintGithubLink() {
 // This will initialize a JSON file called "aurum_wallet.json"
 // with the hex encoded privatekey, balance, and nonce
 func SetupWallet() error {
+	// if the JSON file already exists, return error
+	_, err := os.Stat("aurum_wallet.json")
+	if err == nil {
+		return errors.New("JSON file for aurum_wallet already exists")
+	}
+
 	// Create JSON file for wallet
 	file, err := os.Create("aurum_wallet.json")
 	if err != nil {
@@ -271,5 +280,171 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// NOT READY TO BE IMPLEMENTED YET
-func UpdateWallet() error { return errors.New("Not ready to be implemented yet") }
+// READY TO BE IMPLEMENTED
+func GetBalance() (uint64, error) {
+	fwallet, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return 0, errors.New("Failed to open wallet file: " + err.Error())
+	}
+	defer fwallet.Close()
+
+	jsonEncoded, err := ioutil.ReadAll(fwallet)
+	if err != nil {
+		return 0, errors.New("Failed to read wallet file: " + err.Error())
+	}
+
+	type jsonStruct struct {
+		Balance uint64
+	}
+
+	var j jsonStruct
+	err = json.Unmarshal(jsonEncoded, &j)
+	if err != nil {
+		return 0, errors.New("Failed to parse data from json file: " + err.Error())
+	}
+
+	return j.Balance, nil
+}
+
+// READY TO BE IMPLEMENTED
+func GetStateNonce() (uint64, error) {
+	// Opens the wallet
+	file, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return 0, errors.New("Failed to open wallet")
+	}
+	defer file.Close()
+
+	// Reads the json file and stores the data into the data byte slice
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return 0, errors.New("Failed to read wallet")
+	}
+
+	// Json struct for storing the nonce from the json file
+	type jsonStruct struct {
+		Nonce uint64
+	}
+
+	// Parse the data from the json file into a jsonStruct
+	var j jsonStruct
+	err = json.Unmarshal(data, &j)
+	if err != nil {
+		return 0, errors.New("Failed to parse data from json file: " + err.Error())
+	}
+
+	return j.Nonce, nil
+}
+
+// READY TO BE IMPLEMENTED
+func GetWalletAddress() ([]byte, error) {
+	// Opens the wallet
+	file, err := os.Open("aurum_wallet.json")
+	if err != nil {
+		return nil, errors.New("Failed to open wallet")
+	}
+	defer file.Close()
+
+	// Reads the json file and stores the data into a byte slice
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, errors.New("Failed to read wallet")
+	}
+
+	// Json struct for storing the data from the json file
+	type jsonStruct struct {
+		PrivateKey string
+	}
+
+	// Parse the data from the json file into a jsonStruct
+	var j jsonStruct
+	err = json.Unmarshal(data, &j)
+	if err != nil {
+		return nil, errors.New("Failed to parse data from json file")
+	}
+
+	// Get the private key hash
+	privKeyHash, err := hex.DecodeString(j.PrivateKey)
+	if err != nil {
+		return nil, errors.New("Failed to decode private key string")
+	}
+
+	// Get the private key
+	privKey, err := keys.DecodePrivateKey(privKeyHash)
+	if err != nil {
+		return nil, errors.New("Failed to decode private key hash")
+	}
+
+	// Get the PEM encoded public key
+	pubKeyEncoded := keys.EncodePublicKey(&privKey.PublicKey)
+	return block.HashSHA256(pubKeyEncoded), nil
+}
+
+func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
+	var accInfo accounts.AccountInfo
+	walletAddress, err := GetWalletAddress()
+	if err != nil {
+		return accInfo, errors.New("failed to get wallet address: " + err.Error())
+	}
+	var requestInfoMessage []byte
+	requestInfoMessage = append(requestInfoMessage, SecretBytes...)
+	requestInfoMessage = append(requestInfoMessage, 2)
+	requestInfoMessage = append(requestInfoMessage, walletAddress...)
+	conn, err := net.Dial("tcp", producerAddr)
+	if _, err := conn.Write(requestInfoMessage); err != nil {
+		return accInfo, errors.New("failed to send message to producer: " + err.Error())
+	}
+	// Should receive Thank you first
+	buf := make([]byte, 1024)
+	if _, err := conn.Read(buf); err != nil {
+		return accInfo, errors.New("failed to get thank you message: " + err.Error())
+	}
+	// Should receive message next
+	buf = make([]byte, 1024)
+	nRead, err := conn.Read(buf)
+	if err != nil {
+		return accInfo, errors.New("failed to get response message: " + err.Error())
+	}
+	if buf[8] == 1 {
+		return accInfo, errors.New("got back failure message from producer")
+	} else if buf[8] == 0 {
+		if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
+			return accounts.AccountInfo{}, errors.New("failed to deserialize account info: " + err.Error())
+		}
+	}
+	return accInfo, nil
+}
+
+func UpdateWallet(balance, stateNonce uint64) error {
+	wallet := "aurum_wallet.json"
+	if _, err := os.Stat(wallet); os.IsNotExist(err) {
+		return errors.New("wallet file not detected: " + err.Error())
+	}
+	type walletData struct {
+		PrivateKey string
+		Balance    uint64
+		Nonce      uint64
+	}
+	f, err := os.Open(wallet)
+	if err != nil {
+		return errors.New("failed to open wallet: " + err.Error())
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	var jsonData walletData
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return errors.New("failed to unmarshall data: %s" + err.Error())
+	}
+	jsonData.Balance = balance
+	jsonData.Nonce = stateNonce
+
+	dumpData, err := json.Marshal(jsonData)
+	if err != nil {
+		return errors.New("failed to marshal dump data: " + err.Error())
+	}
+	if err := ioutil.WriteFile(wallet, dumpData, 0644); err != nil {
+		return errors.New("failed to write to file: " + err.Error())
+	}
+
+	return nil
+}
