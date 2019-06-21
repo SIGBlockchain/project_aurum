@@ -1046,13 +1046,13 @@ func TestContractToString(t *testing.T) {
 		Value:           1000000000,
 		StateNonce:      1,
 	}
-	
+
 	stringOfTheContract := fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n", testContract.Version,
-						   testContract.SenderPubKey, testContract.SigLen, hex.EncodeToString(testContract.Signature),
-						   hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
-	
+		hex.EncodeToString(keys.EncodePublicKey(testContract.SenderPubKey)), testContract.SigLen, hex.EncodeToString(testContract.Signature),
+		hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
+
 	if result := testContract.ToString(); result != stringOfTheContract {
-				 t.Error("Contract String is not equal to test String")
+		t.Error("Contract String is not equal to test String")
 	}
 }
 
