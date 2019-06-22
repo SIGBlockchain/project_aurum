@@ -448,19 +448,10 @@ func TestData_Deserialize(t *testing.T) {
 
 func TestCreateBlock(t *testing.T) {
 	var datum []accounts.Contract
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 12; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
-		// someDataHdr := DataHeader{
-		// 	Version: 1,
-		// 	Type:    0,
-		// }
-		// someData := Data{
-		// 	Hdr: someDataHdr,
-		// 	Bdy: someAirdropContract,
-		// }
-		// someData := *someAirdropContract
 		datum = append(datum, *someAirdropContract)
 	}
 	var serializedDatum [][]byte
@@ -495,7 +486,7 @@ func TestCreateBlock(t *testing.T) {
 				PreviousHash:   make([]byte, 32),
 				MerkleRootHash: block.GetMerkleRootHash(serializedDatum),
 				Data:           serializedDatum,
-				DataLen:        50,
+				DataLen:        12,
 			},
 		},
 	}
@@ -514,6 +505,7 @@ func TestCreateBlock(t *testing.T) {
 				!reflect.DeepEqual(got.Data, tt.want.Data) {
 				t.Errorf("CreateBlock() = %v, want %v", got, tt.want)
 			}
+			t.Logf("%v", got)
 		})
 	}
 }
@@ -1022,9 +1014,6 @@ func TestGenerateNRandomKeys(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateNRandomKeys() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			//			if tt.args.n == 0 && err != errors.New("Must generate at least one private key") {
-			//				t.Errorf("Wrong error message generated. Should say: %s, instead says: %s", "\"Must generate at least one private key\"", err)
-			//			}
 			if _, err := os.Stat(tt.args.filename); os.IsNotExist(err) {
 				t.Errorf("Test file for keys not detected: %s", err)
 			}
@@ -1053,4 +1042,34 @@ func TestGenerateNRandomKeys(t *testing.T) {
 	if err := os.Remove("testfile.json"); err != nil {
 		t.Errorf("Failed to remove file: %s because: %s", "testfile.json", err)
 	}
+}
+
+func TestGenesisReadsAppropriately(t *testing.T) {
+	var testGenesisHash = "8db5d191bf333f96179c5f2ec7acd20a8c01378a1af120e2f2ded3672896931a"
+	if err := ioutil.WriteFile("genesis_hashes.txt", []byte(testGenesisHash), 0644); err != nil {
+		t.Errorf("failed to write to file: %v", err)
+	}
+	defer func() {
+		if err := os.Remove("genesis_hashes.txt"); err != nil {
+			t.Errorf("failed to remove genesis hash file: %v", err)
+		}
+	}()
+	hashSlice, err := ReadGenesisHashes()
+	if err != nil {
+		t.Errorf("failed to read from hash file: %v", hashSlice)
+	}
+	if string(hashSlice[0]) != testGenesisHash {
+		t.Errorf("hashes don't match: %s != %s", string(hashSlice[0]), testGenesisHash)
+	}
+	genesisBlock, err := BringOnTheGenesis(hashSlice, 1000)
+	if err != nil {
+		t.Errorf("failed to create genesis block: %v", err)
+	}
+	serializedCtc := genesisBlock.Data[0]
+	var ctc accounts.Contract
+	err = ctc.Deserialize(serializedCtc)
+	if err != nil {
+		t.Errorf("failed to deserialize block: %v", err)
+	}
+
 }
