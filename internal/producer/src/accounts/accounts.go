@@ -446,6 +446,13 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 	return true
 }
 
+// ContractToString takes in a Contract and return a string version
+func (c Contract) ToString() string {
+	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
+		c.Version, hex.EncodeToString(keys.EncodePublicKey(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
+		c.Value, c.StateNonce)
+}
+
 // func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {
 // 	db, err := sql.Open("sqlite3", table)
 // 	if err != nil {
