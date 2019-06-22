@@ -108,9 +108,9 @@ func main() {
 	}
 
 	// TODO: Add RecoverMetadata here
-	if err := producer.RecoverBlockchainMetadata(ledger, constants.MetadataTable, constants.AccountsTable); err != nil {
-		lgr.Fatalf("failed to recover blockchain metadata: %v", err)
-	}
+	// if err := producer.RecoverBlockchainMetadata(ledger, constants.MetadataTable, constants.AccountsTable); err != nil {
+	// 	lgr.Fatalf("failed to recover blockchain metadata: %v", err)
+	// }
 
 	var addr string
 	var ln net.Listener
