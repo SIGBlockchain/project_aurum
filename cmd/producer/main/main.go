@@ -94,7 +94,7 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		if err := producer.Airdrop(ledger, metadataTable, genesisBlock); err != nil {
+		if err := producer.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")

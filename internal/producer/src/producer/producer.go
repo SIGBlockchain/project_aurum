@@ -396,7 +396,7 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 	return genesisBlock, nil
 }
 
-func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) error {
+func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
 	// create blockchain file
 	file, err := os.Create(blockchainz)
 	if err != nil {
@@ -427,6 +427,38 @@ func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) erro
 	err = blockchain.AddBlock(genesisBlock, blockchainz, metadata)
 	if err != nil {
 		return errors.New("Failed to add genesis block into blockchain")
+	}
+
+	// create accounts file
+	file, err = os.Create(accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to create accounts table")
+	}
+	file.Close()
+
+	accDb, err := sql.Open("sqlite3", accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to open newly created accounts db")
+	}
+	defer accDb.Close()
+
+	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		return errors.New("Failed to create acount_balances table")
+	}
+
+	stmt, err := accDb.Prepare("INSERT INTO account_balances VALUES (?, ?, ?)")
+	if err != nil {
+		return errors.New("Failed to create statement for inserting into account table")
+	}
+
+	for _, contracts := range genesisBlock.Data {
+		var contract accounts.Contract
+		contract.Deserialize(contracts)
+		_, err := stmt.Exec(contract.RecipPubKeyHash, contract.Value, 0)
+		if err != nil {
+			return errors.New("Failed to execute statement for inserting into account table")
+		}
 	}
 	return nil
 }

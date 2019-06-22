@@ -25,6 +25,9 @@ func TestSuite(t *testing.T) {
 			if err := os.Remove(constants.MetadataTable); err != nil {
 				t.Errorf("failed to remove metadatata.tab:\n%s", err.Error())
 			}
+			if err := os.Remove(constants.AccountsTable); err != nil {
+				t.Errorf("failed to remove accounts.db:\n%s", err.Error())
+			}
 		}
 	}()
 	type testArg struct {
