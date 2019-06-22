@@ -27,6 +27,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -50,10 +51,10 @@ type Flags struct {
 
 var version = uint16(1)
 var ledger = "blockchain.dat"
-var metadataTable = "metadata.tab"
+var metadataTable = constants.MetadataTable
 
 // TODO: Will need to change the name to support get functions
-var accountsTable = "accounts.tab"
+var accountsTable = constants.AccountsTable
 
 var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
 

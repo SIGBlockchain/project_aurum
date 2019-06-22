@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -180,7 +181,7 @@ func TestByteChannel(t *testing.T) {
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
-			if err := os.Remove("metadata.tab"); err != nil {
+			if err := os.Remove(constants.MetadataTable); err != nil {
 				t.Errorf("failed to remove metadatata.tab:\n%s", err.Error())
 			}
 		}
@@ -247,7 +248,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 			t.Errorf("failed to remove aurum_wallet.json:\n%s", err.Error())
 		}
 	}()
-	dbName := "accounts.tab"
+	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -610,7 +611,7 @@ func TestAirdrop(t *testing.T) {
 		{
 			args: args{
 				blockchain:   "blockchain.dat",
-				metadata:     "metadata.tab",
+				metadata:     constants.MetadataTable,
 				genesisBlock: genny,
 			},
 		},
@@ -664,8 +665,8 @@ func TestReadGenesisHashes(t *testing.T) {
 
 func TestRecoverBlockchainMetadata(t *testing.T) {
 	var ljr = "blockchain.dat"
-	var meta = "metadata.tab"
-	var accts = "accounts.tab"
+	var meta = constants.MetadataTable
+	var accts = constants.AccountsTable
 
 	if file, err := os.Create(ljr); err != nil {
 		t.Errorf("Failed to create file.")
@@ -793,8 +794,8 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 
 func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	var ljr = "blockchain.dat"
-	var meta = "metadata.tab"
-	var accts = "accounts.tab"
+	var meta = constants.MetadataTable
+	var accts = constants.AccountsTable
 
 	// Create ledger file and the two tables
 	file, err := os.Create(ljr)

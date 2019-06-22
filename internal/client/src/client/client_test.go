@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
@@ -521,7 +522,7 @@ func TestRequestWalletInfo(t *testing.T) {
 		}
 	}()
 
-	dbName := "accounts.tab"
+	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()

@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 )
 
 var removeFiles = true
@@ -20,7 +22,7 @@ func TestSuite(t *testing.T) {
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
-			if err := os.Remove("metadata.tab"); err != nil {
+			if err := os.Remove(constants.MetadataTable); err != nil {
 				t.Errorf("failed to remove metadatata.tab:\n%s", err.Error())
 			}
 		}
@@ -54,7 +56,7 @@ func TestSuite(t *testing.T) {
 		})
 	}
 
-	dbc, err := sql.Open("sqlite3", "metadata.tab")
+	dbc, err := sql.Open("sqlite3", constants.MetadataTable)
 	if err != nil {
 		t.Errorf("failed to open sqlite database")
 	}
