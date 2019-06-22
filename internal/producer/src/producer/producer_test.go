@@ -1071,5 +1071,8 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to deserialize block: %v", err)
 	}
-
+	recipient := string(ctc.RecipPubKeyHash)
+	if recipient != testGenesisHash {
+		t.Errorf("hashes don't match: %s != %s", recipient, testGenesisHash)
+	}
 }
