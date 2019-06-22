@@ -183,7 +183,6 @@ func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, v
 
 	// execute the prepared statement to insert into account_balances
 	_, err = statement.Exec(hex.EncodeToString(pkhash), value, 0)
-	fmt.Printf("Inserting %s into table", hex.EncodeToString(pkhash))
 	if err != nil {
 		return errors.New("Failed to execute statement to insert account into table")
 	}

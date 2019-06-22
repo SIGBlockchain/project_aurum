@@ -520,22 +520,12 @@ func TestCreateBlock(t *testing.T) {
 
 func TestBringOnTheGenesis(t *testing.T) {
 	var pkhashes [][]byte
-	// var datum []Data
 	var datum []accounts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 10, 0)
-		// someDataHdr := DataHeader{
-		// 	Version: 1,
-		// 	Type:    0,
-		// }
-		// someData := Data{
-		// 	Hdr: someDataHdr,
-		// 	Bdy: someAirdropContract,
-		// }
-		// someData := *someAirdropContract
 		datum = append(datum, *someAirdropContract)
 	}
 	genny, _ := CreateBlock(1, 0, make([]byte, 32), datum)
