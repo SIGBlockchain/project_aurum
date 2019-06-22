@@ -384,15 +384,6 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 		if err != nil {
 			return block.Block{}, errors.New("Failed to make contracts")
 		}
-
-		// data that contains data version and type, and the contract
-		// data := Data{
-		// 	Hdr: DataHeader{
-		// 		Version: version,
-		// 		Type:    0,
-		// 	},
-		// 	Bdy: contract,
-		// }
 		datum = append(datum, *contract) // switched second parameter from data to contract
 	}
 
