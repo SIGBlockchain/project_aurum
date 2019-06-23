@@ -195,7 +195,7 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 		return nil, err
 	}
 
-	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce)
+	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce+1)
 	if err != nil {
 		return nil, err
 	}

@@ -258,9 +258,6 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		select {
 		case message := <-byteChan:
 
-			// Determine contents of message
-			lgr.Printf("Main received: %v\n", message)
-
 			// If it's a contract, add it to the contract pool
 			switch message[8] {
 			case 1:
