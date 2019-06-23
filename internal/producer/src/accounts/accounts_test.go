@@ -622,79 +622,65 @@ func TestValidateContract(t *testing.T) {
 	tests := []struct {
 		name    string
 		c       *Contract
-		want    bool
 		wantErr bool
 	}{
 		{
 			name:    "Zero value",
 			c:       zeroValueContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Nil sender",
 			c:       nilSenderContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Sender == Recipient",
 			c:       senderRecipContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Invalid signature",
 			c:       invalidSignatureContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Insufficient funds",
 			c:       insufficentFundsContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Invalid nonce",
 			c:       invalidNonceContract,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Invalid nonce 2",
 			c:       invalidNonceContract2,
-			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "Totally valid with old accounts",
 			c:       validTwoExistingAccountsContract,
-			want:    true,
 			wantErr: false,
 		},
 		{
 			name:    "Totally valid with a new account",
 			c:       validOneExistingAccountsContract,
-			want:    true,
 			wantErr: false,
 		},
 		{
 			name:    "Totally valid with a new account to newer account",
 			c:       newAccountToANewerAccountContract,
-			want:    true,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ValidateContract(tt.c)
+			err := ValidateContract(tt.c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateContract() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if got != tt.want {
-				t.Errorf("ValidateContract() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -993,4 +979,25 @@ func TestEquals(t *testing.T) {
 		})
 	}
 
+}
+
+func TestContractToString(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	testContract := Contract{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+		Value:           1000000000,
+		StateNonce:      1,
+	}
+
+	stringOfTheContract := fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n", testContract.Version,
+		hex.EncodeToString(keys.EncodePublicKey(testContract.SenderPubKey)), testContract.SigLen, hex.EncodeToString(testContract.Signature),
+		hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
+
+	if result := testContract.ToString(); result != stringOfTheContract {
+		t.Error("Contract String is not equal to test String")
+	}
 }
