@@ -255,7 +255,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		case <-intervalChannel:
 			// Triggered if it's time to produce a block
 			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
-			lgr.Printf("Production block dataPool: %v", dataPool)
+			// lgr.Printf("Production block dataPool: %v", dataPool)
 			if newBlock, err := CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
 				lgr.Fatalf("failed to add block %s", err.Error())
 				os.Exit(1)
