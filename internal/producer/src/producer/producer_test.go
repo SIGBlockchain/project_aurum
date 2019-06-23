@@ -635,13 +635,14 @@ func TestAirdrop(t *testing.T) {
 			defer rows.Close()
 
 			var pkhCount int
-			var pkhash string
+			var pkhStr string
 			var balance int
 			var nonce int
 			for rows.Next() {
-				rows.Scan(&pkhash, &balance, &nonce)
-				if pkhash != string(pkhashes[pkhCount]) {
-					t.Errorf("hashes don't match: %s != %s\n", pkhash, string(pkhashes[pkhCount]))
+				rows.Scan(&pkhStr, &balance, &nonce)
+				pkhash, _ := hex.DecodeString(pkhStr)
+				if !bytes.Equal(pkhash, pkhashes[pkhCount]) {
+					t.Errorf("hashes don't match: %v != %v\n", pkhash, pkhashes[pkhCount])
 				}
 				if balance != 10 {
 					t.Errorf("balance does not match: %v != %v\n", balance, 10)
@@ -1082,9 +1083,9 @@ func TestGenerateNRandomKeys(t *testing.T) {
 
 func TestGenesisReadsAppropriately(t *testing.T) {
 	var testGenesisHash = "8db5d191bf333f96179c5f2ec7acd20a8c01378a1af120e2f2ded3672896931a"
-	if err := ioutil.WriteFile("genesis_hashes.txt", []byte(testGenesisHash), 0644); err != nil {
-		t.Errorf("failed to write to file: %v", err)
-	}
+	genHashfile, _ := os.Create(genesisHashFile)
+	genHashfile.WriteString(testGenesisHash + "\n") // from GenerateGenesisHashFile
+	genHashfile.Close()
 	defer func() {
 		if err := os.Remove("genesis_hashes.txt"); err != nil {
 			t.Errorf("failed to remove genesis hash file: %v", err)
@@ -1094,8 +1095,8 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to read from hash file: %v", hashSlice)
 	}
-	if string(hashSlice[0]) != testGenesisHash {
-		t.Errorf("hashes don't match: %s != %s", string(hashSlice[0]), testGenesisHash)
+	if hex.EncodeToString(hashSlice[0]) != testGenesisHash {
+		t.Errorf("hash from genesis_hashes.txt don't match: %s != %s", hex.EncodeToString(hashSlice[0]), testGenesisHash)
 	}
 	genesisBlock, err := BringOnTheGenesis(hashSlice, 1000)
 	if err != nil {
@@ -1107,7 +1108,7 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to deserialize block: %v", err)
 	}
-	recipient := string(ctc.RecipPubKeyHash)
+	recipient := hex.EncodeToString(ctc.RecipPubKeyHash)
 	if recipient != testGenesisHash {
 		t.Errorf("hashes don't match: %s != %s", recipient, testGenesisHash)
 	}

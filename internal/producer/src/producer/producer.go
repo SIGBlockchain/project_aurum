@@ -455,7 +455,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	for _, contracts := range genesisBlock.Data {
 		var contract accounts.Contract
 		contract.Deserialize(contracts)
-		_, err := stmt.Exec(contract.RecipPubKeyHash, contract.Value, 0)
+		_, err := stmt.Exec(hex.EncodeToString(contract.RecipPubKeyHash), contract.Value, 0)
 		if err != nil {
 			return errors.New("Failed to execute statement for inserting into account table")
 		}
@@ -720,8 +720,9 @@ func ReadGenesisHashes() ([][]byte, error) {
 		if err == io.EOF {
 			break
 		}
+		decodedHash, _ := hex.DecodeString(string(line))
 		// append to the byte slice that is going to be returned
-		hashesInBytes = append(hashesInBytes, line)
+		hashesInBytes = append(hashesInBytes, decodedHash)
 	}
 
 	return hashesInBytes, err
