@@ -96,9 +96,6 @@ func main() {
 	}
 
 	if *fl.contract {
-		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address; if any are missing, lgr.Fatal()
-		// TODO: Call ContractMessageFromInput(...) and Send to producer
-		// TODO: Output success of sending to producer (with response)
 		newContract, err := ContractMessageFromInput(*fl.value, *fl.recipient)
 		if err != nil {
 			lgr.Fatalf("Failed to create contract message: " + err.Error())
@@ -115,8 +112,17 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("Failed to read from connection: " + err.Error())
 		}
-		lgr.Printf("Producer return with message: " + string(buf[:nRcvd]))
-
+		lgr.Printf("Producer returned with message: " + string(buf[:nRcvd]))
+		currentBalance, err := client.GetBalance()
+		currentNonce, err := client.GetStateNonce()
+		intVal, err := strconv.Atoi(*fl.value)
+		if err != nil {
+			lgr.Fatalf("Failed to convert value to integer: " + err.Error())
+		}
+		err = client.UpdateWallet((currentBalance - uint64(intVal)), (currentNonce + 1))
+		if err != nil {
+			lgr.Fatalf("Failed to update wallet: " + err.Error())
+		}
 	}
 
 	if *fl.updateInfo {
@@ -176,7 +182,10 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	}
 
 	// case recipBytes != 32
-	recipBytes := []byte(recipient)
+	recipBytes, err := hex.DecodeString(recipient)
+	if err != nil {
+		return nil, errors.New("Failed to hex decode recipient")
+	}
 	if len(recipBytes) != 32 {
 		return nil, errors.New("Failed to convert recipient to size 32 byte slice")
 	}

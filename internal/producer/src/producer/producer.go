@@ -178,8 +178,9 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 			goto End
 		}
 
+		lgr.Println("Received message from", conn.RemoteAddr())
+
 		// Determine the type of message
-		// lgr.Printf("Received following message: %v", buf[:nRcvd])
 		if nRcvd < 8 || (!bytes.Equal(buf[:8], SecretBytes)) {
 			conn.Write([]byte("No thanks.\n"))
 			goto End
@@ -207,8 +208,11 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 			}
 		}
 
+		lgr.Println("Sending to channel")
 		// Send to channel if aurum-related message
 		bChan <- buf[:nRcvd]
+
+		lgr.Println("Message successfully sent to main")
 		goto End
 	End:
 		lgr.Println("Closing connection.")
@@ -252,6 +256,27 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 	for {
 		var chainHeight = youngestBlockHeader.Height
 		select {
+		case message := <-byteChan:
+
+			// Determine contents of message
+			lgr.Printf("Main received: %v\n", message)
+
+			// If it's a contract, add it to the contract pool
+			switch message[8] {
+			case 1:
+				lgr.Println("Received contract")
+				var newContract accounts.Contract
+				if err := newContract.Deserialize(message[9:]); err == nil {
+					// TODO: Validate the contract prior to adding
+					if err := accounts.ValidateContract(&newContract); err != nil {
+						lgr.Println("Invalid contract because: " + err.Error())
+					} else {
+						dataPool = append(dataPool, newContract)
+						lgr.Println("Valid contract")
+					}
+				}
+				break
+			}
 		case <-intervalChannel:
 			// Triggered if it's time to produce a block
 			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
@@ -295,22 +320,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 				}
 
 			}
-		case message := <-byteChan:
 
-			// Determine contents of message
-			lgr.Printf("Main received: %v\n", message)
-
-			// If it's a contract, add it to the contract pool
-			switch message[8] {
-			case 1:
-				lgr.Println("Received contract")
-				var newContract accounts.Contract
-				if err := newContract.Deserialize(message[9:]); err == nil {
-					// TODO: Validate the contract prior to adding
-					dataPool = append(dataPool, newContract)
-				}
-				break
-			}
 		case <-signalCh:
 
 			// If you receive a SIGINT, exit the loop
