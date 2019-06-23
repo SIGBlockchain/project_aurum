@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -172,7 +173,7 @@ func TestByteChannel(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create genesis block:\n%s", err.Error())
 	}
-	if err := Airdrop(ledger, metadataTable, genesisBlock); err != nil {
+	if err := Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 		t.Errorf("failed to perform air drop:\n%s", err.Error())
 	}
 	defer func() {
@@ -180,8 +181,11 @@ func TestByteChannel(t *testing.T) {
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
-			if err := os.Remove("metadata.tab"); err != nil {
+			if err := os.Remove(constants.MetadataTable); err != nil {
 				t.Errorf("failed to remove metadatata.tab:\n%s", err.Error())
+			}
+			if err := os.Remove(constants.AccountsTable); err != nil {
+				t.Errorf("failed to remove accounts.db:\n%s", err.Error())
 			}
 		}
 	}()
@@ -247,7 +251,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 			t.Errorf("failed to remove aurum_wallet.json:\n%s", err.Error())
 		}
 	}()
-	dbName := "accounts.tab"
+	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
 		err := dbc.Close()
@@ -447,19 +451,10 @@ func TestData_Deserialize(t *testing.T) {
 
 func TestCreateBlock(t *testing.T) {
 	var datum []accounts.Contract
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 12; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
-		// someDataHdr := DataHeader{
-		// 	Version: 1,
-		// 	Type:    0,
-		// }
-		// someData := Data{
-		// 	Hdr: someDataHdr,
-		// 	Bdy: someAirdropContract,
-		// }
-		// someData := *someAirdropContract
 		datum = append(datum, *someAirdropContract)
 	}
 	var serializedDatum [][]byte
@@ -494,7 +489,7 @@ func TestCreateBlock(t *testing.T) {
 				PreviousHash:   make([]byte, 32),
 				MerkleRootHash: block.GetMerkleRootHash(serializedDatum),
 				Data:           serializedDatum,
-				DataLen:        50,
+				DataLen:        12,
 			},
 		},
 	}
@@ -519,22 +514,12 @@ func TestCreateBlock(t *testing.T) {
 
 func TestBringOnTheGenesis(t *testing.T) {
 	var pkhashes [][]byte
-	// var datum []Data
 	var datum []accounts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := block.HashSHA256(keys.EncodePublicKey(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 10, 0)
-		// someDataHdr := DataHeader{
-		// 	Version: 1,
-		// 	Type:    0,
-		// }
-		// someData := Data{
-		// 	Hdr: someDataHdr,
-		// 	Bdy: someAirdropContract,
-		// }
-		// someData := *someAirdropContract
 		datum = append(datum, *someAirdropContract)
 	}
 	genny, _ := CreateBlock(1, 0, make([]byte, 32), datum)
@@ -600,6 +585,7 @@ func TestAirdrop(t *testing.T) {
 	type args struct {
 		blockchain   string
 		metadata     string
+		accounts     string
 		genesisBlock block.Block
 	}
 	tests := []struct {
@@ -610,7 +596,8 @@ func TestAirdrop(t *testing.T) {
 		{
 			args: args{
 				blockchain:   "blockchain.dat",
-				metadata:     "metadata.tab",
+				metadata:     constants.MetadataTable,
+				accounts:     constants.AccountsTable,
 				genesisBlock: genny,
 			},
 		},
@@ -619,9 +606,10 @@ func TestAirdrop(t *testing.T) {
 		defer func() {
 			os.Remove(tt.args.metadata)
 			os.Remove(tt.args.blockchain)
+			os.Remove(tt.args.accounts)
 		}()
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Airdrop(tt.args.blockchain, tt.args.metadata, tt.args.genesisBlock); (err != nil) != tt.wantErr {
+			if err := Airdrop(tt.args.blockchain, tt.args.metadata, tt.args.accounts, tt.args.genesisBlock); (err != nil) != tt.wantErr {
 				t.Errorf("Airdrop() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			fileGenny, err := ioutil.ReadFile(tt.args.blockchain)
@@ -631,6 +619,37 @@ func TestAirdrop(t *testing.T) {
 			serializedGenny := genny.Serialize()
 			if !bytes.Equal(fileGenny[4:], serializedGenny) {
 				t.Errorf("Genesis block does not match file block")
+			}
+
+			db, err := sql.Open("sqlite3", tt.args.accounts)
+			if err != nil {
+				t.Errorf("Failed to open accounts table: " + err.Error())
+			}
+			defer db.Close()
+
+			rows, err := db.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			if err != nil {
+				t.Errorf("failed to create rows for queries")
+			}
+			defer rows.Close()
+
+			var pkhCount int
+			var pkhStr string
+			var balance int
+			var nonce int
+			for rows.Next() {
+				rows.Scan(&pkhStr, &balance, &nonce)
+				pkhash, _ := hex.DecodeString(pkhStr)
+				if !bytes.Equal(pkhash, pkhashes[pkhCount]) {
+					t.Errorf("hashes don't match: %v != %v\n", pkhash, pkhashes[pkhCount])
+				}
+				if balance != 10 {
+					t.Errorf("balance does not match: %v != %v\n", balance, 10)
+				}
+				if nonce != 0 {
+					t.Errorf("nonce does not match: %v != %v\n", nonce, 0)
+				}
+				pkhCount++
 			}
 		})
 	}
@@ -664,8 +683,8 @@ func TestReadGenesisHashes(t *testing.T) {
 
 func TestRecoverBlockchainMetadata(t *testing.T) {
 	var ljr = "blockchain.dat"
-	var meta = "metadata.tab"
-	var accts = "accounts.tab"
+	var meta = constants.MetadataTable
+	var accts = constants.AccountsTable
 
 	if file, err := os.Create(ljr); err != nil {
 		t.Errorf("Failed to create file.")
@@ -712,7 +731,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
-	if err := Airdrop(ljr, meta, genny); err != nil {
+	if err := Airdrop(ljr, meta, constants.AccountsTable, genny); err != nil {
 		t.Errorf("airdrop failed")
 	}
 
@@ -793,8 +812,8 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 
 func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	var ljr = "blockchain.dat"
-	var meta = "metadata.tab"
-	var accts = "accounts.tab"
+	var meta = constants.MetadataTable
+	var accts = constants.AccountsTable
 
 	// Create ledger file and the two tables
 	file, err := os.Create(ljr)
@@ -840,7 +859,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 		}
 	}
 	genesisBlk, _ := BringOnTheGenesis(pkhashes, 1000)
-	if err := Airdrop(ljr, meta, genesisBlk); err != nil {
+	if err := Airdrop(ljr, meta, accts, genesisBlk); err != nil {
 		t.Errorf("airdrop failed")
 	}
 	// Insert pkhashes into account table for contract validation
@@ -1025,9 +1044,6 @@ func TestGenerateNRandomKeys(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateNRandomKeys() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			//			if tt.args.n == 0 && err != errors.New("Must generate at least one private key") {
-			//				t.Errorf("Wrong error message generated. Should say: %s, instead says: %s", "\"Must generate at least one private key\"", err)
-			//			}
 			if _, err := os.Stat(tt.args.filename); os.IsNotExist(err) {
 				t.Errorf("Test file for keys not detected: %s", err)
 			}
@@ -1055,5 +1071,83 @@ func TestGenerateNRandomKeys(t *testing.T) {
 	}
 	if err := os.Remove("testfile.json"); err != nil {
 		t.Errorf("Failed to remove file: %s because: %s", "testfile.json", err)
+	}
+}
+
+func TestGenesisReadsAppropriately(t *testing.T) {
+	var testGenesisHash = "8db5d191bf333f96179c5f2ec7acd20a8c01378a1af120e2f2ded3672896931a"
+	genHashfile, _ := os.Create(genesisHashFile)
+	genHashfile.WriteString(testGenesisHash + "\n") // from GenerateGenesisHashFile
+	genHashfile.Close()
+	defer func() {
+		if err := os.Remove("genesis_hashes.txt"); err != nil {
+			t.Errorf("failed to remove genesis hash file: %v", err)
+		}
+	}()
+	hashSlice, err := ReadGenesisHashes()
+	if err != nil {
+		t.Errorf("failed to read from hash file: %v", hashSlice)
+	}
+	if hex.EncodeToString(hashSlice[0]) != testGenesisHash {
+		t.Errorf("hash from genesis_hashes.txt don't match: %s != %s", hex.EncodeToString(hashSlice[0]), testGenesisHash)
+	}
+	genesisBlock, err := BringOnTheGenesis(hashSlice, 1000)
+	if err != nil {
+		t.Errorf("failed to create genesis block: %v", err)
+	}
+	serializedCtc := genesisBlock.Data[0]
+	var ctc accounts.Contract
+	err = ctc.Deserialize(serializedCtc)
+	if err != nil {
+		t.Errorf("failed to deserialize block: %v", err)
+	}
+	recipient := hex.EncodeToString(ctc.RecipPubKeyHash)
+	if recipient != testGenesisHash {
+		t.Errorf("hashes don't match: %s != %s", recipient, testGenesisHash)
+	}
+
+	//airdrop
+	err = Airdrop("blockchain.dat", constants.MetadataTable, constants.AccountsTable, genesisBlock)
+	if err != nil {
+		t.Errorf("failed to airdrop genesis block: %s", err.Error())
+	}
+	defer func() {
+		if err := os.Remove("blockchain.dat"); err != nil {
+			t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
+		}
+		if err := os.Remove(constants.MetadataTable); err != nil {
+			t.Errorf("failed to remove metadatata.tab:\n%s", err.Error())
+		}
+		if err := os.Remove(constants.AccountsTable); err != nil {
+			t.Errorf("failed to remove accounts.db:\n%s", err.Error())
+		}
+	}()
+
+	db, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		t.Errorf("failed to open accounts table")
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+	if err != nil {
+		t.Errorf("failed to create rows for queries")
+	}
+	defer rows.Close()
+
+	var pkhash string
+	var balance int
+	var nonce int
+	for rows.Next() {
+		rows.Scan(&pkhash, &balance, &nonce)
+		if pkhash != testGenesisHash {
+			t.Errorf("hash in accounts table doesn't match: %s != %s\n", pkhash, testGenesisHash)
+		}
+		if balance != 1000 {
+			t.Errorf("balance in accounts table doesn't match: %v != %v\n", balance, 1000)
+		}
+		if nonce != 0 {
+			t.Errorf("nonce in accounts table doesn't match: %v != %v\n", nonce, 0)
+		}
 	}
 }

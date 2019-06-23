@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	"github.com/pborman/getopt"
@@ -40,7 +41,7 @@ import (
 
 var version = uint16(1)
 var ledger = "blockchain.dat"
-var metadataTable = "metadata.tab"
+var metadataTable = constants.MetadataTable
 
 func main() {
 	// Flag struct parsing
@@ -93,7 +94,7 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		if err := producer.Airdrop(ledger, metadataTable, genesisBlock); err != nil {
+		if err := producer.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")
@@ -107,6 +108,9 @@ func main() {
 	}
 
 	// TODO: Add RecoverMetadata here
+	// if err := producer.RecoverBlockchainMetadata(ledger, constants.MetadataTable, constants.AccountsTable); err != nil {
+	// 	lgr.Fatalf("failed to recover blockchain metadata: %v", err)
+	// }
 
 	var addr string
 	var ln net.Listener

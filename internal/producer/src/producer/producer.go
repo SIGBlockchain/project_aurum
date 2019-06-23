@@ -27,6 +27,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -50,10 +51,10 @@ type Flags struct {
 
 var version = uint16(1)
 var ledger = "blockchain.dat"
-var metadataTable = "metadata.tab"
+var metadataTable = constants.MetadataTable
 
 // TODO: Will need to change the name to support get functions
-var accountsTable = "accounts.tab"
+var accountsTable = constants.AccountsTable
 
 var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
 
@@ -191,7 +192,7 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 				var responseMessage []byte
 				responseMessage = append(responseMessage, SecretBytes...)
 				if err != nil {
-					lgr.Printf("Failed to get account info for %v: %s", buf[9:nRcvd], err.Error())
+					lgr.Printf("Failed to get account info for %s: %s", hex.EncodeToString(buf[9:nRcvd]), err.Error())
 					responseMessage = append(responseMessage, 1)
 				} else {
 					responseMessage = append(responseMessage, 0)
@@ -383,15 +384,6 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 		if err != nil {
 			return block.Block{}, errors.New("Failed to make contracts")
 		}
-
-		// data that contains data version and type, and the contract
-		// data := Data{
-		// 	Hdr: DataHeader{
-		// 		Version: version,
-		// 		Type:    0,
-		// 	},
-		// 	Bdy: contract,
-		// }
 		datum = append(datum, *contract) // switched second parameter from data to contract
 	}
 
@@ -404,7 +396,7 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 	return genesisBlock, nil
 }
 
-func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) error {
+func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
 	// create blockchain file
 	file, err := os.Create(blockchainz)
 	if err != nil {
@@ -435,6 +427,38 @@ func Airdrop(blockchainz string, metadata string, genesisBlock block.Block) erro
 	err = blockchain.AddBlock(genesisBlock, blockchainz, metadata)
 	if err != nil {
 		return errors.New("Failed to add genesis block into blockchain")
+	}
+
+	// create accounts file
+	file, err = os.Create(accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to create accounts table")
+	}
+	file.Close()
+
+	accDb, err := sql.Open("sqlite3", accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to open newly created accounts db")
+	}
+	defer accDb.Close()
+
+	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		return errors.New("Failed to create acount_balances table")
+	}
+
+	stmt, err := accDb.Prepare("INSERT INTO account_balances VALUES (?, ?, ?)")
+	if err != nil {
+		return errors.New("Failed to create statement for inserting into account table")
+	}
+
+	for _, contracts := range genesisBlock.Data {
+		var contract accounts.Contract
+		contract.Deserialize(contracts)
+		_, err := stmt.Exec(hex.EncodeToString(contract.RecipPubKeyHash), contract.Value, 0)
+		if err != nil {
+			return errors.New("Failed to execute statement for inserting into account table")
+		}
 	}
 	return nil
 }
@@ -696,8 +720,9 @@ func ReadGenesisHashes() ([][]byte, error) {
 		if err == io.EOF {
 			break
 		}
+		decodedHash, _ := hex.DecodeString(string(line))
 		// append to the byte slice that is going to be returned
-		hashesInBytes = append(hashesInBytes, line)
+		hashesInBytes = append(hashesInBytes, decodedHash)
 	}
 
 	return hashesInBytes, err
