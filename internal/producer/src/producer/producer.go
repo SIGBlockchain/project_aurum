@@ -295,7 +295,18 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 
 					// TODO: for each contract in the dataPool, update the accounts table
 					// TODO: will require a sync.Mutex for the accounts table
-					// Reset the pending transaction pool
+					dbConn, err := sql.Open("sqlite3", constants.AccountsTable)
+					if err != nil {
+						lgr.Fatalf("Failed to connect to accounts database: %v", err)
+					}
+					for _, contract := range dataPool {
+						senderPKH := block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))
+						err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
+						if err != nil {
+							lgr.Printf("Failed to add contract to accounts database: %v", err)
+						}
+					}
+					dbConn.Close()
 					dataPool = nil
 
 					// Memory stats
