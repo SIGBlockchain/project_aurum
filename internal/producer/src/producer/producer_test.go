@@ -508,7 +508,6 @@ func TestCreateBlock(t *testing.T) {
 				!reflect.DeepEqual(got.Data, tt.want.Data) {
 				t.Errorf("CreateBlock() = %v, want %v", got, tt.want)
 			}
-			t.Logf("%v", got)
 		})
 	}
 }

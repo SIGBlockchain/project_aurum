@@ -192,7 +192,7 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 				var responseMessage []byte
 				responseMessage = append(responseMessage, SecretBytes...)
 				if err != nil {
-					lgr.Printf("Failed to get account info for %v: %s", buf[9:nRcvd], err.Error())
+					lgr.Printf("Failed to get account info for %s: %s", hex.EncodeToString(buf[9:nRcvd]), err.Error())
 					responseMessage = append(responseMessage, 1)
 				} else {
 					responseMessage = append(responseMessage, 0)
