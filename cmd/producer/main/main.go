@@ -17,30 +17,15 @@ import (
 	"net"
 	"os"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	"github.com/pborman/getopt"
 )
 
-// type Flags struct {
-// 	help        *bool
-// 	debug       *bool
-// 	version     *bool
-// 	height      *bool
-// 	genesis     *bool
-// 	test        *bool
-// 	globalhost  *bool
-// 	memoryStats *bool
-// 	logs        *string
-// 	port        *string
-// 	interval    *string
-// 	initSupply  *uint64
-// 	numBlocks   *uint64
-// }
-
 var version = uint16(1)
 var ledger = "blockchain.dat"
-var metadataTable = "metadata.tab"
+var metadataTable = constants.MetadataTable
 
 func main() {
 	// Flag struct parsing
@@ -93,7 +78,7 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		if err := producer.Airdrop(ledger, metadataTable, genesisBlock); err != nil {
+		if err := producer.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")
@@ -105,8 +90,6 @@ func main() {
 	if err != nil {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
-
-	// TODO: Add RecoverMetadata here
 
 	var addr string
 	var ln net.Listener
@@ -120,7 +103,8 @@ func main() {
 	}
 
 	// Set up byte channel and start listening on port
-	var byteChan chan []byte
+	// var byteChan chan []byte
+	byteChan := make(chan []byte)
 	if getopt.IsSet('p') {
 		addr += *fl.Port
 		ln, err = net.Listen("tcp", addr)

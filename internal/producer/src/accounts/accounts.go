@@ -13,11 +13,10 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
-
-var accountBalanceTable = "accounts.tab"
 
 /*
 Version
@@ -343,7 +342,7 @@ func (accInfo *AccountInfo) Deserialize(serializedAccountInfo []byte) error {
 
 func GetBalance(pkhash []byte) (uint64, error) {
 	// open account balance table
-	db, err := sql.Open("sqlite3", "accounts.tab")
+	db, err := sql.Open("sqlite3", constants.AccountsTable)
 	if err != nil {
 		return 0, errors.New("Failed to open account balance table")
 	}
@@ -370,7 +369,7 @@ func GetBalance(pkhash []byte) (uint64, error) {
 
 func GetStateNonce(pkhash []byte) (uint64, error) {
 	// open account balance table
-	db, err := sql.Open("sqlite3", "accounts.tab")
+	db, err := sql.Open("sqlite3", constants.AccountsTable)
 	if err != nil {
 		return 0, errors.New("Failed to open account balance table")
 	}
@@ -444,6 +443,13 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 		}
 	}
 	return true
+}
+
+// ContractToString takes in a Contract and return a string version
+func (c Contract) ToString() string {
+	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
+		c.Version, hex.EncodeToString(keys.EncodePublicKey(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
+		c.Value, c.StateNonce)
 }
 
 // func ValidateContract(c *Contract, table string, authorizedMinters [][]byte) (bool, error) {

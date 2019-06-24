@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 
@@ -22,7 +23,7 @@ type Flags struct {
 	updateInfo *bool
 	contract   *bool
 	recipient  *string
-	value      *uint64
+	value      *string
 	producer   *string
 }
 
@@ -57,7 +58,7 @@ func main() {
 		updateInfo: getopt.BoolLong("update", 'u', "update wallet info"),
 		contract:   getopt.BoolLong("contract", 'c', "make contract"),
 		recipient:  getopt.StringLong("recipient", 'r', "recipient"),
-		value:      getopt.Uint64Long("value", 'v', 0, "value to send"),
+		value:      getopt.StringLong("value", 'v', "", "value to send"),
 		producer:   getopt.StringLong("producer", 'p', "", "producer address"),
 	}
 	getopt.Parse()
@@ -95,9 +96,33 @@ func main() {
 	}
 
 	if *fl.contract {
-		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address; if any are missing, lgr.Fatal()
-		// TODO: Call ContractMessageFromInput(...) and Send to producer
-		// TODO: Output success of sending to producer (with response)
+		newContract, err := ContractMessageFromInput(*fl.value, *fl.recipient)
+		if err != nil {
+			lgr.Fatalf("Failed to create contract message: " + err.Error())
+		}
+		conn, err := net.Dial("tcp", *fl.producer)
+		if err != nil {
+			lgr.Fatalf("Failed to connect to producer address: " + *fl.producer + ": " + err.Error())
+		}
+		if _, err := conn.Write(newContract); err != nil {
+			lgr.Fatalf("Failed to send contract to producer: " + err.Error())
+		}
+		buf := make([]byte, 1024)
+		nRcvd, err := conn.Read(buf)
+		if err != nil {
+			lgr.Fatalf("Failed to read from connection: " + err.Error())
+		}
+		lgr.Printf("Producer returned with message: " + string(buf[:nRcvd]))
+		currentBalance, err := client.GetBalance()
+		currentNonce, err := client.GetStateNonce()
+		intVal, err := strconv.Atoi(*fl.value)
+		if err != nil {
+			lgr.Fatalf("Failed to convert value to integer: " + err.Error())
+		}
+		err = client.UpdateWallet((currentBalance - uint64(intVal)), (currentNonce + 1))
+		if err != nil {
+			lgr.Fatalf("Failed to update wallet: " + err.Error())
+		}
 	}
 
 	if *fl.updateInfo {
@@ -105,7 +130,7 @@ func main() {
 			lgr.Fatalf("Producer address is required to update wallet info")
 		}
 
-		fmt.Println("Updating wallet info...")
+		lgr.Println("Updating wallet info...")
 		accountInfo, err := client.RequestWalletInfo(*fl.producer)
 		if err != nil {
 			lgr.Fatalf("failed to request wallet info: %s", err.Error())
@@ -157,7 +182,10 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	}
 
 	// case recipBytes != 32
-	recipBytes := []byte(recipient)
+	recipBytes, err := hex.DecodeString(recipient)
+	if err != nil {
+		return nil, errors.New("Failed to hex decode recipient")
+	}
 	if len(recipBytes) != 32 {
 		return nil, errors.New("Failed to convert recipient to size 32 byte slice")
 	}
@@ -167,7 +195,7 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 		return nil, err
 	}
 
-	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce)
+	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce+1)
 	if err != nil {
 		return nil, err
 	}
@@ -180,115 +208,3 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	contractMessage = append(contractMessage, serializedContract...)
 	return contractMessage, nil
 }
-
-// ---------------------------------------------------------------------------
-// func main() {
-// 	// List of Options
-// 	helpFlag := getopt.Bool('?', "Display Valid Flags")
-// 	debugFlag := getopt.BoolLong("debug", 'd', "Enable Debug Mode")
-// 	logFile := getopt.StringLong("logfile", 'l', "", "Log File Destination")
-// 	getopt.CommandLine.Lookup('l').SetOptional()
-// 	getopt.Parse()
-// 	// If the help flag is on, print usage to os.Stdout
-// 	if *helpFlag == true {
-// 		getopt.Usage()
-// 		os.Exit(0)
-// 	}
-// 	logger := log.New(os.Stdout, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-
-// 	// If the debug flag is not on, the logger is set to a dummy buffer, which stores the input
-// 	if *debugFlag == false {
-// 		var buffer bytes.Buffer
-// 		logger = log.New(&buffer, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-// 	}
-// 	// If the log flag is on, it will send the logs to a file in client/logs
-// 	if getopt.CommandLine.Lookup('l').Count() > 0 {
-// 		filepath := os.Getenv("GOPATH") + "/src/github.com/SIGBlockchain/project_aurum/logs"
-// 		os.Mkdir(filepath, 0777)
-// 		// If no filename is given, logs.txt
-// 		if *logFile == "" {
-// 			filepath += "/client_logs.txt"
-// 			// Otherwise the custom filename is used
-// 		} else {
-// 			filepath += "/" + *logFile
-// 		}
-// 		f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
-// 		defer f.Close()
-
-// 		// If there is any error, do not set the logger. Log an error messgae
-// 		if err != nil {
-// 			logger.Fatalln(err)
-// 		} else {
-// 			logger = log.New(f, "LOG: ", log.Ldate|log.Lmicroseconds|log.Lshortfile)
-// 		}
-// 	}
-// 	// Clears the screen before program execution
-// 	client.ClearScreen()
-
-// 	// Check to see if there is an internet connection
-// 	err := client.CheckConnection()
-// 	//err := error(nil) // This is used for offline testing
-// 	if err != nil {
-// 		logger.Fatalln(err)
-// 	}
-// 	logger.Println("Connection check passed.")
-
-// 	// This string contains the entire input
-// 	var userInput string
-// 	for {
-// 		// If there are any errors in getting input, end program execution
-// 		if client.GetUserInput(&userInput, os.Stdin) != nil {
-// 			logger.Fatalln("Error getting input.")
-// 		}
-// 		// inputs holds the individual arguments of a command
-// 		inputs := strings.Split(userInput, " ")
-// 		// Switch checks the first argument of a command
-// 		switch inputs[0] {
-
-// 		// 'q' command exits the program
-// 		case "q":
-// 			logger.Println("Exiting program.\nGoodbye")
-// 			os.Exit(0)
-// 		// 'clear' command clears the command window of all previous text, adds upper divider
-// 		case "clear":
-// 			client.ClearScreen()
-// 		// 'help' command prints all the avalible commands, and a brief description
-// 		case "help":
-// 			client.PrintHelp()
-// 		// 'moreinfo' command prints the link to the github page
-// 		case "moreinfo":
-// 			client.PrintGithubLink()
-// 		// 'send' command sends a given value to a given recipient
-// 		//		send [recipient] [value]
-// 		case "send":
-// 			// 'send' requires 3 arguments at a minimum, otherwise ignore command
-// 			if len(inputs) != 3 {
-// 				fmt.Println("ERROR: Improper Use of send Command\n\tsend [recipient] [value]")
-// 				break
-// 			}
-// 			// This 64 bit integer holds the recipient's public key
-// 			var recipient string
-// 			_, err := fmt.Sscanf(inputs[1], "%s", &recipient)
-// 			if err != nil {
-// 				logger.Println("ERROR: Attempt to collect recipient string failed")
-// 				break
-// 			}
-// 			// This 64 bit integer holds the value for the contract
-// 			var value int64
-// 			_, err = fmt.Sscanf(inputs[2], "%d", &value)
-// 			if err != nil {
-// 				logger.Println("ERROR: Attempt to collect value integer failed")
-// 				break
-// 			}
-// 			logger.Println("Accepted send as valid input")
-// 			// Pass recipient, value to function
-// 		case "balance":
-// 			// Insert function to get balance
-// 			logger.Println("Accepted send as valid input")
-// 		// If first argument of a command matches no valid command, print an error message
-// 		default:
-// 			fmt.Println("Invalid command \"" + userInput + "\" rejected\n\tUse \"help\" to see available commands")
-// 			logger.Println("Invalid command \"" + userInput + "\" rejected")
-// 		}
-// 	}
-// }
