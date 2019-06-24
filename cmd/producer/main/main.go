@@ -23,22 +23,6 @@ import (
 	"github.com/pborman/getopt"
 )
 
-// type Flags struct {
-// 	help        *bool
-// 	debug       *bool
-// 	version     *bool
-// 	height      *bool
-// 	genesis     *bool
-// 	test        *bool
-// 	globalhost  *bool
-// 	memoryStats *bool
-// 	logs        *string
-// 	port        *string
-// 	interval    *string
-// 	initSupply  *uint64
-// 	numBlocks   *uint64
-// }
-
 var version = uint16(1)
 var ledger = "blockchain.dat"
 var metadataTable = constants.MetadataTable
@@ -107,11 +91,6 @@ func main() {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
-	// TODO: Add RecoverMetadata here
-	// if err := producer.RecoverBlockchainMetadata(ledger, constants.MetadataTable, constants.AccountsTable); err != nil {
-	// 	lgr.Fatalf("failed to recover blockchain metadata: %v", err)
-	// }
-
 	var addr string
 	var ln net.Listener
 
@@ -124,7 +103,8 @@ func main() {
 	}
 
 	// Set up byte channel and start listening on port
-	var byteChan chan []byte
+	// var byteChan chan []byte
+	byteChan := make(chan []byte)
 	if getopt.IsSet('p') {
 		addr += *fl.Port
 		ln, err = net.Listen("tcp", addr)

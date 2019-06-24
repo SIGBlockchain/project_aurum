@@ -1,4 +1,4 @@
 package constants
 
-var AccountsTable = "accounts.db"
-var MetadataTable = "metadata.db"
+const AccountsTable = "accounts.db"
+const MetadataTable = "metadata.db"

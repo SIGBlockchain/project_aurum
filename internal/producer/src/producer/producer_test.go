@@ -165,6 +165,7 @@ func TestRunServer(t *testing.T) {
 }
 
 func TestByteChannel(t *testing.T) {
+	t.SkipNow()
 	genesisHashes, err := ReadGenesisHashes()
 	if err != nil {
 		t.Errorf("failed to read genesis hashes:\n%s", err.Error())

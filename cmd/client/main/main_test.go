@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -86,37 +87,37 @@ func TestContractMessageFromInput(t *testing.T) {
 		{
 			name:      "case where value is negative",
 			value:     strconv.Itoa(testValue * -1),
-			recipient: string(recipientPKH),
+			recipient: hex.EncodeToString(recipientPKH),
 			wantErr:   true,
 		},
 		{
 			name:      "case where value is zero",
 			value:     strconv.Itoa(testValue - testValue),
-			recipient: string(recipientPKH),
+			recipient: hex.EncodeToString(recipientPKH),
 			wantErr:   true,
 		},
 		{
 			name:      "case where value is greater than wallet balance",
 			value:     strconv.Itoa(testValue),
-			recipient: string(recipientPKH),
+			recipient: hex.EncodeToString(recipientPKH),
 			wantErr:   true,
 		},
 		{
 			name:      "case where recipient cannot be converted to size 32 byte",
 			value:     strconv.Itoa(50),
-			recipient: "hello",
+			recipient: hex.EncodeToString([]byte("hello")),
 			wantErr:   true,
 		},
 		{
 			name:      "check to make sure there's secret bytes, uint8(1), serialized signed contract",
 			value:     strconv.Itoa(50),
-			recipient: string(recipientPKH),
+			recipient: hex.EncodeToString(recipientPKH),
 			wantErr:   false,
 		},
 		{
 			name:      "case where aurum_wallet.json does not exist",
 			value:     strconv.Itoa(testValue),
-			recipient: string(recipientPKH),
+			recipient: hex.EncodeToString(recipientPKH),
 			wantErr:   true,
 		},
 	}
