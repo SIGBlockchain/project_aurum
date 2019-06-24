@@ -182,10 +182,7 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	}
 
 	// case recipBytes != 32
-	recipBytes, err := hex.DecodeString(recipient)
-	if err != nil {
-		return nil, errors.New("Failed to hex decode recipient")
-	}
+	recipBytes := []byte(recipient)
 	if len(recipBytes) != 32 {
 		return nil, errors.New("Failed to convert recipient to size 32 byte slice")
 	}
