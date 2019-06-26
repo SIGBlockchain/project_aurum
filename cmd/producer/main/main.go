@@ -23,22 +23,6 @@ import (
 	"github.com/pborman/getopt"
 )
 
-// type Flags struct {
-// 	help        *bool
-// 	debug       *bool
-// 	version     *bool
-// 	height      *bool
-// 	genesis     *bool
-// 	test        *bool
-// 	globalhost  *bool
-// 	memoryStats *bool
-// 	logs        *string
-// 	port        *string
-// 	interval    *string
-// 	initSupply  *uint64
-// 	numBlocks   *uint64
-// }
-
 var version = uint16(1)
 var ledger = "blockchain.dat"
 var metadataTable = constants.MetadataTable
