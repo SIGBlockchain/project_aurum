@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 
@@ -22,7 +23,7 @@ type Flags struct {
 	updateInfo *bool
 	contract   *bool
 	recipient  *string
-	value      *uint64
+	value      *string
 	producer   *string
 }
 
@@ -57,7 +58,7 @@ func main() {
 		updateInfo: getopt.BoolLong("update", 'u', "update wallet info"),
 		contract:   getopt.BoolLong("contract", 'c', "make contract"),
 		recipient:  getopt.StringLong("recipient", 'r', "recipient"),
-		value:      getopt.Uint64Long("value", 'v', 0, "value to send"),
+		value:      getopt.StringLong("value", 'v', "", "value to send"),
 		producer:   getopt.StringLong("producer", 'p', "", "producer address"),
 	}
 	getopt.Parse()
@@ -95,9 +96,33 @@ func main() {
 	}
 
 	if *fl.contract {
-		// TODO: Check for *fl.recipient, *fl.value ( x > 0 ), and *fl.producer address; if any are missing, lgr.Fatal()
-		// TODO: Call ContractMessageFromInput(...) and Send to producer
-		// TODO: Output success of sending to producer (with response)
+		newContract, err := ContractMessageFromInput(*fl.value, *fl.recipient)
+		if err != nil {
+			lgr.Fatalf("Failed to create contract message: " + err.Error())
+		}
+		conn, err := net.Dial("tcp", *fl.producer)
+		if err != nil {
+			lgr.Fatalf("Failed to connect to producer address: " + *fl.producer + ": " + err.Error())
+		}
+		if _, err := conn.Write(newContract); err != nil {
+			lgr.Fatalf("Failed to send contract to producer: " + err.Error())
+		}
+		buf := make([]byte, 1024)
+		nRcvd, err := conn.Read(buf)
+		if err != nil {
+			lgr.Fatalf("Failed to read from connection: " + err.Error())
+		}
+		lgr.Printf("Producer returned with message: " + string(buf[:nRcvd]))
+		currentBalance, err := client.GetBalance()
+		currentNonce, err := client.GetStateNonce()
+		intVal, err := strconv.Atoi(*fl.value)
+		if err != nil {
+			lgr.Fatalf("Failed to convert value to integer: " + err.Error())
+		}
+		err = client.UpdateWallet((currentBalance - uint64(intVal)), (currentNonce + 1))
+		if err != nil {
+			lgr.Fatalf("Failed to update wallet: " + err.Error())
+		}
 	}
 
 	if *fl.updateInfo {
@@ -105,7 +130,7 @@ func main() {
 			lgr.Fatalf("Producer address is required to update wallet info")
 		}
 
-		fmt.Println("Updating wallet info...")
+		lgr.Println("Updating wallet info...")
 		accountInfo, err := client.RequestWalletInfo(*fl.producer)
 		if err != nil {
 			lgr.Fatalf("failed to request wallet info: %s", err.Error())
@@ -157,7 +182,10 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 	}
 
 	// case recipBytes != 32
-	recipBytes := []byte(recipient)
+	recipBytes, err := hex.DecodeString(recipient)
+	if err != nil {
+		return nil, errors.New("Failed to hex decode recipient")
+	}
 	if len(recipBytes) != 32 {
 		return nil, errors.New("Failed to convert recipient to size 32 byte slice")
 	}
@@ -167,7 +195,7 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 		return nil, err
 	}
 
-	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce)
+	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce+1)
 	if err != nil {
 		return nil, err
 	}

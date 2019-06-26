@@ -91,11 +91,6 @@ func main() {
 		lgr.Fatalf("failed to load ledger %s\n", err.Error())
 	}
 
-	// TODO: Add RecoverMetadata here
-	// if err := producer.RecoverBlockchainMetadata(ledger, constants.MetadataTable, constants.AccountsTable); err != nil {
-	// 	lgr.Fatalf("failed to recover blockchain metadata: %v", err)
-	// }
-
 	var addr string
 	var ln net.Listener
 
@@ -108,7 +103,8 @@ func main() {
 	}
 
 	// Set up byte channel and start listening on port
-	var byteChan chan []byte
+	// var byteChan chan []byte
+	byteChan := make(chan []byte)
 	if getopt.IsSet('p') {
 		addr += *fl.Port
 		ln, err = net.Listen("tcp", addr)

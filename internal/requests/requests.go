@@ -3,12 +3,10 @@ package requests
 import (
 	"errors"
 	"net/http"
-
-	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
 )
 
 func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodGet, host+endpoints.AccountInfo, nil)
+	req, err := http.NewRequest(http.MethodGet, host+"/accountinfo", nil)
 	if err != nil {
 		return nil, errors.New("Failed to make new request:\n" + err.Error())
 	}
