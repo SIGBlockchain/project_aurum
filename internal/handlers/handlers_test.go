@@ -71,7 +71,10 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 		StateNonce    uint64
 	}
 	var accInfo AccountInfo
-	err = json.Unmarshal(rr.Body.Bytes(), &accInfo)
+	if err := json.Unmarshal(rr.Body.Bytes(), &accInfo); err != nil {
+		t.Errorf("failed to unmarshall response body: %v", err)
+	}
+
 	if accInfo.WalletAddress != hex.EncodeToString(walletAddress) {
 		t.Errorf("failed to get correct wallet address: got %s want %s", accInfo.WalletAddress, walletAddress)
 	}

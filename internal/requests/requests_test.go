@@ -1,10 +1,20 @@
 package requests
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 )
 
 func TestAccountInfoRequest(t *testing.T) {
@@ -26,5 +36,56 @@ func TestAccountInfoRequest(t *testing.T) {
 	expected := `{"received": "xyz"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestNewContractRequest(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	var testContract = accounts.Contract{1, &senderPrivateKey.PublicKey, 1, []byte{1}, []byte("xyz"), 25, 20}
+	req, err := NewContractRequest("", testContract)
+	if err != nil {
+		t.Errorf("failed to create test contract: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		io.WriteString(w, buf.String())
+	})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	var responseBody JSONContract
+	if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
+		t.Errorf("failed to unmarshall response body: %v", err)
+	}
+	unhexedResponsePublicKey, err := hex.DecodeString(responseBody.SenderPublicKey)
+	if err != nil {
+		t.Errorf("failed to hex decode public key: %v", err)
+	}
+	unhexedResponseSignature, err := hex.DecodeString(responseBody.Signature)
+	if err != nil {
+		t.Errorf("failed to hex decode signature: %v", err)
+	}
+	unhexedResponseRecipientHash, err := hex.DecodeString(responseBody.RecipientWalletAddress)
+	if err != nil {
+		t.Errorf("failed to hex decode recipient hash: %v", err)
+	}
+	// TODO JSONContract to accounts.Contract
+	var responseContract = accounts.Contract{
+		responseBody.Version,
+		keys.DecodePublicKey(unhexedResponsePublicKey),
+		responseBody.SignatureLength,
+		unhexedResponseSignature,
+		unhexedResponseRecipientHash,
+		responseBody.Value,
+		responseBody.StateNonce,
+	}
+	if !accounts.Equals(testContract, responseContract) {
+		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, testContract)
 	}
 }
