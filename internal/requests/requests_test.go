@@ -91,6 +91,6 @@ func TestNewContractRequest(t *testing.T) {
 		responseBody.StateNonce,
 	}
 	if !accounts.Equals(*testContract, responseContract) {
-		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, testContract)
+		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, *testContract)
 	}
 }
