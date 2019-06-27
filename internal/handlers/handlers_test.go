@@ -85,3 +85,61 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 		t.Errorf("failed to get correct state nonce: got %d want %d", accInfo.StateNonce, 0)
 	}
 }
+
+func TestContractRequestHandler(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	var recipientWalletAddress = block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	testContract, err := accounts.MakeContract(1, senderPrivateKey, recipientWalletAddress, 25, 1)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+	testContract.SignContract(senderPrivateKey)
+	req, err := requests.NewContractRequest("", *testContract)
+	if err != nil {
+		t.Errorf("failed to create new contract request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	dbConn, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		t.Errorf("failed to open database connection : %v", err)
+	}
+	defer func() {
+		if err := dbConn.Close(); err != nil {
+			t.Errorf("failed to close database connection : %v", err)
+		}
+		if err := os.Remove(constants.AccountsTable); err != nil {
+			t.Errorf("failed to remove database : %v", err)
+		}
+	}()
+	statement, _ := dbConn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement.Exec()
+
+	contractChan := make(chan accounts.Contract)
+	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan))
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusBadRequest)
+		t.Logf("%s", rr.Body.String())
+	}
+
+	var walletAddress = block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
+	if err := accounts.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337); err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+	req, err = requests.NewContractRequest("", *testContract)
+	if err != nil {
+		t.Errorf("failed to create new contract request: %v", err)
+	}
+	rr = httptest.NewRecorder()
+
+	go handler.ServeHTTP(rr, req)
+	channelledContract := <-contractChan
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	if !accounts.Equals(*testContract, channelledContract) {
+		t.Errorf("contracts do not match: got %+v want %+v", *testContract, channelledContract)
+	}
+}

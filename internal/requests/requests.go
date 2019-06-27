@@ -35,7 +35,7 @@ func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, er
 }
 
 func NewContractRequest(host string, newContract accounts.Contract) (*http.Request, error) {
-	// TODO: accounts.Contract to JSON
+	// TODO: accounts.Contract to JSON Call it MarshalContract?
 	var newJSONContract = JSONContract{
 		Version:                newContract.Version,
 		SenderPublicKey:        hex.EncodeToString(keys.EncodePublicKey(newContract.SenderPubKey)),

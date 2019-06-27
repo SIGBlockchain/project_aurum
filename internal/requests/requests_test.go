@@ -41,8 +41,12 @@ func TestAccountInfoRequest(t *testing.T) {
 
 func TestNewContractRequest(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var testContract = accounts.Contract{1, &senderPrivateKey.PublicKey, 1, []byte{1}, []byte("xyz"), 25, 20}
-	req, err := NewContractRequest("", testContract)
+	testContract, err := accounts.MakeContract(1, senderPrivateKey, []byte{1}, 25, 20)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+	testContract.SignContract(senderPrivateKey)
+	req, err := NewContractRequest("", *testContract)
 	if err != nil {
 		t.Errorf("failed to create test contract: %v", err)
 	}
@@ -58,6 +62,7 @@ func TestNewContractRequest(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		t.Logf("%s", rr.Body.String())
 	}
 	var responseBody JSONContract
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
@@ -75,7 +80,7 @@ func TestNewContractRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to hex decode recipient hash: %v", err)
 	}
-	// TODO JSONContract to accounts.Contract
+	// TODO JSONContract to accounts.Contract Unmarshall?
 	var responseContract = accounts.Contract{
 		responseBody.Version,
 		keys.DecodePublicKey(unhexedResponsePublicKey),
@@ -85,7 +90,7 @@ func TestNewContractRequest(t *testing.T) {
 		responseBody.Value,
 		responseBody.StateNonce,
 	}
-	if !accounts.Equals(testContract, responseContract) {
+	if !accounts.Equals(*testContract, responseContract) {
 		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, testContract)
 	}
 }

@@ -1,10 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
 
 func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *http.Request) {
@@ -42,5 +49,54 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 		}
 		w.WriteHeader(http.StatusFound)
 		io.WriteString(w, string(marshalledStruct))
+	}
+}
+
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan accounts.Contract) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var requestBody requests.JSONContract
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		if err := json.Unmarshal(buf.Bytes(), &requestBody); err != nil {
+			w.WriteHeader(http.StatusNotAcceptable)
+			io.WriteString(w, err.Error())
+			return
+		}
+		unhexedRequestPublicKey, err := hex.DecodeString(requestBody.SenderPublicKey)
+		if err != nil {
+			w.WriteHeader(http.StatusNotAcceptable)
+			io.WriteString(w, err.Error())
+			return
+		}
+		unhexedRequestSignature, err := hex.DecodeString(requestBody.Signature)
+		if err != nil {
+			w.WriteHeader(http.StatusNotAcceptable)
+			io.WriteString(w, err.Error())
+			return
+		}
+		unhexedRequestRecipientHash, err := hex.DecodeString(requestBody.RecipientWalletAddress)
+		if err != nil {
+			w.WriteHeader(http.StatusNotAcceptable)
+			io.WriteString(w, err.Error())
+			return
+		}
+		var requestedContract = accounts.Contract{
+			requestBody.Version,
+			keys.DecodePublicKey(unhexedRequestPublicKey),
+			requestBody.SignatureLength,
+			unhexedRequestSignature,
+			unhexedRequestRecipientHash,
+			requestBody.Value,
+			requestBody.StateNonce,
+		}
+		// TODO: Should use sql connection
+		if err := accounts.ValidateContract(&requestedContract); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		contractChannel <- requestedContract
+		return
 	}
 }
