@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -51,27 +52,34 @@ func main() {
 		log.Println("Airdrop complete.")
 	}
 
+	// Open connection to accounts database
 	accountsDatabaseConnection, err := sql.Open("sqlite3", constants.AccountsTable)
 	if err != nil {
 		log.Fatalf("Failed to open connection : %v", err)
 	}
 	defer accountsDatabaseConnection.Close()
 
+	// Declare channel for new contracts
 	contractChannel := make(chan accounts.Contract)
 
+	// Declare pool of contracts pending block production
 	var pendingContractPool []accounts.Contract
-	intervalChannel := make(chan bool)
+
+	// Signal channel for interrupts
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
+	// Extract youngest block header from blockchain
 	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(constants.BlockchainFile, constants.MetadataTable)
 	if err != nil {
 		log.Fatalf("Failed to get youngestBlockHeader")
 	}
 
+	// Metadata about block production
 	var chainHeight = youngestBlockHeader.Height
 	var numBlocksGenerated uint64
 
+	// Define hostname address
 	var hostname string
 	if cfg.Localhost {
 		hostname = "localhost:"
@@ -80,31 +88,46 @@ func main() {
 	}
 	hostname += cfg.Port
 
+	// Set handlers for endpoints and run server
 	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection))
 	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel))
 	go http.ListenAndServe(hostname, nil)
-	log.Printf("Serving requests on port: %s", cfg.Port)
+	log.Printf("Serving requests on port %s", cfg.Port)
 
+	// Declare channel for triggering block production
+	intervalChannel := make(chan bool)
 	productionInterval, err := time.ParseDuration(cfg.BlockProductionInterval)
 	if err != nil {
 		log.Fatalf("Failed to parse production interval: %v", err)
 	}
+
+	// Trigger block production after interval has elapsed
 	go triggerInterval(intervalChannel, productionInterval)
-	log.Printf("Will produce blocks every %s", cfg.BlockProductionInterval)
+	log.Printf("Will produce block every %s", cfg.BlockProductionInterval)
+	log.Printf("Current chain height is %d", chainHeight)
 
 	for {
 		select {
+
+		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
 			pendingContractPool = append(pendingContractPool, newContract)
+			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ", hex.EncodeToString(keys.EncodePublicKey(newContract.SenderPubKey)), newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
+
+		// New block is ready to be produced
 		case <-intervalChannel:
 			log.Printf("Block #%d ready for production.", chainHeight+1)
 			if newBlock, err := producer.CreateBlock(cfg.Version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), pendingContractPool); err != nil {
 				log.Fatalf("Failed to create block %v", err)
 			} else {
+
+				// Add block to blockchain
 				if err := blockchain.AddBlock(newBlock, constants.BlockchainFile, constants.MetadataTable); err != nil {
 					log.Fatalf("Failed to add block %v", err)
 				} else {
 					chainHeight++
+
+					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
 						senderPublicKeyHash := block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))
 						if err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
@@ -112,12 +135,17 @@ func main() {
 						}
 					}
 					log.Printf("Block #%d successfully added to blockchain", chainHeight)
-					log.Printf("%d contracts confirmed", len(pendingContractPool))
+					log.Printf("%d contracts confirmed in block #%d", len(pendingContractPool), chainHeight)
+
+					// Reset pool
 					pendingContractPool = nil
 					numBlocksGenerated++
+
+					// Reset production interval
 					go triggerInterval(intervalChannel, productionInterval)
 				}
 			}
+		// Signal interrupt detected
 		case <-signalChannel:
 			fmt.Print("\r")
 			log.Println("Interrupt signal encountered, terminating...")
