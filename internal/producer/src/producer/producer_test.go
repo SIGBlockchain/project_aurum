@@ -1080,7 +1080,7 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 	genHashfile.WriteString(testGenesisHash + "\n") // from GenerateGenesisHashFile
 	genHashfile.Close()
 	defer func() {
-		if err := os.Remove("genesis_hashes.txt"); err != nil {
+		if err := os.Remove(constants.GenesisAddresses); err != nil {
 			t.Errorf("failed to remove genesis hash file: %v", err)
 		}
 	}()

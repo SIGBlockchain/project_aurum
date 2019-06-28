@@ -13,12 +13,8 @@ import (
 var removeFiles = true
 
 func TestSuite(t *testing.T) {
-	// producer.GenerateGenesisHashFile(25)
 	defer func() { // Function is dangerous, consider only running with flag
 		if removeFiles {
-			// if err := os.Remove("genesis_hashes.txt"); err != nil {
-			// 	t.Errorf("failed to remove genesis hashes:\n%s", err.Error())
-			// }
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
