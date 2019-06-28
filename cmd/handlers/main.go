@@ -28,6 +28,9 @@ import (
 )
 
 func main() {
+	// Setup logging
+	log.SetFlags(log.Ldate | log.Lshortfile | log.Lmicroseconds)
+
 	// Load configuration
 	cfg, err := config.LoadConfiguration()
 	if err != nil {
@@ -51,6 +54,8 @@ func main() {
 		}
 		log.Println("Airdrop complete.")
 	}
+
+	// TODO: If we did have a blockchain.dat but no table(s), we could execute a recovery here
 
 	// Open connection to accounts database
 	accountsDatabaseConnection, err := sql.Open("sqlite3", constants.AccountsTable)
@@ -131,18 +136,20 @@ func main() {
 					for _, contract := range pendingContractPool {
 						senderPublicKeyHash := block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))
 						if err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
-							log.Printf("Failed to add contact to accounts database : %v", err)
+							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
 					}
+
 					log.Printf("Block #%d successfully added to blockchain", chainHeight)
 					log.Printf("%d contracts confirmed in block #%d", len(pendingContractPool), chainHeight)
 
 					// Reset pool
 					pendingContractPool = nil
-					numBlocksGenerated++
 
 					// Reset production interval
 					go triggerInterval(intervalChannel, productionInterval)
+
+					numBlocksGenerated++
 				}
 			}
 		// Signal interrupt detected
