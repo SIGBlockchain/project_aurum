@@ -2,6 +2,9 @@ package block
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -9,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -88,90 +94,14 @@ func TestSerialize(t *testing.T) {
 	}
 }
 
-// tests HashSHA256 function
-func TestHashSHA256(t *testing.T) {
-	data := []byte{'s', 'a', 'm'}
-	result := HashSHA256(data)
-	var byte32_variable []byte
-	// checks if data was hashed by comparing data types
-	if reflect.TypeOf(result).Kind() != reflect.TypeOf(byte32_variable).Kind() {
-		t.Errorf("Error. Data types do not match.")
-	}
-	if len(result) != 32 {
-		t.Errorf("Error. Data is not 32 bytes long.")
-	}
-}
-
-func TestGetMerkleRootHashEmptyInput(t *testing.T) {
-	input := [][]byte{}
-	result := GetMerkleRootHash(input)
-
-	if len(input) != len(result) {
-		t.Errorf("Error! GetMerkelRootHash does not return an empty slice on input of empty slice")
-	}
-}
-
-func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction")}
-	expected := HashSHA256(HashSHA256(input[0]))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on single byte slice")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashDoubleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2")}
-	concat := append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)
-	expected := HashSHA256(HashSHA256(concat))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on two byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashTripleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")}
-	concat1 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)))
-	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])), HashSHA256(HashSHA256(input[2]))...)))
-	expected := HashSHA256(HashSHA256(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashQuadInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")}
-	concat1 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[0])), HashSHA256(HashSHA256(input[1]))...)))
-	concat2 := HashSHA256(HashSHA256(append(HashSHA256(HashSHA256(input[2])), HashSHA256(HashSHA256(input[3]))...)))
-	expected := HashSHA256(HashSHA256(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
 func TestDeserialize(t *testing.T) {
 	expected := Block{
 		Version:        1,
 		Height:         0,
-		PreviousHash:   HashSHA256([]byte{'x'}),
-		MerkleRootHash: HashSHA256([]byte{'q'}),
+		PreviousHash:   hashing.New([]byte{'x'}),
+		MerkleRootHash: hashing.New([]byte{'q'}),
 		Timestamp:      time.Now().UnixNano(),
-		Data:           [][]byte{HashSHA256([]byte{'r'})},
+		Data:           [][]byte{hashing.New([]byte{'r'})},
 	}
 	expected.DataLen = uint16(len(expected.Data))
 	intermed := expected.Serialize()
@@ -189,33 +119,65 @@ func TestDeserialize(t *testing.T) {
 
 }
 
-func TestHashBlockHeader(t *testing.T) {
-	expected := BlockHeader{
-		Version:        1,
-		Height:         0,
-		PreviousHash:   HashSHA256([]byte{'x'}),
-		MerkleRootHash: HashSHA256([]byte{'q'}),
-		Timestamp:      time.Now().UnixNano(),
+func TestNew(t *testing.T) {
+	var datum []accounts.Contract
+	for i := 0; i < 12; i++ {
+		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
+		datum = append(datum, *someAirdropContract)
+	}
+	var serializedDatum [][]byte
+	for i := range datum {
+		serialData, _ := datum[i].Serialize()
+		serializedDatum = append(serializedDatum, serialData)
 	}
 	type args struct {
-		b BlockHeader
+		version      uint16
+		height       uint64
+		previousHash []byte
+		data         []accounts.Contract
 	}
 	tests := []struct {
-		name string
-		args args
-		want []byte
+		name    string
+		args    args
+		want    Block
+		wantErr bool
 	}{
 		{
 			args: args{
-				b: expected,
+				version:      1,
+				height:       0,
+				previousHash: make([]byte, 32),
+				data:         datum,
+			},
+			wantErr: false,
+			want: Block{
+				Version:        1,
+				Height:         0,
+				Timestamp:      time.Now().UnixNano(),
+				PreviousHash:   make([]byte, 32),
+				MerkleRootHash: hashing.GetMerkleRootHash(serializedDatum),
+				Data:           serializedDatum,
+				DataLen:        12,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// if got := HashBlockHeader(tt.args.b); !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("HashBlockHeader() = %v, want %v", got, tt.want)
-			// }
+			got, err := New(tt.args.version, tt.args.height, tt.args.previousHash, tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got.Version, tt.want.Version) ||
+				!reflect.DeepEqual(got.Height, tt.want.Height) ||
+				!reflect.DeepEqual(got.PreviousHash, tt.want.PreviousHash) ||
+				!reflect.DeepEqual(got.MerkleRootHash, tt.want.MerkleRootHash) ||
+				!reflect.DeepEqual(got.DataLen, tt.want.DataLen) ||
+				!reflect.DeepEqual(got.Data, tt.want.Data) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
@@ -224,10 +186,10 @@ func TestBlock_GetHeader(t *testing.T) {
 	expected := Block{
 		Version:        1,
 		Height:         0,
-		PreviousHash:   HashSHA256([]byte{'x'}),
-		MerkleRootHash: HashSHA256([]byte{'q'}),
+		PreviousHash:   hashing.New([]byte{'x'}),
+		MerkleRootHash: hashing.New([]byte{'q'}),
 		Timestamp:      time.Now().UnixNano(),
-		Data:           [][]byte{HashSHA256([]byte{'r'})},
+		Data:           [][]byte{hashing.New([]byte{'r'})},
 	}
 	expected.DataLen = uint16(len(expected.Data))
 	tests := []struct {
@@ -240,8 +202,8 @@ func TestBlock_GetHeader(t *testing.T) {
 			want: BlockHeader{
 				Version:        1,
 				Height:         0,
-				PreviousHash:   HashSHA256([]byte{'x'}),
-				MerkleRootHash: HashSHA256([]byte{'q'}),
+				PreviousHash:   hashing.New([]byte{'x'}),
+				MerkleRootHash: hashing.New([]byte{'q'}),
 				Timestamp:      expected.Timestamp,
 			},
 		},
@@ -258,8 +220,8 @@ func TestBlock_GetHeader(t *testing.T) {
 			v = reflect.ValueOf(BlockHeader{
 				Version:        1,
 				Height:         0,
-				PreviousHash:   HashSHA256([]byte{'x'}),
-				MerkleRootHash: HashSHA256([]byte{'q'}),
+				PreviousHash:   hashing.New([]byte{'x'}),
+				MerkleRootHash: hashing.New([]byte{'q'}),
 				Timestamp:      expected.Timestamp,
 			})
 			for i := 0; i < v.NumField(); i++ {
@@ -277,10 +239,10 @@ func TestEquals(t *testing.T) {
 		Version:        1,
 		Height:         1,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   HashSHA256([]byte{'a'}),
-		MerkleRootHash: HashSHA256([]byte{'b'}),
+		PreviousHash:   hashing.New([]byte{'a'}),
+		MerkleRootHash: hashing.New([]byte{'b'}),
 		DataLen:        1,
-		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
+		Data:           [][]byte{hashing.New([]byte{'c'}), hashing.New([]byte{'g'})},
 	}
 
 	blocks := make([]Block, 7)
@@ -290,10 +252,10 @@ func TestEquals(t *testing.T) {
 	blocks[0].Version = 5
 	blocks[1].Height = 10
 	blocks[2].Timestamp = time.Now().UnixNano() + 100
-	blocks[3].PreviousHash = HashSHA256([]byte{'d'})
-	blocks[4].MerkleRootHash = HashSHA256([]byte{'e'})
+	blocks[3].PreviousHash = hashing.New([]byte{'d'})
+	blocks[4].MerkleRootHash = hashing.New([]byte{'e'})
 	blocks[5].DataLen = 15
-	blocks[6].Data = [][]byte{HashSHA256([]byte{'f'}), HashSHA256([]byte{'o'})}
+	blocks[6].Data = [][]byte{hashing.New([]byte{'f'}), hashing.New([]byte{'o'})}
 
 	tests := []struct {
 		name string
@@ -365,10 +327,10 @@ func TestBlockToString(t *testing.T) {
 		Version:        1,
 		Height:         1,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   HashSHA256([]byte{'a'}),
-		MerkleRootHash: HashSHA256([]byte{'b'}),
+		PreviousHash:   hashing.New([]byte{'a'}),
+		MerkleRootHash: hashing.New([]byte{'b'}),
 		DataLen:        1,
-		Data:           [][]byte{HashSHA256([]byte{'c'}), HashSHA256([]byte{'g'})},
+		Data:           [][]byte{hashing.New([]byte{'c'}), hashing.New([]byte{'g'})},
 	}
 	nilblock := Block{}
 
@@ -398,6 +360,37 @@ func TestBlockToString(t *testing.T) {
 			if actual != expected {
 				t.Errorf("The strings are not equal\nExpected:\n%+v\nActual:\n%+v", expected, actual)
 			}
+		})
+	}
+}
+
+func TestHashBlockHeader(t *testing.T) {
+	expected := BlockHeader{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   hashing.New([]byte{'x'}),
+		MerkleRootHash: hashing.New([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+	}
+	type args struct {
+		b BlockHeader
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			args: args{
+				b: expected,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// if got := HashBlockHeader(tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			// 	t.Errorf("HashBlockHeader() = %v, want %v", got, tt.want)
+			// }
 		})
 	}
 }
