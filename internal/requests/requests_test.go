@@ -14,7 +14,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 )
 
 func TestAccountInfoRequest(t *testing.T) {
@@ -41,11 +41,11 @@ func TestAccountInfoRequest(t *testing.T) {
 
 func TestNewContractRequest(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	testContract, err := accounts.MakeContract(1, senderPrivateKey, []byte{1}, 25, 20)
+	testContract, err := contracts.MakeContract(1, senderPrivateKey, []byte{1}, 25, 20)
 	if err != nil {
 		t.Errorf("failed to make contract : %v", err)
 	}
-	testContract.SignContract(senderPrivateKey)
+	testContract.Sign(senderPrivateKey)
 	req, err := NewContractRequest("", *testContract)
 	if err != nil {
 		t.Errorf("failed to create test contract: %v", err)
@@ -81,7 +81,7 @@ func TestNewContractRequest(t *testing.T) {
 		t.Errorf("failed to hex decode recipient hash: %v", err)
 	}
 	// TODO JSONContract to accounts.Contract Unmarshall?
-	var responseContract = accounts.Contract{
+	var responseContract = contracts.Contract{
 		responseBody.Version,
 		keys.DecodePublicKey(unhexedResponsePublicKey),
 		responseBody.SignatureLength,
@@ -90,7 +90,7 @@ func TestNewContractRequest(t *testing.T) {
 		responseBody.Value,
 		responseBody.StateNonce,
 	}
-	if !accounts.Equals(*testContract, responseContract) {
+	if !contracts.Equals(*testContract, responseContract) {
 		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, *testContract)
 	}
 }

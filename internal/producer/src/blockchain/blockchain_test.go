@@ -241,7 +241,6 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 }
 
-
 func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	blockchain := "testBlockchain.dat"
 	table := "testTable.dat"

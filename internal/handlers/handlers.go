@@ -10,7 +10,8 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
 
@@ -52,7 +53,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func HandleContractRequest(dbConn *sql.DB, contractChannel chan accounts.Contract) func(w http.ResponseWriter, r *http.Request) {
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestBody requests.JSONContract
 		buf := new(bytes.Buffer)
@@ -80,7 +81,7 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan accounts.Contrac
 			io.WriteString(w, err.Error())
 			return
 		}
-		var requestedContract = accounts.Contract{
+		var requestedContract = contracts.Contract{
 			requestBody.Version,
 			keys.DecodePublicKey(unhexedRequestPublicKey),
 			requestBody.SignatureLength,
@@ -90,7 +91,7 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan accounts.Contrac
 			requestBody.StateNonce,
 		}
 		// TODO: Should use sql connection
-		if err := accounts.ValidateContract(&requestedContract); err != nil {
+		if err := validation.ValidateContract(&requestedContract); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
 			return

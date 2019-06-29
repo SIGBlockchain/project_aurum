@@ -10,7 +10,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 )
 
 type JSONContract struct {
@@ -34,7 +34,7 @@ func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, er
 	return req, nil
 }
 
-func NewContractRequest(host string, newContract accounts.Contract) (*http.Request, error) {
+func NewContractRequest(host string, newContract contracts.Contract) (*http.Request, error) {
 	// TODO: accounts.Contract to JSON Call it MarshalContract?
 	var newJSONContract = JSONContract{
 		Version:                newContract.Version,
@@ -42,8 +42,8 @@ func NewContractRequest(host string, newContract accounts.Contract) (*http.Reque
 		SignatureLength:        newContract.SigLen,
 		Signature:              hex.EncodeToString(newContract.Signature),
 		RecipientWalletAddress: hex.EncodeToString(newContract.RecipPubKeyHash),
-		Value:      newContract.Value,
-		StateNonce: newContract.StateNonce,
+		Value:                  newContract.Value,
+		StateNonce:             newContract.StateNonce,
 	}
 	marshalledContract, err := json.Marshal(newJSONContract)
 	if err != nil {

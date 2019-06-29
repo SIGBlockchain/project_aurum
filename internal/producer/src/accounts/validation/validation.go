@@ -1,0 +1,72 @@
+package validation
+
+import (
+	"bytes"
+	"crypto/ecdsa"
+	"encoding/asn1"
+	"errors"
+	"math/big"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+)
+
+func ValidateContract(c *contracts.Contract) error {
+	// check for zero value transaction
+	if c.Value == 0 {
+		return errors.New("Invalid contract: zero value transaction")
+	}
+
+	// check for nil sender public key and recip == sha-256 hash of senderPK
+	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))) {
+		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
+	}
+
+	// verify the signature in the contract
+	// Serialize the Contract
+	copyOfSigLen := c.SigLen
+	c.SigLen = 0
+	serializedContract, err := c.Serialize()
+	if err != nil {
+		return errors.New(err.Error())
+	}
+	hashedContract := block.HashSHA256(serializedContract)
+
+	// stores r and s values needed for ecdsa.Verify
+	var esig struct {
+		R, S *big.Int
+	}
+	if _, err := asn1.Unmarshal(c.Signature, &esig); err != nil {
+		return errors.New("Failed to unmarshal signature")
+	}
+
+	// if ecdsa.Verify returns false, the signature is invalid
+	if !ecdsa.Verify(c.SenderPubKey, hashedContract, esig.R, esig.S) {
+		return errors.New("Invalid contract: signature is invalid")
+	}
+
+	// retrieve sender's balance from account balance table
+	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
+	senderAccountInfo, errAccount := accountstable.GetAccountInfo(senderPubKeyHash)
+
+	if errAccount == nil {
+		// check insufficient funds
+		if senderAccountInfo.Balance < c.Value {
+			// invalid contract because the sender's balance is less than the contract amount
+			return errors.New("Invalid contract: sender's balance is less than the contract amount")
+		}
+
+		if senderAccountInfo.StateNonce+1 != c.StateNonce {
+			// invalid contract because contract state nonce is not the expected number
+			return errors.New("Invalid contract: contract state nonce is not the expected number")
+		}
+
+		/* valid contract */
+		c.SigLen = copyOfSigLen
+		return nil
+	}
+
+	return errors.New("Failed to validate contract")
+}

@@ -14,10 +14,11 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	_ "github.com/mattn/go-sqlite3"
@@ -52,7 +53,7 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	}
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	var walletAddress = block.HashSHA256(keys.EncodePublicKey(&privateKey.PublicKey))
-	err = accounts.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337)
+	err = accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337)
 	if err != nil {
 		t.Errorf("failed to insert sender account")
 	}
@@ -90,11 +91,11 @@ func TestContractRequestHandler(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	var recipientWalletAddress = block.HashSHA256(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
-	testContract, err := accounts.MakeContract(1, senderPrivateKey, recipientWalletAddress, 25, 1)
+	testContract, err := contracts.MakeContract(1, senderPrivateKey, recipientWalletAddress, 25, 1)
 	if err != nil {
 		t.Errorf("failed to make contract : %v", err)
 	}
-	testContract.SignContract(senderPrivateKey)
+	testContract.Sign(senderPrivateKey)
 	req, err := requests.NewContractRequest("", *testContract)
 	if err != nil {
 		t.Errorf("failed to create new contract request: %v", err)
@@ -116,7 +117,7 @@ func TestContractRequestHandler(t *testing.T) {
 	statement, _ := dbConn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
 	statement.Exec()
 
-	contractChan := make(chan accounts.Contract)
+	contractChan := make(chan contracts.Contract)
 	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan))
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusBadRequest {
@@ -125,7 +126,7 @@ func TestContractRequestHandler(t *testing.T) {
 	}
 
 	var walletAddress = block.HashSHA256(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
-	if err := accounts.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337); err != nil {
+	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337); err != nil {
 		t.Errorf("failed to insert sender account")
 	}
 	req, err = requests.NewContractRequest("", *testContract)
@@ -139,7 +140,7 @@ func TestContractRequestHandler(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	if !accounts.Equals(*testContract, channelledContract) {
+	if !contracts.Equals(*testContract, channelledContract) {
 		t.Errorf("contracts do not match: got %+v want %+v", *testContract, channelledContract)
 	}
 }
