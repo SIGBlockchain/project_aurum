@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 /*
@@ -82,7 +82,7 @@ func (c *Contract) Serialize() ([]byte, error) {
 	if c.SenderPubKey == nil {
 		spubkey = make([]byte, 178)
 	} else {
-		spubkey = keys.EncodePublicKey(c.SenderPubKey) //size 178
+		spubkey = publickey.Encode(c.SenderPubKey) //size 178
 	}
 
 	//unsigned contract
@@ -120,7 +120,7 @@ func (c *Contract) Deserialize(b []byte) error {
 	if bytes.Equal(b[2:180], make([]byte, 178)) {
 		spubkeydecoded = nil
 	} else {
-		spubkeydecoded = keys.DecodePublicKey(b[2:180])
+		spubkeydecoded = publickey.Decode(b[2:180])
 	}
 	siglen := int(b[180])
 
@@ -155,7 +155,7 @@ func (c *Contract) Sign(sender *ecdsa.PrivateKey) error {
 	if err != nil {
 		return errors.New("Failed to serialize contract")
 	}
-	hashedContract := block.HashSHA256(serializedTestContract)
+	hashedContract := hashing.New(serializedTestContract)
 	c.Signature, _ = sender.Sign(rand.Reader, hashedContract, nil)
 	c.SigLen = uint8(len(c.Signature))
 	return nil
@@ -199,6 +199,6 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 // ContractToString takes in a Contract and return a string version
 func (c Contract) ToString() string {
 	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
-		c.Version, hex.EncodeToString(keys.EncodePublicKey(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
+		c.Version, hex.EncodeToString(publickey.Encode(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
 		c.Value, c.StateNonce)
 }

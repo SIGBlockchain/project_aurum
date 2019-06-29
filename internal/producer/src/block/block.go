@@ -2,13 +2,16 @@
 package block
 
 import (
-	"bytes"
-	"container/list"
-	"crypto/sha256"   // for hashing
+	"bytes"           // for hashing
 	"encoding/binary" // for converting to uints to byte slices
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"reflect"
+	"time"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 )
 
 type BlockHeader struct {
@@ -32,6 +35,32 @@ type Block struct {
 
 func (b *Block) GetHeader() BlockHeader {
 	return BlockHeader{b.Version, b.Height, b.Timestamp, b.PreviousHash, b.MerkleRootHash}
+}
+
+func New(version uint16, height uint64, previousHash []byte, data []contracts.Contract) (Block, error) {
+	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
+
+	for i := range data {
+		serializedData, err := data[i].Serialize()
+		if err != nil {
+			return Block{}, errors.New("Failed to serialize data")
+		}
+
+		serializedDatum = append(serializedDatum, serializedData)
+	}
+
+	// create the block
+	block := Block{
+		Version:        version,
+		Height:         height,
+		Timestamp:      time.Now().UnixNano(),
+		PreviousHash:   previousHash,
+		MerkleRootHash: hashing.GetMerkleRootHash(serializedDatum),
+		DataLen:        uint16(len(data)),
+		Data:           serializedDatum,
+	}
+
+	return block, nil
 }
 
 // Produces a byte string based on the block struct provided
@@ -70,82 +99,6 @@ func (b *Block) Serialize() []byte { // Vineet
 		i += len(s)
 	}
 	return serializedBlock
-}
-
-// Hashes the given byte slice using SHA256 and returns it
-func HashSHA256(data []byte) []byte {
-	result := sha256.Sum256(data)
-	return result[:]
-}
-
-// Returns the merkle root hash of the list of inputs
-//
-// If there are no inputs a empty slice is returned, otherwise the merkle root is generated recursively
-func GetMerkleRootHash(input [][]byte) []byte {
-	if len(input) == 0 {
-		return []byte{} //return an empty slice
-	}
-	//first add all the slices to a list
-	l := list.New()
-	for _, s := range input {
-		//while pushing elements to the list, double hash them
-		l.PushBack(HashSHA256(HashSHA256(s)))
-	}
-	return getMerkleRoot(l)
-}
-
-// Recursive Helper function for GetMerkleRootHash()
-//
-// This will combine every two adjacent values, hash them, and add to the list
-// This is done until the list is half of its original length.
-// If the list originally had an odd length, the last element is duplicated.
-// This will recursively repeat until the list has a length of one
-func getMerkleRoot(l *list.List) []byte {
-	if l.Len() == 1 {
-		return l.Front().Value.([]byte)
-	}
-	if l.Len()%2 != 0 { //list is of odd length
-		l.PushBack(l.Back().Value.([]byte))
-	}
-	listLen := l.Len()
-	buff := make([]byte, 64) //each hash is 32 bytes
-	for i := 0; i < listLen/2; i++ {
-		//"pop" off 2 vales
-		v1 := l.Remove(l.Front()).([]byte)
-		v2 := l.Remove(l.Front()).([]byte)
-		copy(buff[0:32], v1)
-		copy(buff[32:64], v2)
-		l.PushBack(HashSHA256(HashSHA256(buff)))
-	}
-	return getMerkleRoot(l)
-}
-
-// Concatenate all the fields of the block header and return its SHA256 hash
-func HashBlock(b Block) []byte {
-	const blength = 82 // calculate the total length of the slice
-	concatenated := make([]byte, blength)
-
-	// convert the known variables to byte slices in little endian and add to slice
-	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
-	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
-	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
-	copy(concatenated[18:50], b.PreviousHash)
-	copy(concatenated[50:82], b.MerkleRootHash)
-	return HashSHA256(concatenated)
-}
-
-// Concatenate all the fields of the block header and return its SHA256 hash
-func HashBlockHeader(b BlockHeader) []byte {
-	const blength = 82 // calculate the total length of the slice
-	concatenated := make([]byte, blength)
-
-	// convert the known variables to byte slices in little endian and add to slice
-	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
-	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
-	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
-	copy(concatenated[18:50], b.PreviousHash)
-	copy(concatenated[50:82], b.MerkleRootHash)
-	return HashSHA256(concatenated)
 }
 
 // Converts a block in byte form into a block struct, returns the struct
@@ -221,4 +174,32 @@ func (b Block) ToString() string {
 	blockStr := fmt.Sprintf("Version: %v\nHeight: %v\nTimestamp: %v\n", b.Version, b.Height, b.Timestamp)
 	blockStr += prevHash + merkleHash + fmt.Sprintf("DataLen: %v\n", b.DataLen) + data
 	return blockStr
+}
+
+// Concatenate all the fields of the block header and return its SHA256 hash
+func HashBlock(b Block) []byte {
+	const blength = 82 // calculate the total length of the slice
+	concatenated := make([]byte, blength)
+
+	// convert the known variables to byte slices in little endian and add to slice
+	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
+	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
+	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
+	copy(concatenated[18:50], b.PreviousHash)
+	copy(concatenated[50:82], b.MerkleRootHash)
+	return hashing.New(concatenated)
+}
+
+// Concatenate all the fields of the block header and return its SHA256 hash
+func HashBlockHeader(b BlockHeader) []byte {
+	const blength = 82 // calculate the total length of the slice
+	concatenated := make([]byte, blength)
+
+	// convert the known variables to byte slices in little endian and add to slice
+	binary.LittleEndian.PutUint16(concatenated[0:2], b.Version)
+	binary.LittleEndian.PutUint64(concatenated[2:10], b.Height)
+	binary.LittleEndian.PutUint64(concatenated[10:18], uint64(b.Timestamp))
+	copy(concatenated[18:50], b.PreviousHash)
+	copy(concatenated[50:82], b.MerkleRootHash)
+	return hashing.New(concatenated)
 }

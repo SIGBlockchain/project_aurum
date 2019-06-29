@@ -11,6 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 )
 
 func setUp(filename string, database string) {
@@ -38,9 +39,9 @@ func TestPhaseOneAddBlock(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x'})},
 	}
 	b.DataLen = uint16(len(b.Data))
 
@@ -61,9 +62,9 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x'})},
 	}
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 
@@ -89,9 +90,9 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x'})},
 	}
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 	// Setup
@@ -117,9 +118,9 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x'})},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x'})},
 	}
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 	// Setup
@@ -145,9 +146,9 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x', 'o', 'x', 'o'})},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x', 'o', 'x', 'o'})},
 	}
 	block0.DataLen = uint16(len(block0.Data))
 	block1 := block.Block{
@@ -155,8 +156,8 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		Height:         1,
 		Timestamp:      time.Now().UnixNano(),
 		PreviousHash:   block.HashBlock(block0),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'x', 'y', 'z'})},
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'x', 'y', 'z'})},
 	}
 	block1.DataLen = uint16(len(block1.Data))
 	block2 := block.Block{
@@ -164,8 +165,8 @@ func TestPhaseTwoMultiple(t *testing.T) {
 		Height:         2,
 		Timestamp:      time.Now().UnixNano(),
 		PreviousHash:   block.HashBlock(block1),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte{'a', 'b', 'c'})},
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte{'a', 'b', 'c'})},
 	}
 	block2.DataLen = uint16(len(block2.Data))
 	// Setup
@@ -254,9 +255,9 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 		Version:        1,
 		Height:         0,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte("xoxo"))},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte("xoxo"))},
 	}
 	block0.DataLen = uint16(len(block0.Data))
 	err = AddBlock(block0, blockchain, table)
@@ -274,17 +275,17 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 		Version:        1,
 		Height:         1,
 		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
-		Data:           [][]byte{block.HashSHA256([]byte("xoxo"))},
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
+		Data:           [][]byte{hashing.New([]byte("xoxo"))},
 	}
 	block1.DataLen = uint16(len(block1.Data))
 	block1Header := block.BlockHeader{
 		Version:        1,
 		Height:         1,
 		Timestamp:      block1.Timestamp,
-		PreviousHash:   block.HashSHA256([]byte{'0'}),
-		MerkleRootHash: block.HashSHA256([]byte{'1'}),
+		PreviousHash:   hashing.New([]byte{'0'}),
+		MerkleRootHash: hashing.New([]byte{'1'}),
 	}
 	err = AddBlock(block1, blockchain, table)
 	if err != nil {

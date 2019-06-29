@@ -21,9 +21,11 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
+
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -233,8 +235,8 @@ func TestPrintPublicKeyAndHash(t *testing.T) {
 			x509Encoded := pemDecodedKey.Bytes
 			privateKey, err := x509.ParseECPrivateKey(x509Encoded)
 			publicKey := privateKey.PublicKey
-			publicKeyString := hex.EncodeToString(keys.EncodePublicKey(&publicKey))
-			publicKeyHash := block.HashSHA256(keys.EncodePublicKey(&publicKey))
+			publicKeyString := hex.EncodeToString(publickey.Encode(&publicKey))
+			publicKeyHash := hashing.New(publickey.Encode(&publicKey))
 			publicKeyHashString := hex.EncodeToString(publicKeyHash)
 			if err != nil {
 				t.Errorf("Failed to parse private key: %s", err)
@@ -349,7 +351,7 @@ func TestGetWalletAddress(t *testing.T) {
 	x509Encoded := pemDecodedKey.Bytes
 	privateKey, err := x509.ParseECPrivateKey(x509Encoded)
 	publicKey := privateKey.PublicKey
-	publicKeyHash := block.HashSHA256(keys.EncodePublicKey(&publicKey))
+	publicKeyHash := hashing.New(publickey.Encode(&publicKey))
 	if err != nil {
 		t.Errorf("Failed to parse private key: %s", err)
 	}
@@ -499,11 +501,11 @@ func TestUpdateWallet(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get private key second time: %s", err.Error())
 	}
-	encPrivExpected, err := keys.EncodePrivateKey(private)
+	encPrivExpected, err := privatekey.Encode(private)
 	if err != nil {
 		t.Errorf("failed to encode private key: %s", err.Error())
 	}
-	encPrivActual, err := keys.EncodePrivateKey(unchangedPrivate)
+	encPrivActual, err := privatekey.Encode(unchangedPrivate)
 	if err != nil {
 		t.Errorf("failed to encode private key: %s", err.Error())
 	}

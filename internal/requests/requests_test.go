@@ -12,9 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
-
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 func TestAccountInfoRequest(t *testing.T) {
@@ -83,7 +82,7 @@ func TestNewContractRequest(t *testing.T) {
 	// TODO JSONContract to accounts.Contract Unmarshall?
 	var responseContract = contracts.Contract{
 		responseBody.Version,
-		keys.DecodePublicKey(unhexedResponsePublicKey),
+		publickey.Decode(unhexedResponsePublicKey),
 		responseBody.SignatureLength,
 		unhexedResponseSignature,
 		unhexedResponseRecipientHash,

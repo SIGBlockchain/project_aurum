@@ -11,8 +11,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -40,9 +40,9 @@ func TestValidateContract(t *testing.T) {
 	statement.Exec()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	senderPKH := block.HashSHA256(keys.EncodePublicKey(&sender.PublicKey))
+	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPKH := block.HashSHA256(keys.EncodePublicKey(&recipient.PublicKey))
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
 	err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
@@ -75,14 +75,14 @@ func TestValidateContract(t *testing.T) {
 	validTwoExistingAccountsContract.Sign(sender)
 
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	keyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&keyNotInTable.PublicKey))
+	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
 
 	validOneExistingAccountsContract, _ := contracts.MakeContract(1, sender, keyNotInTablePKH, 500, 1)
 	validOneExistingAccountsContract.Sign(sender)
 	accountstable.InsertAccountIntoAccountBalanceTable(dbc, keyNotInTablePKH, 500)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	anotherKeyNotInTablePKH := block.HashSHA256(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
+	anotherKeyNotInTablePKH := hashing.New(publickey.Encode(&anotherKeyNotInTable.PublicKey))
 
 	newAccountToANewerAccountContract, _ := contracts.MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.Sign(keyNotInTable)

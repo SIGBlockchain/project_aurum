@@ -9,8 +9,8 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 func ValidateContract(c *contracts.Contract) error {
@@ -20,7 +20,7 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
-	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))) {
+	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(publickey.Encode(c.SenderPubKey))) {
 		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 
@@ -32,7 +32,7 @@ func ValidateContract(c *contracts.Contract) error {
 	if err != nil {
 		return errors.New(err.Error())
 	}
-	hashedContract := block.HashSHA256(serializedContract)
+	hashedContract := hashing.New(serializedContract)
 
 	// stores r and s values needed for ecdsa.Verify
 	var esig struct {
@@ -48,7 +48,7 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// retrieve sender's balance from account balance table
-	senderPubKeyHash := block.HashSHA256(keys.EncodePublicKey(c.SenderPubKey))
+	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
 	senderAccountInfo, errAccount := accountstable.GetAccountInfo(senderPubKeyHash)
 
 	if errAccount == nil {
