@@ -29,6 +29,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
@@ -55,7 +56,7 @@ var metadataTable = constants.MetadataTable
 // TODO: Will need to change the name to support get functions
 var accountsTable = constants.AccountsTable
 
-var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
+var SecretBytes = hashing.New([]byte("aurum"))[8:16]
 
 // This stores connection information for the producer
 type BlockProducer struct {
@@ -277,7 +278,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			// Triggered if it's time to produce a block
 			lgr.Printf("block ready for production: #%d\n", chainHeight+1)
 			// lgr.Printf("Production block dataPool: %v", dataPool)
-			if newBlock, err := CreateBlock(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
+			if newBlock, err := block.New(version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), dataPool); err != nil {
 				lgr.Fatalf("failed to add block %s", err.Error())
 				os.Exit(1)
 			} else {
@@ -299,7 +300,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 						lgr.Fatalf("Failed to connect to accounts database: %v", err)
 					}
 					for _, contract := range dataPool {
-						senderPKH := block.HashSHA256(publickey.Encode(contract.SenderPubKey))
+						senderPKH := hashing.New(publickey.Encode(contract.SenderPubKey))
 						err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
 						if err != nil {
 							lgr.Printf("Failed to add contract to accounts database: %v", err)
@@ -364,32 +365,6 @@ func calculateInterval(youngestBlockHeader block.BlockHeader, productionInterval
 	}
 }
 
-func CreateBlock(version uint16, height uint64, previousHash []byte, data []accounts.Contract) (block.Block, error) {
-	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
-
-	for i := range data {
-		serializedData, err := data[i].Serialize()
-		if err != nil {
-			return block.Block{}, errors.New("Failed to serialize data")
-		}
-
-		serializedDatum = append(serializedDatum, serializedData)
-	}
-
-	// create the block
-	block := block.Block{
-		Version:        version,
-		Height:         height,
-		Timestamp:      time.Now().UnixNano(),
-		PreviousHash:   previousHash,
-		MerkleRootHash: block.GetMerkleRootHash(serializedDatum),
-		DataLen:        uint16(len(data)),
-		Data:           serializedDatum,
-	}
-
-	return block, nil
-}
-
 func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
 	version := uint16(1)
 	mintAmt := initialAurumSupply / uint64(len(genesisPublicKeyHashes)) // (initialAurumSupply / n supplied key hashes)
@@ -405,7 +380,7 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 	}
 
 	// create genesis block with null previous hash
-	genesisBlock, err := CreateBlock(version, 0, make([]byte, 32), datum)
+	genesisBlock, err := block.New(version, 0, make([]byte, 32), datum)
 	if err != nil {
 		return block.Block{}, errors.New("Failed to create genesis block")
 	}
@@ -658,7 +633,7 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 		}
 
 		for i := 0; i < len(totalBalances); i++ {
-			if bytes.Compare(totalBalances[i].accountPKH, block.HashSHA256(publickey.Encode(contract.SenderPubKey))) == 0 {
+			if bytes.Compare(totalBalances[i].accountPKH, hashing.New(publickey.Encode(contract.SenderPubKey))) == 0 {
 				//subtract the value of the contract from the sender's account
 				addSender = false
 				totalBalances[i].balance -= int64(contract.Value)
@@ -674,7 +649,7 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 		//add the sender's account info into totalBalances
 		if addSender {
 			totalBalances = append(totalBalances,
-				accountInfo{accountPKH: block.HashSHA256(publickey.Encode(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
+				accountInfo{accountPKH: hashing.New(publickey.Encode(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
 		}
 
 		//add the recipient's account info into totalBalances
@@ -761,7 +736,7 @@ func GenerateGenesisHashFile(numHashes uint16) {
 		privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 		// get public kek and hash it
-		hashedPubKey := block.HashSHA256(publickey.Encode(&privateKey.PublicKey))
+		hashedPubKey := hashing.New(publickey.Encode(&privateKey.PublicKey))
 
 		// get pub key hash as string to store in txt file
 		hashPubKeyStr := hex.EncodeToString(hashedPubKey)

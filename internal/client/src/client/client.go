@@ -21,12 +21,12 @@ import (
 	"strings"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
-var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
+var SecretBytes = hashing.New([]byte("aurum"))[8:16]
 
 // This will check if the client is connected to the internet
 //
@@ -233,7 +233,7 @@ func PrintPublicKeyAndHash() error {
 
 	// Encodes the public key into a string and a hash
 	publicKeyString := hex.EncodeToString(pemEncodedPub)
-	publicKeyHash := block.HashSHA256(pemEncodedPub)
+	publicKeyHash := hashing.New(pemEncodedPub)
 
 	// Encodes the public key hash into string to print
 	publicKeyHashString := hex.EncodeToString(publicKeyHash)
@@ -377,7 +377,7 @@ func GetWalletAddress() ([]byte, error) {
 
 	// Get the PEM encoded public key
 	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
-	return block.HashSHA256(pubKeyEncoded), nil
+	return hashing.New(pubKeyEncoded), nil
 }
 
 func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {

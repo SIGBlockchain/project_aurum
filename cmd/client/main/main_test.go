@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
@@ -74,7 +74,7 @@ func TestContractMessageFromInput(t *testing.T) {
 	file.Close()
 
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPKH := block.HashSHA256(publickey.Encode(&recipient.PublicKey))
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
 	testValue := 9000
 
 	type testArg struct {
