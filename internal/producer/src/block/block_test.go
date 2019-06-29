@@ -14,7 +14,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -123,7 +123,7 @@ func TestNew(t *testing.T) {
 	var datum []accounts.Contract
 	for i := 0; i < 12; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
 		datum = append(datum, *someAirdropContract)
 	}

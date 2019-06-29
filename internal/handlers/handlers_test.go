@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
@@ -50,7 +50,7 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var walletAddress = hashing.New(keys.EncodePublicKey(&privateKey.PublicKey))
+	var walletAddress = hashing.New(publickey.Encode(&privateKey.PublicKey))
 	err = accounts.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337)
 	if err != nil {
 		t.Errorf("failed to insert sender account")
@@ -88,7 +88,7 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 func TestContractRequestHandler(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var recipientWalletAddress = hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	var recipientWalletAddress = hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	testContract, err := accounts.MakeContract(1, senderPrivateKey, recipientWalletAddress, 25, 1)
 	if err != nil {
 		t.Errorf("failed to make contract : %v", err)
@@ -123,7 +123,7 @@ func TestContractRequestHandler(t *testing.T) {
 		t.Logf("%s", rr.Body.String())
 	}
 
-	var walletAddress = hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
+	var walletAddress = hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
 	if err := accounts.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337); err != nil {
 		t.Errorf("failed to insert sender account")
 	}

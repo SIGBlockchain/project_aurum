@@ -15,7 +15,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 /*
@@ -86,7 +86,7 @@ func (c *Contract) Serialize() ([]byte, error) {
 	if c.SenderPubKey == nil {
 		spubkey = make([]byte, 178)
 	} else {
-		spubkey = keys.EncodePublicKey(c.SenderPubKey) //size 178
+		spubkey = publickey.Encode(c.SenderPubKey) //size 178
 	}
 
 	//unsigned contract
@@ -124,7 +124,7 @@ func (c *Contract) Deserialize(b []byte) error {
 	if bytes.Equal(b[2:180], make([]byte, 178)) {
 		spubkeydecoded = nil
 	} else {
-		spubkeydecoded = keys.DecodePublicKey(b[2:180])
+		spubkeydecoded = publickey.Decode(b[2:180])
 	}
 	siglen := int(b[180])
 
@@ -267,7 +267,7 @@ func ValidateContract(c *Contract) error {
 	}
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
-	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(keys.EncodePublicKey(c.SenderPubKey))) {
+	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(publickey.Encode(c.SenderPubKey))) {
 		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 
@@ -295,7 +295,7 @@ func ValidateContract(c *Contract) error {
 	}
 
 	// retrieve sender's balance from account balance table
-	senderPubKeyHash := hashing.New(keys.EncodePublicKey(c.SenderPubKey))
+	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
 	senderAccountInfo, errAccount := GetAccountInfo(senderPubKeyHash)
 
 	if errAccount == nil {
@@ -448,6 +448,6 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 // ContractToString takes in a Contract and return a string version
 func (c Contract) ToString() string {
 	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
-		c.Version, hex.EncodeToString(keys.EncodePublicKey(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
+		c.Version, hex.EncodeToString(publickey.Encode(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
 		c.Value, c.StateNonce)
 }

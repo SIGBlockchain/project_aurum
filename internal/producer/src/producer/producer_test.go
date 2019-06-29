@@ -22,7 +22,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 var removeFiles = true
@@ -91,7 +91,7 @@ func TestCheckConnectivity(t *testing.T) {
 func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPublicKeyHash := hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.SignContract(senderPrivateKey)
 	serializedContract, err := contract.Serialize()
@@ -208,7 +208,7 @@ func TestByteChannel(t *testing.T) {
 	}
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPublicKeyHash := hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.SignContract(senderPrivateKey)
 	serializedContract, _ := contract.Serialize()
@@ -355,7 +355,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 
 func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
@@ -409,7 +409,7 @@ func TestData_Serialize(t *testing.T) {
 
 func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
 	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
 	// someData := &Data{
 	// 	Hdr: DataHeader{
@@ -454,7 +454,7 @@ func TestBringOnTheGenesis(t *testing.T) {
 	var datum []accounts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 10, 0)
 		datum = append(datum, *someAirdropContract)
@@ -515,7 +515,7 @@ func TestAirdrop(t *testing.T) {
 	var pkhashes [][]byte
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
@@ -664,7 +664,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	var pkhashes [][]byte
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
@@ -789,7 +789,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	somePVKeys := make([]*ecdsa.PrivateKey, 3) // Grab 3 private keys for creating contracts
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(keys.EncodePublicKey(&someKey.PublicKey))
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
 		if i < 3 {
 			somePVKeys[i] = someKey
@@ -811,36 +811,36 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	contracts := make([]accounts.Contract, 3)
 
 	// Contract 1
-	recipPKHash := hashing.New(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
+	recipPKHash := hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
 	contract1, _ := accounts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.SignContract(somePVKeys[0])
 	err = accounts.ValidateContract(contract1)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash := hashing.New(keys.EncodePublicKey(&(somePVKeys[0].PublicKey)))
+	senderPKHash := hashing.New(publickey.Encode(&(somePVKeys[0].PublicKey)))
 	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
 
 	// Contract 2
-	recipPKHash = hashing.New(keys.EncodePublicKey(&(somePVKeys[2].PublicKey)))
+	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
 	contract2, _ := accounts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.SignContract(somePVKeys[1])
 	err = accounts.ValidateContract(contract2)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(keys.EncodePublicKey(&somePVKeys[1].PublicKey))
+	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[1].PublicKey))
 	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
 
 	// Contract 3
-	recipPKHash = hashing.New(keys.EncodePublicKey(&(somePVKeys[1].PublicKey)))
+	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
 	contract3, _ := accounts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.SignContract(somePVKeys[2])
 	err = accounts.ValidateContract(contract3)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(keys.EncodePublicKey(&somePVKeys[2].PublicKey))
+	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[2].PublicKey))
 	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
 	acctsDB.Close()
 
@@ -899,7 +899,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 			}()
 
 			for i, key := range somePVKeys {
-				someKeyPKhsh := hashing.New(keys.EncodePublicKey(&key.PublicKey))
+				someKeyPKhsh := hashing.New(publickey.Encode(&key.PublicKey))
 				var balance uint64
 				var nonce uint64
 				queryStr := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash=\"%s\"", hex.EncodeToString(someKeyPKhsh))

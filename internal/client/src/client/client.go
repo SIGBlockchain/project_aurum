@@ -22,8 +22,8 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-
-	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 var SecretBytes = hashing.New([]byte("aurum"))[8:16]
@@ -140,7 +140,7 @@ func SetupWallet() error {
 	}
 
 	// Encodes private key
-	pemEncoded, err := keys.EncodePrivateKey(privateKey)
+	pemEncoded, err := privatekey.Encode(privateKey)
 	if err != nil {
 		return err
 	}
@@ -222,14 +222,14 @@ func PrintPublicKeyAndHash() error {
 
 	// Decodes the private key from the jsonStruct
 	pemEncoded, _ := hex.DecodeString(j.PrivateKey)
-	privateKey, err := keys.DecodePrivateKey(pemEncoded)
+	privateKey, err := privatekey.Decode(pemEncoded)
 	if err != nil {
 		return err
 	}
 
 	// Gets and encodes the public key
 	publicKey := privateKey.PublicKey
-	pemEncodedPub := keys.EncodePublicKey(&publicKey)
+	pemEncodedPub := publickey.Encode(&publicKey)
 
 	// Encodes the public key into a string and a hash
 	publicKeyString := hex.EncodeToString(pemEncodedPub)
@@ -272,7 +272,7 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 
 	// Decodes the private key from the jsonStruct
 	pemEncoded, _ := hex.DecodeString(j.PrivateKey)
-	privateKey, err := keys.DecodePrivateKey(pemEncoded)
+	privateKey, err := privatekey.Decode(pemEncoded)
 	if err != nil {
 		return nil, err
 	}
@@ -370,13 +370,13 @@ func GetWalletAddress() ([]byte, error) {
 	}
 
 	// Get the private key
-	privKey, err := keys.DecodePrivateKey(privKeyHash)
+	privKey, err := privatekey.Decode(privKeyHash)
 	if err != nil {
 		return nil, errors.New("Failed to decode private key hash")
 	}
 
 	// Get the PEM encoded public key
-	pubKeyEncoded := keys.EncodePublicKey(&privKey.PublicKey)
+	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
 	return hashing.New(pubKeyEncoded), nil
 }
 

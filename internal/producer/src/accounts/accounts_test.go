@@ -16,7 +16,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -41,7 +41,7 @@ func TestMakeContract(t *testing.T) {
 			args: args{
 				version:       1,
 				sender:        nil,
-				recipient:     hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+				recipient:     hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)),
 				value:         1000000000,
 				newStateNonce: 1,
 			},
@@ -50,7 +50,7 @@ func TestMakeContract(t *testing.T) {
 				SenderPubKey:    nil,
 				SigLen:          0,
 				Signature:       nil,
-				RecipPubKeyHash: hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+				RecipPubKeyHash: hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)),
 				Value:           1000000000,
 				StateNonce:      1,
 			},
@@ -61,7 +61,7 @@ func TestMakeContract(t *testing.T) {
 			args: args{
 				version:       1,
 				sender:        senderPrivateKey,
-				recipient:     hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
+				recipient:     hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)),
 				value:         1000000000,
 				newStateNonce: 1,
 			},
@@ -70,7 +70,7 @@ func TestMakeContract(t *testing.T) {
 				SenderPubKey:    &senderPrivateKey.PublicKey,
 				SigLen:          0,
 				Signature:       nil,
-				RecipPubKeyHash: hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)),
+				RecipPubKeyHash: hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)),
 				Value:           1000000000,
 				StateNonce:      1,
 			},
@@ -81,7 +81,7 @@ func TestMakeContract(t *testing.T) {
 			args: args{
 				version:       0,
 				sender:        senderPrivateKey,
-				recipient:     hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+				recipient:     hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)),
 				value:         1000000000,
 				newStateNonce: 1,
 			},
@@ -105,9 +105,9 @@ func TestMakeContract(t *testing.T) {
 func TestContract_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
-	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 0)
+	nullSenderContract, _ := MakeContract(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
+	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
 	signedContract.SignContract(senderPrivateKey)
 	tests := []struct {
 		name string
@@ -146,7 +146,7 @@ func TestContract_Serialize(t *testing.T) {
 				if sigLen != 0 {
 					t.Errorf("Non-zero signature length in unsigned contract: %v", sigLen)
 				}
-				if !bytes.Equal(got[2:180], keys.EncodePublicKey(tt.c.SenderPubKey)) {
+				if !bytes.Equal(got[2:180], publickey.Encode(tt.c.SenderPubKey)) {
 					t.Errorf("Invalid encoded public key for unsigned contract")
 				}
 				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
@@ -156,7 +156,7 @@ func TestContract_Serialize(t *testing.T) {
 				if sigLen == 0 {
 					t.Errorf("Zero length signature in signed contract: %v", sigLen)
 				}
-				if !bytes.Equal(got[2:180], keys.EncodePublicKey(tt.c.SenderPubKey)) {
+				if !bytes.Equal(got[2:180], publickey.Encode(tt.c.SenderPubKey)) {
 					t.Errorf("Invalid encoded public key for signed contract")
 				}
 				if !bytes.Equal(got[(181+int(sigLen)):(181+int(sigLen)+32)], tt.c.RecipPubKeyHash) {
@@ -170,11 +170,11 @@ func TestContract_Serialize(t *testing.T) {
 func TestContract_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 1)
+	nullSenderContract, _ := MakeContract(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 1)
 	nullSenderContractSerialized, _ := nullSenderContract.Serialize()
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 1)
+	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
 	unsignedContractSerialized, _ := unsignedContract.Serialize()
-	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey)), 1000, 1)
+	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
 	signedContract.SignContract(senderPrivateKey)
 	signedContractSerialized, _ := signedContract.Serialize()
 	type args struct {
@@ -278,7 +278,7 @@ func TestContract_Deserialize(t *testing.T) {
 
 func TestContract_SignContract(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	testContract, _ := MakeContract(1, senderPrivateKey, hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)), 1000, 0)
+	testContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
 	type args struct {
 		sender ecdsa.PrivateKey
 	}
@@ -346,7 +346,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 		{
 			args: args{
 				dbc,
-				hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey)),
+				hashing.New(publickey.Encode(&somePrivateKey.PublicKey)),
 				1000,
 			},
 			wantErr: false,
@@ -373,7 +373,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 				if err != nil {
 					t.Errorf("failed to decode public key hash")
 				}
-				if bytes.Equal(decodedPkhash, hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey))) {
+				if bytes.Equal(decodedPkhash, hashing.New(publickey.Encode(&somePrivateKey.PublicKey))) {
 					if balance != 1000 {
 						t.Errorf("Invalid balance: %d", balance)
 					}
@@ -389,8 +389,8 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey))
-	rpkh := hashing.New(keys.EncodePublicKey(&recipientPrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
+	rpkh := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -477,7 +477,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 
 func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -572,9 +572,9 @@ func TestValidateContract(t *testing.T) {
 	statement.Exec()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	senderPKH := hashing.New(keys.EncodePublicKey(&sender.PublicKey))
+	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPKH := hashing.New(keys.EncodePublicKey(&recipient.PublicKey))
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
 	err := InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
@@ -607,14 +607,14 @@ func TestValidateContract(t *testing.T) {
 	validTwoExistingAccountsContract.SignContract(sender)
 
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	keyNotInTablePKH := hashing.New(keys.EncodePublicKey(&keyNotInTable.PublicKey))
+	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
 
 	validOneExistingAccountsContract, _ := MakeContract(1, sender, keyNotInTablePKH, 500, 1)
 	validOneExistingAccountsContract.SignContract(sender)
 	InsertAccountIntoAccountBalanceTable(dbc, keyNotInTablePKH, 500)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	anotherKeyNotInTablePKH := hashing.New(keys.EncodePublicKey(&anotherKeyNotInTable.PublicKey))
+	anotherKeyNotInTablePKH := hashing.New(publickey.Encode(&anotherKeyNotInTable.PublicKey))
 
 	newAccountToANewerAccountContract, _ := MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.SignContract(keyNotInTable)
@@ -727,7 +727,7 @@ func TestAccountInfo_Deserialize(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -782,7 +782,7 @@ func TestGetBalance(t *testing.T) {
 
 func TestGetStateNonce(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -837,7 +837,7 @@ func TestGetStateNonce(t *testing.T) {
 
 func TestGetAccountInfo(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(keys.EncodePublicKey(&somePrivateKey.PublicKey))
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -897,7 +897,7 @@ func TestEquals(t *testing.T) {
 		SenderPubKey:    &senderPrivateKey.PublicKey,
 		SigLen:          0,
 		Signature:       nil,
-		RecipPubKeyHash: hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+		RecipPubKeyHash: hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)),
 		Value:           1000000000,
 		StateNonce:      1,
 	}
@@ -911,7 +911,7 @@ func TestEquals(t *testing.T) {
 	contracts[1].SenderPubKey = &anotherSenderPrivateKey.PublicKey
 	contracts[2].SigLen = 9
 	contracts[3].Signature = make([]byte, 100)
-	contracts[4].RecipPubKeyHash = hashing.New(keys.EncodePublicKey(&anotherSenderPrivateKey.PublicKey))
+	contracts[4].RecipPubKeyHash = hashing.New(publickey.Encode(&anotherSenderPrivateKey.PublicKey))
 	contracts[5].Value = 9002
 	contracts[6].StateNonce = 9
 
@@ -988,13 +988,13 @@ func TestContractToString(t *testing.T) {
 		SenderPubKey:    &senderPrivateKey.PublicKey,
 		SigLen:          0,
 		Signature:       nil,
-		RecipPubKeyHash: hashing.New(keys.EncodePublicKey(&senderPrivateKey.PublicKey)),
+		RecipPubKeyHash: hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)),
 		Value:           1000000000,
 		StateNonce:      1,
 	}
 
 	stringOfTheContract := fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n", testContract.Version,
-		hex.EncodeToString(keys.EncodePublicKey(testContract.SenderPubKey)), testContract.SigLen, hex.EncodeToString(testContract.Signature),
+		hex.EncodeToString(publickey.Encode(testContract.SenderPubKey)), testContract.SigLen, hex.EncodeToString(testContract.Signature),
 		hex.EncodeToString(testContract.RecipPubKeyHash), testContract.Value, testContract.StateNonce)
 
 	if result := testContract.ToString(); result != stringOfTheContract {
