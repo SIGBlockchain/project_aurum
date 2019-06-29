@@ -25,12 +25,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
-
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 type Flags struct {
@@ -300,7 +299,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 						lgr.Fatalf("Failed to connect to accounts database: %v", err)
 					}
 					for _, contract := range dataPool {
-						senderPKH := block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))
+						senderPKH := block.HashSHA256(publickey.Encode(contract.SenderPubKey))
 						err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
 						if err != nil {
 							lgr.Printf("Failed to add contract to accounts database: %v", err)
@@ -659,7 +658,7 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 		}
 
 		for i := 0; i < len(totalBalances); i++ {
-			if bytes.Compare(totalBalances[i].accountPKH, block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))) == 0 {
+			if bytes.Compare(totalBalances[i].accountPKH, block.HashSHA256(publickey.Encode(contract.SenderPubKey))) == 0 {
 				//subtract the value of the contract from the sender's account
 				addSender = false
 				totalBalances[i].balance -= int64(contract.Value)
@@ -675,7 +674,7 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 		//add the sender's account info into totalBalances
 		if addSender {
 			totalBalances = append(totalBalances,
-				accountInfo{accountPKH: block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
+				accountInfo{accountPKH: block.HashSHA256(publickey.Encode(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
 		}
 
 		//add the recipient's account info into totalBalances
@@ -762,7 +761,7 @@ func GenerateGenesisHashFile(numHashes uint16) {
 		privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 		// get public kek and hash it
-		hashedPubKey := block.HashSHA256(keys.EncodePublicKey(&privateKey.PublicKey))
+		hashedPubKey := block.HashSHA256(publickey.Encode(&privateKey.PublicKey))
 
 		// get pub key hash as string to store in txt file
 		hashPubKeyStr := hex.EncodeToString(hashedPubKey)

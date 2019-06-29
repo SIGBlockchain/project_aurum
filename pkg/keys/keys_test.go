@@ -5,7 +5,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"os"
-	"reflect"
 	"testing"
 )
 
@@ -43,60 +42,4 @@ func TestKeys(t *testing.T) {
 
 	// Delete testFile
 	os.Remove(testFile)
-}
-
-// Full test for encoding/decoding public keys
-func TestEncoding(t *testing.T) {
-	private, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	public := private.PublicKey
-	encoded := EncodePublicKey(&public)
-	decoded := DecodePublicKey(encoded)
-
-	if !reflect.DeepEqual(public, *decoded) {
-		t.Errorf("Keys do not match")
-	}
-	reEncoded := EncodePublicKey(decoded)
-	if !reflect.DeepEqual(reEncoded, encoded) {
-		t.Errorf("Encoded keys do not match")
-	}
-}
-
-func TestDecodePrivateKey(t *testing.T) {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Errorf("Failed to generate private key: %s", err)
-	}
-	encodedPrivateKey, err := EncodePrivateKey(privateKey)
-	if err != nil {
-		t.Errorf("Failed to encode private key")
-	}
-	type args struct {
-		key []byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *ecdsa.PrivateKey
-		wantErr bool
-	}{
-		{
-			args: args{
-				key: encodedPrivateKey,
-			},
-			want:    privateKey,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DecodePrivateKey(tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DecodePrivateKey() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DecodePrivateKey() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }

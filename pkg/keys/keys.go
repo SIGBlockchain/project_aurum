@@ -74,33 +74,3 @@ func GetKey(filename string) (*ecdsa.PrivateKey, error) {
 	// Returns private key
 	return privateKey, err
 }
-
-// Returns the PEM-Encoded byte slice from a given public key
-func EncodePublicKey(key *ecdsa.PublicKey) []byte {
-	x509EncodedPub, _ := x509.MarshalPKIXPublicKey(key)
-	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
-}
-
-// Returns the public key from a given PEM-Encoded byte slice representation of the public key
-func DecodePublicKey(key []byte) *ecdsa.PublicKey {
-	blockPub, _ := pem.Decode(key)
-	x509EncodedPub := blockPub.Bytes
-	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
-	return genericPublicKey.(*ecdsa.PublicKey)
-}
-
-// Returns the PEM-Encoded byte slice from a given private key
-func EncodePrivateKey(key *ecdsa.PrivateKey) ([]byte, error) {
-	x509EncodedPriv, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		return []byte{}, err
-	}
-	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509EncodedPriv}), nil
-}
-
-// Returns the private key from a given PEM-Encoded byte slice representation of the private key
-func DecodePrivateKey(key []byte) (*ecdsa.PrivateKey, error) {
-	keyBlock, _ := pem.Decode(key)
-	x509EncodedPriv := keyBlock.Bytes
-	return x509.ParseECPrivateKey(x509EncodedPriv)
-}
