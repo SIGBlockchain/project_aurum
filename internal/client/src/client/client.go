@@ -21,12 +21,12 @@ import (
 	"strings"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-
-	keys "github.com/SIGBlockchain/project_aurum/pkg/keys"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
-var SecretBytes = block.HashSHA256([]byte("aurum"))[8:16]
+var SecretBytes = hashing.New([]byte("aurum"))[8:16]
 
 // This will check if the client is connected to the internet
 //
@@ -140,7 +140,7 @@ func SetupWallet() error {
 	}
 
 	// Encodes private key
-	pemEncoded, err := keys.EncodePrivateKey(privateKey)
+	pemEncoded, err := privatekey.Encode(privateKey)
 	if err != nil {
 		return err
 	}
@@ -222,18 +222,18 @@ func PrintPublicKeyAndHash() error {
 
 	// Decodes the private key from the jsonStruct
 	pemEncoded, _ := hex.DecodeString(j.PrivateKey)
-	privateKey, err := keys.DecodePrivateKey(pemEncoded)
+	privateKey, err := privatekey.Decode(pemEncoded)
 	if err != nil {
 		return err
 	}
 
 	// Gets and encodes the public key
 	publicKey := privateKey.PublicKey
-	pemEncodedPub := keys.EncodePublicKey(&publicKey)
+	pemEncodedPub := publickey.Encode(&publicKey)
 
 	// Encodes the public key into a string and a hash
 	publicKeyString := hex.EncodeToString(pemEncodedPub)
-	publicKeyHash := block.HashSHA256(pemEncodedPub)
+	publicKeyHash := hashing.New(pemEncodedPub)
 
 	// Encodes the public key hash into string to print
 	publicKeyHashString := hex.EncodeToString(publicKeyHash)
@@ -272,7 +272,7 @@ func GetPrivateKey() (*ecdsa.PrivateKey, error) {
 
 	// Decodes the private key from the jsonStruct
 	pemEncoded, _ := hex.DecodeString(j.PrivateKey)
-	privateKey, err := keys.DecodePrivateKey(pemEncoded)
+	privateKey, err := privatekey.Decode(pemEncoded)
 	if err != nil {
 		return nil, err
 	}
@@ -370,14 +370,14 @@ func GetWalletAddress() ([]byte, error) {
 	}
 
 	// Get the private key
-	privKey, err := keys.DecodePrivateKey(privKeyHash)
+	privKey, err := privatekey.Decode(privKeyHash)
 	if err != nil {
 		return nil, errors.New("Failed to decode private key hash")
 	}
 
 	// Get the PEM encoded public key
-	pubKeyEncoded := keys.EncodePublicKey(&privKey.PublicKey)
-	return block.HashSHA256(pubKeyEncoded), nil
+	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
+	return hashing.New(pubKeyEncoded), nil
 }
 
 func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {

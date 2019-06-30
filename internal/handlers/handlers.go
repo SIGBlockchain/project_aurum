@@ -8,10 +8,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
-
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
 // Handler for incoming account info queries
@@ -90,7 +89,7 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan accounts.Contrac
 		}
 		var requestedContract = accounts.Contract{
 			requestBody.Version,
-			keys.DecodePublicKey(unhexedRequestPublicKey),
+			publickey.Decode(unhexedRequestPublicKey),
 			requestBody.SignatureLength,
 			unhexedRequestSignature,
 			unhexedRequestRecipientHash,
