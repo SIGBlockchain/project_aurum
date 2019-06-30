@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/pkg/keys"
-
 	"github.com/SIGBlockchain/project_aurum/internal/config"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
 	"github.com/SIGBlockchain/project_aurum/internal/handlers"
@@ -117,12 +117,12 @@ func main() {
 		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
 			pendingContractPool = append(pendingContractPool, newContract)
-			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ", hex.EncodeToString(keys.EncodePublicKey(newContract.SenderPubKey)), newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
+			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ", hex.EncodeToString(publickey.Encode(newContract.SenderPubKey)), newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
 
 		// New block is ready to be produced
 		case <-intervalChannel:
 			log.Printf("Block #%d ready for production.", chainHeight+1)
-			if newBlock, err := producer.CreateBlock(cfg.Version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), pendingContractPool); err != nil {
+			if newBlock, err := block.New(cfg.Version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), pendingContractPool); err != nil {
 				log.Fatalf("Failed to create block %v", err)
 			} else {
 
@@ -134,7 +134,7 @@ func main() {
 
 					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
-						senderPublicKeyHash := block.HashSHA256(keys.EncodePublicKey(contract.SenderPubKey))
+						senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
 						if err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
 							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
