@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 )
 
@@ -37,7 +37,7 @@ func (b *Block) GetHeader() BlockHeader {
 	return BlockHeader{b.Version, b.Height, b.Timestamp, b.PreviousHash, b.MerkleRootHash}
 }
 
-func New(version uint16, height uint64, previousHash []byte, data []accounts.Contract) (Block, error) {
+func New(version uint16, height uint64, previousHash []byte, data []contracts.Contract) (Block, error) {
 	var serializedDatum [][]byte // A series of serialized data for Merkle root hash
 
 	for i := range data {

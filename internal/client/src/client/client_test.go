@@ -19,7 +19,8 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
@@ -577,7 +578,7 @@ func TestRequestWalletInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Wallet address in table" {
-				err = accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, tt.expectedBal)
+				err = accountstable.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, tt.expectedBal)
 				if err != nil {
 					t.Errorf("failed to insert account into account balance table")
 				}

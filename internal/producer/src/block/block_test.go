@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 	"github.com/google/go-cmp/cmp"
@@ -120,11 +120,11 @@ func TestDeserialize(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	var datum []accounts.Contract
+	var datum []contracts.Contract
 	for i := 0; i < 12; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
-		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
+		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 1000, 0)
 		datum = append(datum, *someAirdropContract)
 	}
 	var serializedDatum [][]byte
@@ -136,7 +136,7 @@ func TestNew(t *testing.T) {
 		version      uint16
 		height       uint64
 		previousHash []byte
-		data         []accounts.Contract
+		data         []contracts.Contract
 	}
 	tests := []struct {
 		name    string

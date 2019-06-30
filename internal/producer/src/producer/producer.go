@@ -26,7 +26,9 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
@@ -189,7 +191,7 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 			if buf[8] == 2 {
 				lgr.Println("Received account info request")
 				// TODO: Will require a sync.Mutex lock here eventually
-				accInfo, err := accounts.GetAccountInfo(buf[9:nRcvd])
+				accInfo, err := accountstable.GetAccountInfo(buf[9:nRcvd])
 				var responseMessage []byte
 				responseMessage = append(responseMessage, SecretBytes...)
 				if err != nil {
@@ -239,7 +241,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 
 	// Initialize other variables
 	var numBlocksGenerated uint64
-	var dataPool []accounts.Contract
+	var dataPool []contracts.Contract
 	var ms runtime.MemStats
 
 	// Determine production interval and start trigger goroutine
@@ -262,10 +264,10 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			switch message[8] {
 			case 1:
 				lgr.Println("Received contract")
-				var newContract accounts.Contract
+				var newContract contracts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
 					// TODO: Validate the contract prior to adding
-					if err := accounts.ValidateContract(&newContract); err != nil {
+					if err := validation.ValidateContract(&newContract); err != nil {
 						lgr.Println("Invalid contract because: " + err.Error())
 					} else {
 						dataPool = append(dataPool, newContract)
@@ -301,7 +303,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					}
 					for _, contract := range dataPool {
 						senderPKH := hashing.New(publickey.Encode(contract.SenderPubKey))
-						err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
+						err := accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
 						if err != nil {
 							lgr.Printf("Failed to add contract to accounts database: %v", err)
 						}
@@ -368,11 +370,11 @@ func calculateInterval(youngestBlockHeader block.BlockHeader, productionInterval
 func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint64) (block.Block, error) {
 	version := uint16(1)
 	mintAmt := initialAurumSupply / uint64(len(genesisPublicKeyHashes)) // (initialAurumSupply / n supplied key hashes)
-	var datum []accounts.Contract
+	var datum []contracts.Contract
 
 	for _, pubKeyHash := range genesisPublicKeyHashes {
 		// for every public key hashes, make a nil-sender contract with value indicated by mintAmt
-		contract, err := accounts.MakeContract(version, nil, pubKeyHash, mintAmt, 0)
+		contract, err := contracts.New(version, nil, pubKeyHash, mintAmt, 0)
 		if err != nil {
 			return block.Block{}, errors.New("Failed to make contracts")
 		}
@@ -444,9 +446,9 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 		return errors.New("Failed to create statement for inserting into account table")
 	}
 
-	for _, contracts := range genesisBlock.Data {
-		var contract accounts.Contract
-		contract.Deserialize(contracts)
+	for _, contrcts := range genesisBlock.Data {
+		var contract contracts.Contract
+		contract.Deserialize(contrcts)
 		_, err := stmt.Exec(hex.EncodeToString(contract.RecipPubKeyHash), contract.Value, 0)
 		if err != nil {
 			return errors.New("Failed to execute statement for inserting into account table")
@@ -601,10 +603,10 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 func updateAccountTable(db *sql.DB, b *block.Block) error {
 
 	//retrieve contracts
-	contracts := make([]*accounts.Contract, len(b.Data))
+	contrcts := make([]*contracts.Contract, len(b.Data))
 	for i, data := range b.Data {
-		contracts[i] = &accounts.Contract{}
-		err := contracts[i].Deserialize(data)
+		contrcts[i] = &contracts.Contract{}
+		err := contrcts[i].Deserialize(data)
 		if err != nil {
 			return errors.New("Failed to deserialize contracts: " + err.Error())
 		}
@@ -619,13 +621,13 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 
 	totalBalances := make([]accountInfo, 0)
 	minting := false
-	for _, contract := range contracts {
+	for _, contract := range contrcts {
 		addRecip := true
 		addSender := true
 
 		if contract.SenderPubKey == nil { // minting contracts
 			minting = true
-			err := accounts.InsertAccountIntoAccountBalanceTable(db, contract.RecipPubKeyHash, contract.Value)
+			err := accountstable.InsertAccountIntoAccountBalanceTable(db, contract.RecipPubKeyHash, contract.Value)
 			if err != nil {
 				return err
 			}
