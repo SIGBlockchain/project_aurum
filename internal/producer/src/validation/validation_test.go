@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 	_ "github.com/mattn/go-sqlite3"

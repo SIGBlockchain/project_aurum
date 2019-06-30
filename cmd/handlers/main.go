@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 
@@ -23,8 +25,6 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
 )
 
 func main() {
@@ -65,10 +65,10 @@ func main() {
 	defer accountsDatabaseConnection.Close()
 
 	// Declare channel for new contracts
-	contractChannel := make(chan accounts.Contract)
+	contractChannel := make(chan contracts.Contract)
 
 	// Declare pool of contracts pending block production
-	var pendingContractPool []accounts.Contract
+	var pendingContractPool []contracts.Contract
 
 	// Signal channel for interrupts
 	signalChannel := make(chan os.Signal, 1)
@@ -135,7 +135,7 @@ func main() {
 					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
 						senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
-						if err := accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
+						if err := accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
 							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
 					}

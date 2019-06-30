@@ -18,13 +18,13 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountinfo"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/validation"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 

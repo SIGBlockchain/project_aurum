@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
@@ -41,8 +41,8 @@ func NewContractRequest(host string, newContract contracts.Contract) (*http.Requ
 		SignatureLength:        newContract.SigLen,
 		Signature:              hex.EncodeToString(newContract.Signature),
 		RecipientWalletAddress: hex.EncodeToString(newContract.RecipPubKeyHash),
-		Value:                  newContract.Value,
-		StateNonce:             newContract.StateNonce,
+		Value:      newContract.Value,
+		StateNonce: newContract.StateNonce,
 	}
 	marshalledContract, err := json.Marshal(newJSONContract)
 	if err != nil {
