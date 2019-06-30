@@ -391,6 +391,9 @@ func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 	requestInfoMessage = append(requestInfoMessage, 2)
 	requestInfoMessage = append(requestInfoMessage, walletAddress...)
 	conn, err := net.Dial("tcp", producerAddr)
+	if err != nil {
+		return accInfo, errors.New("failed to connect to producer: " + err.Error())
+	}
 	if _, err := conn.Write(requestInfoMessage); err != nil {
 		return accInfo, errors.New("failed to send message to producer: " + err.Error())
 	}
