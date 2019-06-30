@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
@@ -380,8 +380,8 @@ func GetWalletAddress() ([]byte, error) {
 	return hashing.New(pubKeyEncoded), nil
 }
 
-func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
-	var accInfo accounts.AccountInfo
+func RequestWalletInfo(producerAddr string) (accountinfo.AccountInfo, error) {
+	var accInfo accountinfo.AccountInfo
 	walletAddress, err := GetWalletAddress()
 	if err != nil {
 		return accInfo, errors.New("failed to get wallet address: " + err.Error())
@@ -412,7 +412,7 @@ func RequestWalletInfo(producerAddr string) (accounts.AccountInfo, error) {
 		return accInfo, errors.New("got back failure message from producer")
 	} else if buf[8] == 0 {
 		if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
-			return accounts.AccountInfo{}, errors.New("failed to deserialize account info: " + err.Error())
+			return accountinfo.AccountInfo{}, errors.New("failed to deserialize account info: " + err.Error())
 		}
 	}
 	return accInfo, nil

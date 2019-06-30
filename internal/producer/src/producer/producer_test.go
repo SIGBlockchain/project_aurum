@@ -18,7 +18,10 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
@@ -92,8 +95,8 @@ func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
-	contract.SignContract(senderPrivateKey)
+	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+	contract.Sign(senderPrivateKey)
 	serializedContract, err := contract.Serialize()
 
 	var contractMessage []byte
@@ -151,7 +154,7 @@ func TestRunServer(t *testing.T) {
 				t.Errorf("result does not match:\n%s != %s", string(res), string(arg.messageToBeSent))
 			}
 			if arg.name == "Contract message" {
-				var contract accounts.Contract
+				var contract contracts.Contract
 				if err := contract.Deserialize(res[9:]); err != nil {
 					t.Errorf("failed to deserialize contract:\n%s", err.Error())
 				}
@@ -209,8 +212,8 @@ func TestByteChannel(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	contract, _ := accounts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
-	contract.SignContract(senderPrivateKey)
+	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+	contract.Sign(senderPrivateKey)
 	serializedContract, _ := contract.Serialize()
 
 	var contractMessage []byte
@@ -233,7 +236,7 @@ func TestByteChannel(t *testing.T) {
 		t.Errorf("failed to get youngest block:\n%s", err.Error())
 	}
 	data := youngestBlock.Data[0]
-	var compContract accounts.Contract
+	var compContract contracts.Contract
 	if err := compContract.Deserialize(data); err != nil {
 		t.Errorf("failed to deserialize data:\n%s", err.Error())
 	}
@@ -311,10 +314,10 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	conn.Close()
 
 	// Check for successful insertion
-	if err := accounts.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 1000); err != nil {
+	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 1000); err != nil {
 		t.Errorf("failed to insert sender account")
 	}
-	_, err = accounts.GetAccountInfo(walletAddress)
+	_, err = accountstable.GetAccountInfo(walletAddress)
 	if err != nil {
 		t.Errorf("failed to retrieve account info:\n%s", err.Error())
 	}
@@ -347,7 +350,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	if buf[8] != 0 {
 		t.Errorf("failed to get success response from producer: %d != %d", buf[8], 0)
 	}
-	var accInfo accounts.AccountInfo
+	var accInfo accountinfo.AccountInfo
 	if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
 		t.Errorf("failed to deserialize account info:\n%s", err.Error())
 	}
@@ -356,11 +359,11 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
-	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
+	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
 		// d    *Data
-		d *accounts.Contract
+		d *contracts.Contract
 	}{
 		{
 			// d: &Data{
@@ -410,7 +413,7 @@ func TestData_Serialize(t *testing.T) {
 func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
-	initialContract, _ := accounts.MakeContract(1, nil, spkh, 1000, 0)
+	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	// someData := &Data{
 	// 	Hdr: DataHeader{
 	// 		Version: 1,
@@ -425,13 +428,13 @@ func TestData_Deserialize(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		d       *accounts.Contract
+		d       *contracts.Contract
 		args    args
 		wantErr bool
 	}{
 		{
 			// d: &Data{},
-			d: &accounts.Contract{},
+			d: &contracts.Contract{},
 			args: args{
 				serializedData: serializedsomeData,
 			},
@@ -451,12 +454,12 @@ func TestData_Deserialize(t *testing.T) {
 
 func TestBringOnTheGenesis(t *testing.T) {
 	var pkhashes [][]byte
-	var datum []accounts.Contract
+	var datum []contracts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
-		someAirdropContract, _ := accounts.MakeContract(1, nil, someKeyPKHash, 10, 0)
+		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 10, 0)
 		datum = append(datum, *someAirdropContract)
 	}
 	genny, _ := block.New(1, 0, make([]byte, 32), datum)
@@ -495,12 +498,12 @@ func TestBringOnTheGenesis(t *testing.T) {
 				t.Errorf("BringOnTheGenesis() = %v, want %v", got, tt.want)
 			}
 			for i := range got.Data {
-				deserializedData := accounts.Contract{}
+				deserializedData := contracts.Contract{}
 				err := deserializedData.Deserialize(got.Data[i])
 				if err != nil {
 					t.Errorf("failed to deserialize data")
 				}
-				deserializedContract := &accounts.Contract{}
+				deserializedContract := &contracts.Contract{}
 				serializedDataBdy, _ := deserializedData.Serialize()
 				deserializedContract.Deserialize(serializedDataBdy)
 				if deserializedContract.Value != 10 {
@@ -801,54 +804,54 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	}
 	// Insert pkhashes into account table for contract validation
 	for i := 0; i < 100; i++ {
-		err := accounts.InsertAccountIntoAccountBalanceTable(acctsDB, pkhashes[i], 10)
+		err := accountstable.InsertAccountIntoAccountBalanceTable(acctsDB, pkhashes[i], 10)
 		if err != nil {
 			t.Errorf("Failed to insert pkhash (%v) into account table: %s", pkhashes[i], err.Error())
 		}
 	}
 
 	// Create 3 contracts
-	contracts := make([]accounts.Contract, 3)
+	contrcts := make([]contracts.Contract, 3)
 
 	// Contract 1
 	recipPKHash := hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
-	contract1, _ := accounts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
-	contract1.SignContract(somePVKeys[0])
-	err = accounts.ValidateContract(contract1)
+	contract1, _ := contracts.New(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
+	contract1.Sign(somePVKeys[0])
+	err = validation.ValidateContract(contract1)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	senderPKHash := hashing.New(publickey.Encode(&(somePVKeys[0].PublicKey)))
-	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
+	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
 
 	// Contract 2
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
-	contract2, _ := accounts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
-	contract2.SignContract(somePVKeys[1])
-	err = accounts.ValidateContract(contract2)
+	contract2, _ := contracts.New(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
+	contract2.Sign(somePVKeys[1])
+	err = validation.ValidateContract(contract2)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[1].PublicKey))
-	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
+	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
 
 	// Contract 3
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
-	contract3, _ := accounts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
-	contract3.SignContract(somePVKeys[2])
-	err = accounts.ValidateContract(contract3)
+	contract3, _ := contracts.New(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
+	contract3.Sign(somePVKeys[2])
+	err = validation.ValidateContract(contract3)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[2].PublicKey))
-	accounts.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
+	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
 	acctsDB.Close()
 
-	contracts[0] = *contract1
-	contracts[1] = *contract2
-	contracts[2] = *contract3
+	contrcts[0] = *contract1
+	contrcts[1] = *contract2
+	contrcts[2] = *contract3
 
-	firstBlock, err := block.New(1, 1, block.HashBlock(genesisBlk), contracts)
+	firstBlock, err := block.New(1, 1, block.HashBlock(genesisBlk), contrcts)
 	if err != nil {
 		t.Errorf("failed to create first block")
 	}
@@ -1033,7 +1036,7 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 		t.Errorf("failed to create genesis block: %v", err)
 	}
 	serializedCtc := genesisBlock.Data[0]
-	var ctc accounts.Contract
+	var ctc contracts.Contract
 	err = ctc.Deserialize(serializedCtc)
 	if err != nil {
 		t.Errorf("failed to deserialize block: %v", err)

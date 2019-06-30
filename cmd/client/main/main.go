@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 	"github.com/pborman/getopt"
 )
@@ -152,7 +152,7 @@ func main() {
 // GetBalance(), if value is > than wallet balance, output an error
 // GetStateNonce(), GetPrivateKey()
 // Convert recipient to []byte; if unsuccessful output an error
-// MakeContract(...) (use version global), SignContract(...)
+// New(...) (use version global), Sign(...)
 // Output a contract message, with the following structure:
 // producer.SecretBytes + uint8(1) + serializedContract
 // NOTE: The uint8(1) here will let the producer know that this is a contract message
@@ -195,11 +195,11 @@ func ContractMessageFromInput(value string, recipient string) ([]byte, error) {
 		return nil, err
 	}
 
-	contract, err := accounts.MakeContract(version, senderPubKey, recipBytes, uint64(intVal), stateNonce+1)
+	contract, err := contracts.New(version, senderPubKey, recipBytes, uint64(intVal), stateNonce+1)
 	if err != nil {
 		return nil, err
 	}
-	contract.SignContract(senderPubKey)
+	contract.Sign(senderPubKey)
 	serializedContract, _ := contract.Serialize()
 
 	var contractMessage []byte

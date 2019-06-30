@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
@@ -33,7 +33,7 @@ func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, er
 	return req, nil
 }
 
-func NewContractRequest(host string, newContract accounts.Contract) (*http.Request, error) {
+func NewContractRequest(host string, newContract contracts.Contract) (*http.Request, error) {
 	// TODO: accounts.Contract to JSON Call it MarshalContract?
 	var newJSONContract = JSONContract{
 		Version:                newContract.Version,
