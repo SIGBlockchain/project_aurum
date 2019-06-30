@@ -374,7 +374,7 @@ func BringOnTheGenesis(genesisPublicKeyHashes [][]byte, initialAurumSupply uint6
 
 	for _, pubKeyHash := range genesisPublicKeyHashes {
 		// for every public key hashes, make a nil-sender contract with value indicated by mintAmt
-		contract, err := contracts.MakeContract(version, nil, pubKeyHash, mintAmt, 0)
+		contract, err := contracts.New(version, nil, pubKeyHash, mintAmt, 0)
 		if err != nil {
 			return block.Block{}, errors.New("Failed to make contracts")
 		}

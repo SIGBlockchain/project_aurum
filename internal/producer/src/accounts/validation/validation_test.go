@@ -51,40 +51,40 @@ func TestValidateContract(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
 	}
-	zeroValueContract, _ := contracts.MakeContract(1, sender, recipientPKH, 0, 1)
+	zeroValueContract, _ := contracts.New(1, sender, recipientPKH, 0, 1)
 	zeroValueContract.Sign(sender)
 
-	nilSenderContract, _ := contracts.MakeContract(1, nil, senderPKH, 500, 1)
+	nilSenderContract, _ := contracts.New(1, nil, senderPKH, 500, 1)
 
-	senderRecipContract, _ := contracts.MakeContract(1, sender, senderPKH, 500, 1)
+	senderRecipContract, _ := contracts.New(1, sender, senderPKH, 500, 1)
 	senderRecipContract.Sign(sender)
 
-	invalidSignatureContract, _ := contracts.MakeContract(1, sender, recipientPKH, 500, 1)
+	invalidSignatureContract, _ := contracts.New(1, sender, recipientPKH, 500, 1)
 	invalidSignatureContract.Sign(recipient)
 
-	insufficentFundsContract, _ := contracts.MakeContract(1, sender, recipientPKH, 2000000, 1)
+	insufficentFundsContract, _ := contracts.New(1, sender, recipientPKH, 2000000, 1)
 	insufficentFundsContract.Sign(sender)
 
-	invalidNonceContract, _ := contracts.MakeContract(1, sender, recipientPKH, 20, 0)
+	invalidNonceContract, _ := contracts.New(1, sender, recipientPKH, 20, 0)
 	invalidNonceContract.Sign(sender)
 
-	invalidNonceContract2, _ := contracts.MakeContract(1, sender, recipientPKH, 20, 2)
+	invalidNonceContract2, _ := contracts.New(1, sender, recipientPKH, 20, 2)
 	invalidNonceContract2.Sign(sender)
 
-	validTwoExistingAccountsContract, _ := contracts.MakeContract(1, sender, recipientPKH, 500, 1)
+	validTwoExistingAccountsContract, _ := contracts.New(1, sender, recipientPKH, 500, 1)
 	validTwoExistingAccountsContract.Sign(sender)
 
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
 
-	validOneExistingAccountsContract, _ := contracts.MakeContract(1, sender, keyNotInTablePKH, 500, 1)
+	validOneExistingAccountsContract, _ := contracts.New(1, sender, keyNotInTablePKH, 500, 1)
 	validOneExistingAccountsContract.Sign(sender)
 	accountstable.InsertAccountIntoAccountBalanceTable(dbc, keyNotInTablePKH, 500)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	anotherKeyNotInTablePKH := hashing.New(publickey.Encode(&anotherKeyNotInTable.PublicKey))
 
-	newAccountToANewerAccountContract, _ := contracts.MakeContract(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
+	newAccountToANewerAccountContract, _ := contracts.New(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.Sign(keyNotInTable)
 
 	tests := []struct {

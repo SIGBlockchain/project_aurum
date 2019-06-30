@@ -41,7 +41,7 @@ recipient pk hash comes from sha-256 hash of rpk
 value is value parameter
 returns contract struct
 */
-func MakeContract(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nextStateNonce uint64) (*Contract, error) {
+func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nextStateNonce uint64) (*Contract, error) {
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")

@@ -40,7 +40,7 @@ func TestAccountInfoRequest(t *testing.T) {
 
 func TestNewContractRequest(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	testContract, err := contracts.MakeContract(1, senderPrivateKey, []byte{1}, 25, 20)
+	testContract, err := contracts.New(1, senderPrivateKey, []byte{1}, 25, 20)
 	if err != nil {
 		t.Errorf("failed to make contract : %v", err)
 	}

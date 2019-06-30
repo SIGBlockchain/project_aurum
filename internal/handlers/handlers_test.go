@@ -89,7 +89,7 @@ func TestContractRequestHandler(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	var recipientWalletAddress = hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	testContract, err := contracts.MakeContract(1, senderPrivateKey, recipientWalletAddress, 25, 1)
+	testContract, err := contracts.New(1, senderPrivateKey, recipientWalletAddress, 25, 1)
 	if err != nil {
 		t.Errorf("failed to make contract : %v", err)
 	}

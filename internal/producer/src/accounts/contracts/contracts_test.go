@@ -16,7 +16,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
-func TestMakeContract(t *testing.T) {
+func TestNew(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	type args struct {
@@ -87,12 +87,12 @@ func TestMakeContract(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeContract(tt.args.version, tt.args.sender, tt.args.recipient, tt.args.value, tt.args.newStateNonce)
+			got, err := New(tt.args.version, tt.args.sender, tt.args.recipient, tt.args.value, tt.args.newStateNonce)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("MakeContract() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MakeContract() = %v, want %v", got, tt.want)
+				t.Errorf("New() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -101,9 +101,9 @@ func TestMakeContract(t *testing.T) {
 func TestContract_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
-	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
+	nullSenderContract, _ := New(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
+	unsignedContract, _ := New(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
+	signedContract, _ := New(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 0)
 	signedContract.Sign(senderPrivateKey)
 	tests := []struct {
 		name string
@@ -166,11 +166,11 @@ func TestContract_Serialize(t *testing.T) {
 func TestContract_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	nullSenderContract, _ := MakeContract(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 1)
+	nullSenderContract, _ := New(1, nil, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 1)
 	nullSenderContractSerialized, _ := nullSenderContract.Serialize()
-	unsignedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
+	unsignedContract, _ := New(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
 	unsignedContractSerialized, _ := unsignedContract.Serialize()
-	signedContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
+	signedContract, _ := New(1, senderPrivateKey, hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey)), 1000, 1)
 	signedContract.Sign(senderPrivateKey)
 	signedContractSerialized, _ := signedContract.Serialize()
 	type args struct {
@@ -274,7 +274,7 @@ func TestContract_Deserialize(t *testing.T) {
 
 func TestContract_Sign(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	testContract, _ := MakeContract(1, senderPrivateKey, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
+	testContract, _ := New(1, senderPrivateKey, hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)), 1000, 0)
 	type args struct {
 		sender ecdsa.PrivateKey
 	}

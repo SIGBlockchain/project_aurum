@@ -7,7 +7,7 @@ type AccountInfo struct {
 	StateNonce uint64
 }
 
-func NewAccountInfo(balance uint64, stateNonce uint64) *AccountInfo {
+func New(balance uint64, stateNonce uint64) *AccountInfo {
 	return &AccountInfo{Balance: balance, StateNonce: stateNonce}
 }
 

@@ -95,7 +95,7 @@ func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	contract, _ := contracts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, err := contract.Serialize()
 
@@ -212,7 +212,7 @@ func TestByteChannel(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	contract, _ := contracts.MakeContract(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
+	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, _ := contract.Serialize()
 
@@ -359,7 +359,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
-	initialContract, _ := contracts.MakeContract(1, nil, spkh, 1000, 0)
+	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
 		// d    *Data
@@ -413,7 +413,7 @@ func TestData_Serialize(t *testing.T) {
 func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
-	initialContract, _ := contracts.MakeContract(1, nil, spkh, 1000, 0)
+	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	// someData := &Data{
 	// 	Hdr: DataHeader{
 	// 		Version: 1,
@@ -459,7 +459,7 @@ func TestBringOnTheGenesis(t *testing.T) {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		pkhashes = append(pkhashes, someKeyPKHash)
-		someAirdropContract, _ := contracts.MakeContract(1, nil, someKeyPKHash, 10, 0)
+		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 10, 0)
 		datum = append(datum, *someAirdropContract)
 	}
 	genny, _ := block.New(1, 0, make([]byte, 32), datum)
@@ -815,7 +815,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 
 	// Contract 1
 	recipPKHash := hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
-	contract1, _ := contracts.MakeContract(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
+	contract1, _ := contracts.New(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.Sign(somePVKeys[0])
 	err = validation.ValidateContract(contract1)
 	if err != nil {
@@ -826,7 +826,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 
 	// Contract 2
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
-	contract2, _ := contracts.MakeContract(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
+	contract2, _ := contracts.New(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.Sign(somePVKeys[1])
 	err = validation.ValidateContract(contract2)
 	if err != nil {
@@ -837,7 +837,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 
 	// Contract 3
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
-	contract3, _ := contracts.MakeContract(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
+	contract3, _ := contracts.New(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.Sign(somePVKeys[2])
 	err = validation.ValidateContract(contract3)
 	if err != nil {

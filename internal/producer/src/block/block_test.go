@@ -124,7 +124,7 @@ func TestNew(t *testing.T) {
 	for i := 0; i < 12; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
-		someAirdropContract, _ := contracts.MakeContract(1, nil, someKeyPKHash, 1000, 0)
+		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 1000, 0)
 		datum = append(datum, *someAirdropContract)
 	}
 	var serializedDatum [][]byte
