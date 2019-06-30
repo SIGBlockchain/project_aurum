@@ -1,0 +1,7 @@
+{
+    "Version": 1,
+    "InitialAurumSupply": 50000000,
+    "Port": "12000",
+    "BlockProductionInterval": "20s",
+    "Localhost": true
+}

@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
@@ -391,6 +391,9 @@ func RequestWalletInfo(producerAddr string) (accountinfo.AccountInfo, error) {
 	requestInfoMessage = append(requestInfoMessage, 2)
 	requestInfoMessage = append(requestInfoMessage, walletAddress...)
 	conn, err := net.Dial("tcp", producerAddr)
+	if err != nil {
+		return accInfo, errors.New("failed to connect to producer: " + err.Error())
+	}
 	if _, err := conn.Write(requestInfoMessage); err != nil {
 		return accInfo, errors.New("failed to send message to producer: " + err.Error())
 	}

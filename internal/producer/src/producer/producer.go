@@ -26,12 +26,12 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accounts/validation"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
 )
 
@@ -697,7 +697,7 @@ var genesisHashFile = "genesis_hashes.txt"
 // use bufio.ReadLine()
 func ReadGenesisHashes() ([][]byte, error) {
 	//open genesisHashFile
-	file, err := os.Open(genesisHashFile)
+	file, err := os.Open(constants.GenesisAddresses)
 	if err != nil {
 		return [][]byte{}, errors.New("Unable to open genesis_hashs.txt")
 	}
@@ -728,7 +728,7 @@ func ReadGenesisHashes() ([][]byte, error) {
 func GenerateGenesisHashFile(numHashes uint16) {
 
 	// creating the new file
-	genHashfile, _ := os.Create(genesisHashFile)
+	genHashfile, _ := os.Create(constants.GenesisAddresses)
 
 	defer genHashfile.Close()
 
