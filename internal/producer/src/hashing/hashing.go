@@ -1,6 +1,7 @@
 package hashing
 
 import (
+	"bytes"
 	"container/list"
 	"crypto/sha256"
 )
@@ -55,4 +56,10 @@ func getMerkleRoot(l *list.List) []byte {
 		l.PushBack(New(New(buff)))
 	}
 	return getMerkleRoot(l)
+}
+
+// Equals returns true if the SHA256 hash is the hash of the given
+// byte slice, false otherwise
+func (hash SHA256Hash) Equals(bSlice []byte) bool {
+	return bytes.Equal(hash.SecureHash, New(bSlice))
 }
