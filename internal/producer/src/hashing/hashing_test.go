@@ -81,3 +81,49 @@ func TestGetMerkleRootHashQuadInput(t *testing.T) {
 		t.Errorf("%v != %v", expected, actual)
 	}
 }
+
+func TestEquals(t *testing.T) {
+	hash1 := SHA256Hash{
+		New([]byte{'a'}),
+	}
+
+	tests := []struct {
+		name string
+		h1   SHA256Hash
+		h2   []byte
+		want bool
+	}{
+		{
+			"Equal",
+			hash1,
+			[]byte{'a'},
+			true,
+		},
+		{
+			"Not equal",
+			hash1,
+			[]byte{'z'},
+			false,
+		},
+		{
+			"Not equal",
+			hash1,
+			[]byte{},
+			false,
+		},
+		{
+			"Not equal",
+			hash1,
+			nil,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := tt.h1.Equals(tt.h2); result != tt.want {
+				t.Errorf("Failed to return %v (got %v) for hashes that are: %v", tt.want, result, tt.name)
+			}
+		})
+	}
+}
