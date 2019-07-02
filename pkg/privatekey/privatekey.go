@@ -25,3 +25,19 @@ func Decode(key []byte) (*ecdsa.PrivateKey, error) {
 	x509EncodedPriv := keyBlock.Bytes
 	return x509.ParseECPrivateKey(x509EncodedPriv)
 }
+
+// Equals returns true if the given two *ecdsa.PrivateKey are equal
+func (pvKey AurumPrivateKey) Equals(pvKey2 *ecdsa.PrivateKey) bool {
+	if pvKey.Key == nil || pvKey2 == nil {
+		return false
+	}
+
+	if pvKey.Key.PublicKey.X.Cmp(pvKey2.PublicKey.X) != 0 ||
+		pvKey.Key.PublicKey.Y.Cmp(pvKey2.PublicKey.Y) != 0 ||
+		pvKey.Key.PublicKey.Curve != pvKey2.PublicKey.Curve ||
+		pvKey.Key.D.Cmp(pvKey2.D) != 0 {
+		return false
+	}
+
+	return true
+}
