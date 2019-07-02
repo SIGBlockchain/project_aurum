@@ -11,7 +11,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
-	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
 // Handler for incoming account info queries
