@@ -22,8 +22,8 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/privatekey"
-	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
 )

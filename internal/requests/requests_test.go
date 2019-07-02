@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
 func TestAccountInfoRequest(t *testing.T) {

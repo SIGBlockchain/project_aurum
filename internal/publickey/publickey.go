@@ -23,3 +23,18 @@ func Decode(key []byte) *ecdsa.PublicKey {
 	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
 	return genericPublicKey.(*ecdsa.PublicKey)
 }
+
+// Equals returns true if the given two *ecdsa.PublicKey are equal
+func (pbKey AurumPublicKey) Equals(pbKey2 *ecdsa.PublicKey) bool {
+	if pbKey.Key == nil || pbKey2 == nil {
+		return false
+	}
+
+	if pbKey.Key.X.Cmp(pbKey2.X) != 0 ||
+		pbKey.Key.Y.Cmp(pbKey2.Y) != 0 ||
+		pbKey.Key.Curve != pbKey2.Curve {
+		return false
+	}
+
+	return true
+}

@@ -16,7 +16,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/pkg/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	_ "github.com/mattn/go-sqlite3"

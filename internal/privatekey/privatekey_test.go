@@ -47,3 +47,52 @@ func TestDecode(t *testing.T) {
 		})
 	}
 }
+
+func TestEquals(t *testing.T) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Errorf("Failed to generate private/public key pair")
+	}
+	aurumPVKey := AurumPrivateKey{
+		privateKey,
+	}
+
+	privateKey2, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Errorf("Failed to generate private/public key pair")
+	}
+
+	tests := []struct {
+		name     string
+		privKey  AurumPrivateKey
+		privKey2 *ecdsa.PrivateKey
+		want     bool
+	}{
+		{
+			"Equals",
+			aurumPVKey,
+			privateKey,
+			true,
+		},
+		{
+			"Not Equals",
+			aurumPVKey,
+			privateKey2,
+			false,
+		},
+		{
+			"Not Equals",
+			aurumPVKey,
+			nil,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := tt.privKey.Equals(tt.privKey2); result != tt.want {
+				t.Errorf("Failed to return %v (got %v) for private keys that are: %v", tt.want, result, tt.name)
+			}
+		})
+	}
+}
