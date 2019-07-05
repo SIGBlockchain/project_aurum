@@ -79,7 +79,8 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 	}
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
-	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(publickey.Encode(c.SenderPubKey))) {
+	recipPKhash := hashing.SHA256Hash{SecureHash: c.RecipPubKeyHash}
+	if c.SenderPubKey == nil || recipPKhash.Equals(publickey.Encode(c.SenderPubKey)) {
 		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 
