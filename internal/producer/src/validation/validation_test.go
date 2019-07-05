@@ -154,12 +154,155 @@ func TestValidateContract(t *testing.T) {
 	}
 }
 
-// func checkBalanceAndNonce(queryBalance uint64, wantBalance uint64, queryNonce uint64, wantNonce uint64) error {
-// 	if queryBalance != wantBalance {
-// 		return fmt.Errorf("balance does not match; wanted: %d, got: %d", wantBalance, queryBalance)
-// 	}
-// 	if queryNonce != wantNonce {
-// 		return fmt.Errorf("nonce does not match; wanted: %d, got: %d", wantNonce, queryNonce)
-// 	}
-// 	return nil
-// }
+// Test cases for ValidatePending
+//// Zero value
+//// Nil Sender
+//// Sender == Recipient
+//// Invalid signature
+//// Insufficient balance
+//// Invalid state nonce
+//// Completely valid
+
+func TestValidatePending(t *testing.T) {
+	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
+	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
+
+	zeroValueContract, _ := contracts.New(1, sender, recipientPKH, 0, 1)
+	zeroValueContract.Sign(sender)
+
+	nilSenderContract, _ := contracts.New(1, nil, senderPKH, 500, 1)
+
+	senderRecipContract, _ := contracts.New(1, sender, senderPKH, 500, 1)
+	senderRecipContract.Sign(sender)
+
+	invalidSignatureContract, _ := contracts.New(1, sender, recipientPKH, 500, 1)
+	invalidSignatureContract.Sign(recipient)
+
+	insufficentFundsContract, _ := contracts.New(1, sender, recipientPKH, 2000000, 1)
+	insufficentFundsContract.Sign(sender)
+
+	invalidNonceContract, _ := contracts.New(1, sender, recipientPKH, 20, 0)
+	invalidNonceContract.Sign(sender)
+
+	invalidNonceContract2, _ := contracts.New(1, sender, recipientPKH, 20, 2)
+	invalidNonceContract2.Sign(sender)
+
+	// Start: pBalance = 100, pNonce = 0
+	validFirstContract, _ := contracts.New(1, sender, recipientPKH, 50, 1)
+	validFirstContract.Sign(sender)
+
+	// pBalance = 50, pNonce = 1
+	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
+
+	InvalidBalanceContract, _ := contracts.New(1, sender, keyNotInTablePKH, 51, 2)
+	InvalidBalanceContract.Sign(sender)
+
+	InvalidNonceContract, _ := contracts.New(1, sender, keyNotInTablePKH, 20, 3)
+	InvalidNonceContract.Sign(sender)
+
+	ValidSecondContract, _ := contracts.New(1, sender, keyNotInTablePKH, 50, 2)
+	ValidSecondContract.Sign(sender)
+
+	tests := []struct {
+		name     string
+		c        *contracts.Contract
+		pBalance uint64
+		pNonce   uint64
+		wantErr  bool
+	}{
+		{
+			name:     "Zero value",
+			c:        zeroValueContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Nil sender",
+			c:        nilSenderContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Sender == Recipient",
+			c:        senderRecipContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Invalid signature",
+			c:        invalidSignatureContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Insufficient funds",
+			c:        insufficentFundsContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Invalid nonce",
+			c:        invalidNonceContract,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Invalid nonce 2",
+			c:        invalidNonceContract2,
+			pBalance: 1000,
+			pNonce:   0,
+			wantErr:  true,
+		},
+		{
+			name:     "Totally valid",
+			c:        validFirstContract,
+			pBalance: 100,
+			pNonce:   0,
+			wantErr:  false,
+		},
+		{
+			name:    "Invalid balance",
+			c:       InvalidBalanceContract,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid state nonce",
+			c:       InvalidNonceContract,
+			wantErr: true,
+		},
+		{
+			name:    "Totally valid 2",
+			c:       ValidSecondContract,
+			wantErr: false,
+		},
+	}
+
+	var updatedBal uint64
+	var updatedNonce uint64
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if i > 7 {
+				tt.pBalance = updatedBal
+				tt.pNonce = updatedNonce
+			}
+
+			var err error
+			err = ValidatePending(tt.c, &tt.pBalance, &tt.pNonce)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePending() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			updatedBal = tt.pBalance
+			updatedNonce = tt.pNonce
+		})
+	}
+}
