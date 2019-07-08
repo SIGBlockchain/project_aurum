@@ -109,11 +109,11 @@ func TestAdd(t *testing.T) {
 		},
 	}
 
-	m := PendingMap{}
+	m := NewPendingMap()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fmt.Println(tt.name)
-			if err := m.Add(tt.c); (err != nil) != tt.wantErr {
+			if err := m.Add(tt.c, dbc); (err != nil) != tt.wantErr {
 				t.Errorf("Add() returned error: " + err.Error())
 			}
 		})
