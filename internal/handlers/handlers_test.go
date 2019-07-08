@@ -61,8 +61,8 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	}
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusFound {
-		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusFound)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
 	}
 	type AccountInfo struct {
 		WalletAddress string
