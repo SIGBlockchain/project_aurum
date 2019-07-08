@@ -10,8 +10,8 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
-	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
 
 // Handler for incoming account info queries
@@ -53,7 +53,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 			io.WriteString(w, err.Error())
 			return
 		}
-		w.WriteHeader(http.StatusFound)
+		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(marshalledStruct))
 	}
 }
