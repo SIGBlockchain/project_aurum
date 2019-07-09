@@ -85,7 +85,7 @@ func main() {
 	var numBlocksGenerated uint64
 
 	// Define hostname address
-	var hostname = "http://"
+	var hostname string
 	if cfg.Localhost {
 		hostname = "localhost:"
 	} else {
