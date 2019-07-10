@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
+	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/blockchain"
@@ -93,9 +94,10 @@ func main() {
 	}
 	hostname += cfg.Port
 
+	pendingMap := pendingpool.NewPendingMap()
 	// Set handlers for endpoints and run server
 	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection))
-	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel))
+	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap))
 	go http.ListenAndServe(hostname, nil)
 	log.Printf("Serving requests on port %s", cfg.Port)
 
@@ -131,7 +133,10 @@ func main() {
 					log.Fatalf("Failed to add block %v", err)
 				} else {
 					chainHeight++
-
+					// Reset pending pool map to empty
+					for k := range pendingMap.Sender {
+						delete(pendingMap.Sender, k)
+					}
 					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
 						senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
@@ -99,6 +100,16 @@ func TestContractRequestHandler(t *testing.T) {
 		t.Errorf("failed to create new contract request: %v", err)
 	}
 
+	testContract2, err := contracts.New(1, senderPrivateKey, recipientWalletAddress, 59, 2)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+	testContract2.Sign(senderPrivateKey)
+	req2, err := requests.NewContractRequest("", *testContract2)
+	if err != nil {
+		t.Errorf("failed to create new contract request: %v", err)
+	}
+
 	rr := httptest.NewRecorder()
 	dbConn, err := sql.Open("sqlite3", constants.AccountsTable)
 	if err != nil {
@@ -115,8 +126,9 @@ func TestContractRequestHandler(t *testing.T) {
 	statement, _ := dbConn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
 	statement.Exec()
 
+	pMap := pendingpool.NewPendingMap()
 	contractChan := make(chan contracts.Contract)
-	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan))
+	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap))
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusBadRequest)
@@ -140,5 +152,25 @@ func TestContractRequestHandler(t *testing.T) {
 	}
 	if !contracts.Equals(*testContract, channelledContract) {
 		t.Errorf("contracts do not match: got %+v want %+v", *testContract, channelledContract)
+	}
+
+	go handler.ServeHTTP(rr, req2)
+	channelledContract = <-contractChan
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	if !contracts.Equals(*testContract2, channelledContract) {
+		t.Errorf("contracts do not match: got %+v want %+v", *testContract2, channelledContract)
+	}
+	var key string
+	for k := range pMap.Sender {
+		key = k
+		break
+	}
+	if pMap.Sender[key].PendingBal != 1337-25-59 {
+		t.Errorf("balance do not match")
+	}
+	if pMap.Sender[key].PendingNonce != 2 {
+		t.Errorf("state nonce do not match")
 	}
 }

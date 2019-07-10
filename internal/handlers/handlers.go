@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
-	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
 
 // Handler for incoming account info queries
@@ -59,7 +59,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 }
 
 // Handler for incoming contract requests
-func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract) func(w http.ResponseWriter, r *http.Request) {
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestBody requests.JSONContract
 		buf := new(bytes.Buffer)
@@ -98,7 +98,7 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			requestBody.StateNonce,
 		}
 		// TODO: Should use sql connection
-		if err := validation.ValidateContract(&requestedContract); err != nil {
+		if err := pMap.Add(&requestedContract, dbConn); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
 			return
