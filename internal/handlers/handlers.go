@@ -53,7 +53,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 			io.WriteString(w, err.Error())
 			return
 		}
-		w.WriteHeader(http.StatusFound)
+		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(marshalledStruct))
 	}
 }
