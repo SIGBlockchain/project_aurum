@@ -20,6 +20,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 		w.Header().Set("Content-Type", "application/json")
 		var walletAddress = r.URL.Query().Get("w") // assume this is hex-encoded
 		// Query the database
+		// TODO: will most likely need a lock on this dbConnection everywhere
 		row, err := dbConn.Query(`SELECT * FROM account_balances WHERE public_key_hash = "` + walletAddress + `"`)
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -97,7 +98,7 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			requestBody.Value,
 			requestBody.StateNonce,
 		}
-		// TODO: Should use sql connection
+		// TODO: Will need to use mutex locks on dbConnection and pending map
 		if err := pMap.Add(&requestedContract, dbConn); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())

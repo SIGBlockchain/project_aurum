@@ -134,6 +134,7 @@ func main() {
 				} else {
 					chainHeight++
 					// Reset pending pool map to empty
+					// TODO: We probably need a lock on this
 					for k := range pendingMap.Sender {
 						delete(pendingMap.Sender, k)
 					}
