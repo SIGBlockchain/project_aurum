@@ -117,7 +117,9 @@ func main() {
 		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
 			pendingContractPool = append(pendingContractPool, newContract)
-			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ", hex.EncodeToString(publickey.Encode(newContract.SenderPubKey)), newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
+			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ",
+				hex.EncodeToString(hashing.New(publickey.Encode(newContract.SenderPubKey))),
+				newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
 
 		// New block is ready to be produced
 		case <-intervalChannel:
