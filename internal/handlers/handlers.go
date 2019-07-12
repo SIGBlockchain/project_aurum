@@ -8,8 +8,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
@@ -20,6 +20,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 		w.Header().Set("Content-Type", "application/json")
 		var walletAddress = r.URL.Query().Get("w") // assume this is hex-encoded
 		// Query the database
+		// TODO: will most likely need a lock on this dbConnection everywhere
 		row, err := dbConn.Query(`SELECT * FROM account_balances WHERE public_key_hash = "` + walletAddress + `"`)
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -59,7 +60,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 }
 
 // Handler for incoming contract requests
-func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract) func(w http.ResponseWriter, r *http.Request) {
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestBody requests.JSONContract
 		buf := new(bytes.Buffer)
@@ -97,8 +98,8 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			requestBody.Value,
 			requestBody.StateNonce,
 		}
-		// TODO: Should use sql connection
-		if err := validation.ValidateContract(&requestedContract); err != nil {
+		// TODO: Will need to use mutex locks on dbConnection and pending map
+		if err := pMap.Add(&requestedContract, dbConn); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
 			return
