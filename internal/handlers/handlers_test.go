@@ -7,10 +7,12 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
@@ -86,31 +88,20 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	}
 }
 
+func createContractNReq(version uint16, sender *ecdsa.PrivateKey, recip []byte, bal uint64, nonce uint64) (c *contracts.Contract, r *http.Request, e error) {
+	returnContract, err := contracts.New(version, sender, recip, bal, nonce)
+	if err != nil {
+		return nil, nil, errors.New("failed to make contract : " + err.Error())
+	}
+	returnContract.Sign(sender)
+	req, err := requests.NewContractRequest("", *returnContract)
+	if err != nil {
+		return nil, nil, errors.New("failed to create new contract request: " + err.Error())
+	}
+	return returnContract, req, nil
+}
+
 func TestContractRequestHandler(t *testing.T) {
-	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var recipientWalletAddress = hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
-	testContract, err := contracts.New(1, senderPrivateKey, recipientWalletAddress, 25, 1)
-	if err != nil {
-		t.Errorf("failed to make contract : %v", err)
-	}
-	testContract.Sign(senderPrivateKey)
-	req, err := requests.NewContractRequest("", *testContract)
-	if err != nil {
-		t.Errorf("failed to create new contract request: %v", err)
-	}
-
-	testContract2, err := contracts.New(1, senderPrivateKey, recipientWalletAddress, 59, 2)
-	if err != nil {
-		t.Errorf("failed to make contract : %v", err)
-	}
-	testContract2.Sign(senderPrivateKey)
-	req2, err := requests.NewContractRequest("", *testContract2)
-	if err != nil {
-		t.Errorf("failed to create new contract request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
 	dbConn, err := sql.Open("sqlite3", constants.AccountsTable)
 	if err != nil {
 		t.Errorf("failed to open database connection : %v", err)
@@ -129,6 +120,50 @@ func TestContractRequestHandler(t *testing.T) {
 	pMap := pendingpool.NewPendingMap()
 	contractChan := make(chan contracts.Contract)
 	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap))
+
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderStr := hex.EncodeToString(hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)))
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	var recipientWalletAddress = hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
+
+	sender2PrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSender2Str := hex.EncodeToString(hashing.New(publickey.Encode(&sender2PrivateKey.PublicKey)))
+	var walletAddress2 = hashing.New(publickey.Encode(&sender2PrivateKey.PublicKey))
+	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress2, 5000); err != nil {
+		t.Errorf("failed to insert sender account")
+	}
+
+	testContract, req, err := createContractNReq(1, senderPrivateKey, recipientWalletAddress, 25, 1)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	testContract2, req2, err := createContractNReq(1, senderPrivateKey, recipientWalletAddress, 59, 2)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	invalidNonceContract, invalidNonceReq, err := createContractNReq(1, senderPrivateKey, recipientWalletAddress, 10, 4)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	invalidBalanceContract, invalidBalanceReq, err := createContractNReq(1, senderPrivateKey, recipientWalletAddress, 100000, 3)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	testContract3, req3, err := createContractNReq(1, senderPrivateKey, recipientWalletAddress, 100, 3)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	diffSenderContract, diffSenderReq, err := createContractNReq(1, sender2PrivateKey, recipientWalletAddress, 10, 1)
+	if err != nil {
+		t.Errorf("failed to make contract : %v", err)
+	}
+
+	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusBadRequest)
@@ -143,34 +178,102 @@ func TestContractRequestHandler(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create new contract request: %v", err)
 	}
-	rr = httptest.NewRecorder()
 
-	go handler.ServeHTTP(rr, req)
-	channelledContract := <-contractChan
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
+	tests := []struct {
+		name      string
+		c         *contracts.Contract
+		req       *http.Request
+		wantBal   uint64
+		wantNonce uint64
+		key       string
+		status    int
+	}{
+		{
+			"valid contract",
+			testContract,
+			req,
+			1312,
+			1,
+			encodedSenderStr,
+			http.StatusOK,
+		},
+		{
+			"valid contract2",
+			testContract2,
+			req2,
+			1337 - 25 - 59,
+			2,
+			encodedSenderStr,
+			http.StatusOK,
+		},
+		{
+			"invalid nonce contract",
+			invalidNonceContract,
+			invalidNonceReq,
+			1337 - 25 - 59,
+			2,
+			encodedSenderStr,
+			http.StatusBadRequest,
+		},
+		{
+			"invalid balance contract",
+			invalidBalanceContract,
+			invalidBalanceReq,
+			1337 - 25 - 59,
+			2,
+			encodedSenderStr,
+			http.StatusBadRequest,
+		},
+		{
+			"valid contract3",
+			testContract3,
+			req3,
+			1337 - 25 - 59 - 100,
+			3,
+			encodedSenderStr,
+			http.StatusOK,
+		},
+		{
+			"Diff sender contract",
+			diffSenderContract,
+			diffSenderReq,
+			5000 - 10,
+			1,
+			encodedSender2Str,
+			http.StatusOK,
+		},
 	}
-	if !contracts.Equals(*testContract, channelledContract) {
-		t.Errorf("contracts do not match: got %+v want %+v", *testContract, channelledContract)
-	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr = httptest.NewRecorder()
+			go handler.ServeHTTP(rr, tt.req)
+			time.Sleep(time.Second)
 
-	go handler.ServeHTTP(rr, req2)
-	channelledContract = <-contractChan
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	if !contracts.Equals(*testContract2, channelledContract) {
-		t.Errorf("contracts do not match: got %+v want %+v", *testContract2, channelledContract)
-	}
-	var key string
-	for k := range pMap.Sender {
-		key = k
-		break
-	}
-	if pMap.Sender[key].PendingBal != 1337-25-59 {
-		t.Errorf("balance do not match")
-	}
-	if pMap.Sender[key].PendingNonce != 2 {
-		t.Errorf("state nonce do not match")
+			status := rr.Code
+			if status != tt.status {
+				t.Errorf("handler returned with wrong status code: got %v want %v", status, tt.status)
+			}
+			if status == http.StatusOK && status == tt.status {
+				channelledContract := <-contractChan
+				if !contracts.Equals(*tt.c, channelledContract) {
+					t.Errorf("contracts do not match: got %+v want %+v", *tt.c, channelledContract)
+				}
+				if pMap.Sender[tt.key].PendingBal != tt.wantBal {
+					t.Errorf("balance do not match")
+				}
+				if pMap.Sender[tt.key].PendingNonce != tt.wantNonce {
+					t.Errorf("state nonce do not match")
+				}
+			}
+			if i < 5 {
+				if l := len(pMap.Sender); l != 1 {
+					t.Errorf("number of key-value pairs in map does not match: got %v want %v", l, 1)
+				}
+			} else {
+				if l := len(pMap.Sender); l != 2 {
+					t.Errorf("number of key-value pairs in map does not match: got %v want %v", l, 2)
+				}
+			}
+		})
 	}
 }
