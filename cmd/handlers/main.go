@@ -158,6 +158,9 @@ func main() {
 					// Reset pool
 					pendingContractPool = nil
 
+					// Reset youngest block header
+					youngestBlockHeader = newBlock.GetHeader()
+
 					// Reset production interval
 					go triggerInterval(intervalChannel, productionInterval)
 
