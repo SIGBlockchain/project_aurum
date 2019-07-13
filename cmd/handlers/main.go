@@ -152,6 +152,9 @@ func main() {
 						}
 					}
 
+					log.Printf("Block #%d successfully added to blockchain", chainHeight)
+					log.Printf("%d contracts confirmed in block #%d", len(pendingContractPool), chainHeight)
+
 					// Reset pool
 					pendingContractPool = nil
 
@@ -160,8 +163,6 @@ func main() {
 
 					numBlocksGenerated++
 
-					log.Printf("Block #%d successfully added to blockchain", chainHeight)
-					log.Printf("%d contracts confirmed in block #%d", len(pendingContractPool), chainHeight)
 				}
 			}
 			pendingLock.Unlock()
