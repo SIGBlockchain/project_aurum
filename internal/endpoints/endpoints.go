@@ -1,4 +1,6 @@
 package endpoints
 
-const AccountInfo = "/accountinfo"
-const Contract = "/contract"
+const (
+	AccountInfo = "/accountinfo"
+	Contract    = "/contract"
+)
