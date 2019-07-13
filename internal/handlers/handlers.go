@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
@@ -60,7 +61,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 }
 
 // Handler for incoming contract requests
-func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap) func(w http.ResponseWriter, r *http.Request) {
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap, pendingLock *sync.Mutex) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestBody requests.JSONContract
 		buf := new(bytes.Buffer)
@@ -98,14 +99,15 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			requestBody.Value,
 			requestBody.StateNonce,
 		}
-		// TODO: Will need to use mutex locks on dbConnection and pending map
+		pendingLock.Lock()
 		if err := pMap.Add(&requestedContract, dbConn); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
-			return
+		} else {
+			w.WriteHeader(http.StatusOK)
+			contractChannel <- requestedContract
 		}
-		w.WriteHeader(http.StatusOK)
-		contractChannel <- requestedContract
+		pendingLock.Unlock()
 		return
 	}
 }

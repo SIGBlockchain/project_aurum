@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -119,7 +120,8 @@ func TestContractRequestHandler(t *testing.T) {
 
 	pMap := pendingpool.NewPendingMap()
 	contractChan := make(chan contracts.Contract)
-	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap))
+	pLock := new(sync.Mutex)
+	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap, pLock))
 
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedSenderStr := hex.EncodeToString(hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)))

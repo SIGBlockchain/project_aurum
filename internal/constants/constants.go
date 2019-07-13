@@ -1,7 +1,9 @@
 package constants
 
-const AccountsTable = "accounts.db"
-const MetadataTable = "metadata.db"
-const BlockchainFile = "blockchain.dat"
-const GenesisAddresses = "genesis_hashes.txt"
-const ConfigurationFile = "config.json"
+const (
+	AccountsTable     = "accounts.db"
+	MetadataTable     = "metadata.db"
+	BlockchainFile    = "blockchain.dat"
+	GenesisAddresses  = "genesis_hashes.txt"
+	ConfigurationFile = "config.json"
+)

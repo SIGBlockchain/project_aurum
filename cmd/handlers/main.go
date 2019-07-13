@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -94,10 +95,13 @@ func main() {
 	}
 	hostname += cfg.Port
 
+	// Lock for pending map
+	pendingLock := new(sync.Mutex)
+
 	pendingMap := pendingpool.NewPendingMap()
 	// Set handlers for endpoints and run server
 	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection))
-	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap))
+	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap, pendingLock))
 	go http.ListenAndServe(hostname, nil)
 	log.Printf("Serving requests on port %s", cfg.Port)
 
@@ -126,6 +130,7 @@ func main() {
 		// New block is ready to be produced
 		case <-intervalChannel:
 			log.Printf("Block #%d ready for production.", chainHeight+1)
+			pendingLock.Lock()
 			if newBlock, err := block.New(cfg.Version, chainHeight+1, block.HashBlockHeader(youngestBlockHeader), pendingContractPool); err != nil {
 				log.Fatalf("Failed to create block %v", err)
 			} else {
@@ -136,7 +141,6 @@ func main() {
 				} else {
 					chainHeight++
 					// Reset pending pool map to empty
-					// TODO: We probably need a lock on this
 					for k := range pendingMap.Sender {
 						delete(pendingMap.Sender, k)
 					}
@@ -158,8 +162,10 @@ func main() {
 					go triggerInterval(intervalChannel, productionInterval)
 
 					numBlocksGenerated++
+
 				}
 			}
+			pendingLock.Unlock()
 		// Signal interrupt detected
 		case <-signalChannel:
 			fmt.Print("\r")
