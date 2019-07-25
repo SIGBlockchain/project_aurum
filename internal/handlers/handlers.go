@@ -13,6 +13,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlqueries"
 )
 
 // Handler for incoming account info queries
@@ -22,7 +23,9 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 		var walletAddress = r.URL.Query().Get("w") // assume this is hex-encoded
 		// Query the database
 		// TODO: will most likely need a lock on this dbConnection everywhere
-		row, err := dbConn.Query(`SELECT * FROM account_balances WHERE public_key_hash = "` + walletAddress + `"`)
+		// row, err := dbConn.Query(`SELECT * FROM account_balances WHERE public_key_hash = "` + walletAddress + `"`)
+		row, err := dbConn.Query(sqlqueries.GET_EVERYTHING_BY_WALLETADDRESS + walletAddress + `"`)
+
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			io.WriteString(w, err.Error())

@@ -8,6 +8,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlqueries"
 )
 
 /*
@@ -114,7 +115,7 @@ func GetBalance(pkhash []byte) (uint64, error) {
 	defer db.Close()
 
 	// search for pkhash's balance
-	row, err := db.Query("SELECT balance FROM account_balances WHERE public_key_hash = \"" + hex.EncodeToString(pkhash) + "\"")
+	row, err := db.Query(sqlqueries.GET_BALANCE_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
@@ -141,7 +142,7 @@ func GetStateNonce(pkhash []byte) (uint64, error) {
 	defer db.Close()
 
 	// search for pkhash's stateNonce
-	row, err := db.Query("SELECT nonce FROM account_balances WHERE public_key_hash= \"" + hex.EncodeToString(pkhash) + "\"")
+	row, err := db.Query(sqlqueries.GET_NONCE_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
