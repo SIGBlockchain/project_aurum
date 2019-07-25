@@ -21,6 +21,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	_ "github.com/mattn/go-sqlite3"
@@ -45,7 +46,7 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 			t.Errorf("failed to remove database : %v", err)
 		}
 	}()
-	statement, _ := dbConn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbConn.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 
 	handler := http.HandlerFunc(HandleAccountInfoRequest(dbConn))
@@ -115,7 +116,7 @@ func TestContractRequestHandler(t *testing.T) {
 			t.Errorf("failed to remove database : %v", err)
 		}
 	}()
-	statement, _ := dbConn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbConn.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 
 	pMap := pendingpool.NewPendingMap()
