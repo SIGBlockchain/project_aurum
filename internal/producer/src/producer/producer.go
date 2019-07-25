@@ -229,10 +229,24 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		lgr.SetOutput(os.Stdout)
 	}
 
+	// Open connection to metadata database
+	metadataConn, err := sql.Open("sqlite3", metadataTable)
+	if err != nil {
+		lgr.Fatalf("failed to open metadata table: %s\n", err)
+	}
+	defer metadataConn.Close()
+
 	// Retrieve youngest block header
-	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadataTable)
+	ledgerFile, err := os.OpenFile(ledger, os.O_RDONLY, 0644)
+	if err != nil {
+		lgr.Fatalf("failed to open ledger file: %s\n", err)
+	}
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledgerFile, metadataConn)
 	if err != nil {
 		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
+	}
+	if errClosing := ledgerFile.Close(); errClosing != nil {
+		lgr.Fatalf("Failed to close blockchain file: %v", err)
 	}
 
 	// Set up SIGINT channel
@@ -286,7 +300,15 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			} else {
 
 				// Add the block
-				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
+				ledgerFile, err := os.OpenFile(constants.BlockchainFile, os.O_APPEND|os.O_WRONLY, 0644)
+				if err != nil {
+					lgr.Fatalf("failed to open ledger file: %s\n", err)
+				}
+				err = blockchain.AddBlock(newBlock, ledgerFile, metadataConn)
+				if errClosing := ledgerFile.Close(); errClosing != nil {
+					log.Fatalf("Failed to close blockchain file: %v", err)
+				}
+				if err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
 				} else {
@@ -410,18 +432,25 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	if err != nil {
 		return errors.New("Failed to open table")
 	}
+	defer db.Close()
 
 	_, err = db.Exec("CREATE table METADATA (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
 	if err != nil {
 		return errors.New("Failed to create table")
 	}
-	db.Close()
+
+	// open ledger file
+	ledgerFile, err := os.OpenFile(blockchainz, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return errors.New("Failed to open ledger file")
+	}
 
 	// add genesis block into blockchain
-	err = blockchain.AddBlock(genesisBlock, blockchainz, metadata)
+	err = blockchain.AddBlock(genesisBlock, ledgerFile, db)
 	if err != nil {
 		return errors.New("Failed to add genesis block into blockchain")
 	}
+	ledgerFile.Close()
 
 	// create accounts file
 	file, err = os.Create(accountBalanceTable)

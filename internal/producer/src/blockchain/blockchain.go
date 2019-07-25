@@ -17,14 +17,7 @@ import (
 // Adds a block to a given file, also adds metadata file about that block into a database
 //
 // This metadata include height, position, size and hash
-func AddBlock(b block.Block, filename string, databaseName string) error { // Additional parameter is DB connection
-	// open file for appending
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return errors.New("File containing block informations failed to open")
-	}
-	defer file.Close()
-
+func AddBlock(b block.Block, file *os.File, database *sql.DB) error {
 	fileInfo, err := file.Stat()
 	if err != nil {
 		return errors.New("Could not get file stats")
@@ -42,18 +35,6 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 		return errors.New("Unable to write serialized block with it's size prepended onto file")
 	}
 
-	if err := file.Close(); err != nil {
-		return errors.New("Failed to close file")
-	}
-
-	database, err := sql.Open("sqlite3", databaseName)
-	// Checks if the opening was successful
-	if err != nil {
-		return errors.New("Unable to open sqlite3 database")
-	}
-
-	defer database.Close()
-
 	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		fmt.Println(err)
@@ -67,23 +48,9 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 	return nil
 }
 
-// Given a height number, opens the file filename and extracts the block of that height
-func GetBlockByHeight(height int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	//open the file
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
-	if err != nil {
-		return nil, errors.New("Unable to open file used to extract block from by height")
-	}
-
-	defer file.Close()
-
-	// open database
-	db, err := sql.Open("sqlite3", database)
-	if err != nil {
-		return nil, errors.New("Failed to open sqlite3 database")
-	}
-
-	defer db.Close()
+// Given a height number and extracts the block of that height
+func GetBlockByHeight(height int, file *os.File, db *sql.DB) ([]byte, error) {
+	file.Seek(0, io.SeekStart) // reset seek pointer
 
 	var blockPos int
 	var blockSize int
@@ -117,30 +84,12 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 		return nil, errors.New("Unable to read from blocks position to it's end")
 	}
 
-	if err := file.Close(); err != nil {
-		return nil, errors.New("Unable to close file properly")
-	}
-
 	return bl, nil
 }
 
-// Given a file position, opens the file filename and extracts the block at that position
-func GetBlockByPosition(position int, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	// open file
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
-	if err != nil {
-		return nil, errors.New("Unable to open file used to extract block from by position")
-	}
-
-	defer file.Close()
-
-	//open database
-	db, err := sql.Open("sqlite3", database)
-	if err != nil {
-		return nil, errors.New("Unable to open sqlite3 database")
-	}
-
-	defer db.Close()
+// Given a file position and extracts the block at that position
+func GetBlockByPosition(position int, file *os.File, db *sql.DB) ([]byte, error) {
+	file.Seek(0, io.SeekStart) // reset seek pointer
 
 	var wantedSize int
 	var wantedPos int
@@ -173,29 +122,12 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 		return nil, errors.New("Unable to read file data from the blocks start to it's end")
 	}
 
-	if err := file.Close(); err != nil {
-		return nil, errors.New("Failed to close file after use")
-	}
-
 	return bl, nil
 }
 
-// Given a block hash, opens the file filename and extracts the block that matches that block's hash
-func GetBlockByHash(hash []byte, filename string, database string) ([]byte, error) { // Additional parameter is DB connection
-	// open file
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
-	if err != nil {
-		return nil, errors.New("Unable to open file used to extract block from by position")
-	}
-
-	//open database
-	db, err := sql.Open("sqlite3", database)
-	if err != nil {
-		return nil, errors.New("Unable to open sqlite3 database")
-	}
-
-	defer file.Close()
-	defer db.Close()
+// Given a block hash and extracts the block that matches that block's hash
+func GetBlockByHash(hash []byte, file *os.File, db *sql.DB) ([]byte, error) {
+	file.Seek(0, io.SeekStart) // reset seek pointer
 
 	var blockPos int
 	var blockSize int
@@ -229,24 +161,13 @@ func GetBlockByHash(hash []byte, filename string, database string) ([]byte, erro
 		return nil, errors.New("Unable to read file data from the blocks start to it's end")
 	}
 
-	if err := file.Close(); err != nil {
-		return nil, errors.New("Failed to close file after use")
-	}
-
 	return bl, nil
 }
 
 /*
 Retrieves Block with the largest height in deserialized form
 */
-func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
-	// open table
-	db, err := sql.Open("sqlite3", table)
-	if err != nil {
-		return block.Block{}, errors.New("Failed to open table")
-	}
-	defer db.Close()
-
+func GetYoungestBlock(file *os.File, db *sql.DB) (block.Block, error) {
 	// create rows to find blocks' height from metadata
 	rows, err := db.Query("SELECT height FROM metadata")
 	if err != nil {
@@ -271,7 +192,7 @@ func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
 	}
 
 	// get the block with the largest height
-	youngestBlock, err := GetBlockByHeight(maxBlockHeight, blockchain, table)
+	youngestBlock, err := GetBlockByHeight(maxBlockHeight, file, db)
 	if err != nil {
 		return block.Block{}, err
 	}
@@ -281,8 +202,8 @@ func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
 /*
 Calls GetYoungestBlock and returns a Header version of the result
 */
-func GetYoungestBlockHeader(blockchain string, table string) (block.BlockHeader, error) {
-	latestBlock, err := GetYoungestBlock(blockchain, table)
+func GetYoungestBlockHeader(file *os.File, metadata *sql.DB) (block.BlockHeader, error) {
+	latestBlock, err := GetYoungestBlock(file, metadata)
 	if err != nil {
 		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
 	}

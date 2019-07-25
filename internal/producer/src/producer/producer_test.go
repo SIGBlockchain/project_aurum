@@ -179,8 +179,12 @@ func TestByteChannel(t *testing.T) {
 	if err := Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 		t.Errorf("failed to perform air drop:\n%s", err.Error())
 	}
+	ledgerFile, err := os.OpenFile("blockchain.dat", os.O_RDONLY, 0644)
+	metadataConn, _ := sql.Open("sqlite3", constants.MetadataTable)
 	defer func() {
 		if removeFiles {
+			ledgerFile.Close()
+			metadataConn.Close()
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
@@ -231,7 +235,7 @@ func TestByteChannel(t *testing.T) {
 	}
 	ProduceBlocks(byteChan, fl, true)
 
-	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadataTable)
+	youngestBlock, err := blockchain.GetYoungestBlock(ledgerFile, metadataConn)
 	if err != nil {
 		t.Errorf("failed to get youngest block:\n%s", err.Error())
 	}
@@ -637,14 +641,15 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 		}
 	}()
 
-	if conn, err := sql.Open("sqlite3", meta); err != nil {
+	metadataConn, err := sql.Open("sqlite3", meta)
+	if err != nil {
 		t.Errorf("failed to create metadata file")
 	} else {
-		statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		statement, _ := metadataConn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
 		statement.Exec()
-		conn.Close()
 	}
 	defer func() {
+		metadataConn.Close()
 		if err := os.Remove(meta); err != nil {
 			t.Errorf("failed to remove metadata file")
 		}
@@ -675,6 +680,9 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 		t.Errorf("airdrop failed")
 	}
 
+	ledgerFile, _ := os.OpenFile(ljr, os.O_RDONLY, 0644)
+	defer ledgerFile.Close()
+
 	type args struct {
 		ledgerFilename      string
 		metadataFilename    string
@@ -699,7 +707,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 			if err := RecoverBlockchainMetadata(tt.args.ledgerFilename, tt.args.metadataFilename, tt.args.accountBalanceTable); (err != nil) != tt.wantErr {
 				t.Errorf("RecoverBlockchainMetadata() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			blockchainGenesisBlockSerialized, err := blockchain.GetBlockByHeight(blockchainHeightIdx, ljr, meta)
+			blockchainGenesisBlockSerialized, err := blockchain.GetBlockByHeight(blockchainHeightIdx, ledgerFile, metadataConn)
 			if err != nil {
 				t.Errorf("failed to get genesis block")
 			}
@@ -767,7 +775,6 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 		t.Errorf("failed to create metadata file")
 	} else {
 		metaDB.Exec("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-		metaDB.Close()
 	}
 	acctsDB, err := sql.Open("sqlite3", accts)
 	if err != nil {
@@ -855,10 +862,13 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create first block")
 	}
-	err = blockchain.AddBlock(firstBlock, ljr, meta)
+	ledgerFile, _ := os.OpenFile(ljr, os.O_APPEND|os.O_WRONLY, 0644)
+	err = blockchain.AddBlock(firstBlock, ledgerFile, metaDB)
 	if err != nil {
 		t.Errorf("failed to add first block")
 	}
+	ledgerFile.Close()
+	metaDB.Close()
 
 	os.Remove(meta)
 	os.Remove(accts)
@@ -885,10 +895,14 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 			if err := RecoverBlockchainMetadata(tt.args.ledgerFilename, tt.args.metadataFilename, tt.args.accountBalanceTable); err != nil {
 				t.Errorf("RecoverBlockchainMetadata() error = %v", err)
 			}
-			firstBlockSerialized, err := blockchain.GetBlockByHeight(1, ljr, meta)
+			ledgerFile, _ := os.OpenFile(tt.args.ledgerFilename, os.O_RDONLY, 0644)
+			metadataConn, _ := sql.Open("sqlite3", tt.args.metadataFilename)
+			firstBlockSerialized, err := blockchain.GetBlockByHeight(1, ledgerFile, metadataConn)
 			if err != nil {
 				t.Errorf("failed to get firstBlock block")
 			}
+			ledgerFile.Close()
+			metadataConn.Close()
 			firstBlockDeserialized := block.Deserialize(firstBlockSerialized)
 			if !reflect.DeepEqual(firstBlockDeserialized, firstBlock) {
 				t.Errorf("first blocks do not match")
