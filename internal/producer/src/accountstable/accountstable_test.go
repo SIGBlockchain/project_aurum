@@ -15,6 +15,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -32,7 +33,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	type args struct {
 		dbConnection *sql.DB
@@ -61,7 +62,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 			var pkhash string
 			var balance uint64
 			var nonce uint64
-			rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			rows, err := dbc.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 			if err != nil {
 				t.Errorf("Failed to acquire rows from table")
 			}
@@ -104,7 +105,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
 	if err != nil {
@@ -142,7 +143,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 				var pkhash string
 				var balance uint64
 				var nonce uint64
-				rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+				rows, err := dbc.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 				if err != nil {
 					t.Errorf("Failed to acquire rows from table")
 				}
@@ -191,7 +192,7 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
 	if err != nil {
@@ -222,7 +223,7 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 				var pkhash string
 				var balance uint64
 				var nonce uint64
-				rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+				rows, err := dbc.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 				if err != nil {
 					t.Errorf("Failed to acquire rows from table")
 				}
@@ -264,7 +265,7 @@ func TestGetBalance(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
 	if err != nil {
@@ -319,7 +320,7 @@ func TestGetStateNonce(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
 	if err != nil {
@@ -374,7 +375,7 @@ func TestGetAccountInfo(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	err := InsertAccountIntoAccountBalanceTable(dbc, spkh, 1000)
 	if err != nil {

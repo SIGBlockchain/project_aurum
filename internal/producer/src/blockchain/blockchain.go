@@ -12,6 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 // Adds a block to a given file, also adds metadata file about that block into a database
@@ -54,7 +55,7 @@ func AddBlock(b block.Block, filename string, databaseName string) error { // Ad
 
 	defer database.Close()
 
-	statement, err := database.Prepare("INSERT INTO metadata (height, position, size, hash) VALUES (?, ?, ?, ?)")
+	statement, err := database.Prepare(sqlstatements.INSERT_BLANK_VALUES_INTO_METADATA)
 	if err != nil {
 		fmt.Println(err)
 		return errors.New("Failed to prepare a statement for further queries")
@@ -88,7 +89,7 @@ func GetBlockByHeight(height int, filename string, database string) ([]byte, err
 	var blockPos int
 	var blockSize int
 	// only need the height, position and size of the block
-	rows, err := db.Query("SELECT height, position, size FROM metadata")
+	rows, err := db.Query(sqlstatements.GET_HEIGHT_POSITION_SIZE_FROM_METADATA)
 	if err != nil {
 		return nil, errors.New("Failed to create rows to iterate database to find height, position, and size of block")
 	}
@@ -145,7 +146,7 @@ func GetBlockByPosition(position int, filename string, database string) ([]byte,
 	var wantedSize int
 	var wantedPos int
 	// will only need the position and size of the block
-	rows, err := db.Query("SELECT position, size FROM metadata")
+	rows, err := db.Query(sqlstatements.GET_POSITION_SIZE_FROM_METADATA)
 	if err != nil {
 		return nil, errors.New("Failed to create rows to iterate to find position and size of wanted block")
 	}
@@ -200,7 +201,7 @@ func GetBlockByHash(hash []byte, filename string, database string) ([]byte, erro
 	var blockPos int
 	var blockSize int
 	// need the position, size and hash of the block from databse
-	rows, err := db.Query("SELECT position, size, hash FROM metadata")
+	rows, err := db.Query(sqlstatements.GET_POSITION_SIZE_HASH_FROM_METADATA)
 	if err != nil {
 		return nil, errors.New("Failed to create rows to iterate to find position and size of wanted block")
 	}
@@ -248,7 +249,7 @@ func GetYoungestBlock(blockchain string, table string) (block.Block, error) {
 	defer db.Close()
 
 	// create rows to find blocks' height from metadata
-	rows, err := db.Query("SELECT height FROM metadata")
+	rows, err := db.Query(sqlstatements.GET_HEIGHT_FROM_METADATA)
 	if err != nil {
 		return block.Block{}, errors.New("Failed to create rows to find height from metadata")
 	}

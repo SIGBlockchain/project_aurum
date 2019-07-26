@@ -12,11 +12,12 @@ import (
 
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 func setUp(filename string, database string) {
 	conn, _ := sql.Open("sqlite3", database)
-	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
 	statement.Exec()
 	conn.Close()
 
