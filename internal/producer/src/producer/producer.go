@@ -245,7 +245,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 	if err != nil {
 		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
 	}
-	if errClosing := ledgerFile.Close(); errClosing != nil {
+	if err := ledgerFile.Close(); err != nil {
 		lgr.Fatalf("Failed to close blockchain file: %v", err)
 	}
 
@@ -305,7 +305,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					lgr.Fatalf("failed to open ledger file: %s\n", err)
 				}
 				err = blockchain.AddBlock(newBlock, ledgerFile, metadataConn)
-				if errClosing := ledgerFile.Close(); errClosing != nil {
+				if err := ledgerFile.Close(); err != nil {
 					log.Fatalf("Failed to close blockchain file: %v", err)
 				}
 				if err != nil {

@@ -154,7 +154,7 @@ func main() {
 					log.Fatalf("failed to open ledger file: %s\n", err)
 				}
 				err = blockchain.AddBlock(newBlock, blockchainFile, metadataDatabaseConnection)
-				if errClosing := blockchainFile.Close(); errClosing != nil {
+				if err := blockchainFile.Close(); err != nil {
 					log.Fatalf("Failed to close blockchain file: %v", err)
 				}
 				if err != nil {
