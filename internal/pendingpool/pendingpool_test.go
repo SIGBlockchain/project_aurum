@@ -14,6 +14,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -29,7 +30,7 @@ func TestAdd(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
