@@ -12,6 +12,7 @@ import (
 
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 func setUp(filename string, database string) *sql.DB {
@@ -19,7 +20,7 @@ func setUp(filename string, database string) *sql.DB {
 	if err != nil {
 		panic("Failed to open database")
 	}
-	statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	statement, _ := conn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
 	statement.Exec()
 
 	file, err := os.Create(filename)

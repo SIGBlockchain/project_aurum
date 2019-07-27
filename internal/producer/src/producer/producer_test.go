@@ -26,6 +26,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 var removeFiles = true
@@ -270,7 +271,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	statement, _ := dbc.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 	walletAddress, err := client.GetWalletAddress()
 	// t.Logf("Wallet address: %v", walletAddress)
@@ -571,7 +572,7 @@ func TestAirdrop(t *testing.T) {
 			}
 			defer db.Close()
 
-			rows, err := db.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+			rows, err := db.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 			if err != nil {
 				t.Errorf("failed to create rows for queries")
 			}
@@ -645,7 +646,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create metadata file")
 	} else {
-		statement, _ := metadataConn.Prepare("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		statement, _ := metadataConn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
 		statement.Exec()
 	}
 	defer func() {
@@ -658,7 +659,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	if conn, err := sql.Open("sqlite3", accts); err != nil {
 		t.Errorf("failed to create accounts file")
 	} else {
-		statement, _ := conn.Prepare("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+		statement, _ := conn.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 		statement.Exec()
 		conn.Close()
 	}
@@ -726,7 +727,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 				var balance uint64
 				var nonce uint64
 				foundKey := false
-				rows, err := dbc.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+				rows, err := dbc.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 				if err != nil {
 					t.Errorf("Failed to acquire rows from table")
 				}
@@ -774,13 +775,13 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create metadata file")
 	} else {
-		metaDB.Exec("CREATE TABLE IF NOT EXISTS metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+		metaDB.Exec(sqlstatements.CREATE_METADATA_TABLE)
 	}
 	acctsDB, err := sql.Open("sqlite3", accts)
 	if err != nil {
 		t.Errorf("failed to create accounts file")
 	} else {
-		acctsDB.Exec("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+		acctsDB.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	}
 
 	defer func() {
@@ -919,7 +920,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 				someKeyPKhsh := hashing.New(publickey.Encode(&key.PublicKey))
 				var balance uint64
 				var nonce uint64
-				queryStr := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash=\"%s\"", hex.EncodeToString(someKeyPKhsh))
+				queryStr := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(someKeyPKhsh))
 				row, err := dbc.Query(queryStr)
 				if err != nil {
 					t.Errorf("Failed to acquire row from table")
@@ -1083,7 +1084,7 @@ func TestGenesisReadsAppropriately(t *testing.T) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT public_key_hash, balance, nonce FROM account_balances")
+	rows, err := db.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
 	if err != nil {
 		t.Errorf("failed to create rows for queries")
 	}
