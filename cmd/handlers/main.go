@@ -92,8 +92,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get youngestBlockHeader")
 	}
-	if errClosing := ledgerFile.Close(); errClosing != nil {
-		log.Fatalf("Failed to close ledger file")
+	if err := ledgerFile.Close(); err != nil {
+		log.Fatalf("Failed to close ledger file: %v", err)
 	}
 	// Metadata about block production
 	var chainHeight = youngestBlockHeader.Height
@@ -154,12 +154,12 @@ func main() {
 					log.Fatalf("failed to open ledger file: %s\n", err)
 				}
 				err = blockchain.AddBlock(newBlock, blockchainFile, metadataDatabaseConnection)
-				if err := blockchainFile.Close(); err != nil {
-					log.Fatalf("Failed to close blockchain file: %v", err)
-				}
 				if err != nil {
 					log.Fatalf("Failed to add block %v", err)
 				} else {
+					if err := blockchainFile.Close(); err != nil {
+						log.Fatalf("Failed to close blockchain file: %v", err)
+					}
 					chainHeight++
 					// Reset pending pool map to empty
 					for k := range pendingMap.Sender {

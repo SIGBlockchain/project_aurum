@@ -305,13 +305,13 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					lgr.Fatalf("failed to open ledger file: %s\n", err)
 				}
 				err = blockchain.AddBlock(newBlock, ledgerFile, metadataConn)
-				if err := ledgerFile.Close(); err != nil {
-					log.Fatalf("Failed to close blockchain file: %v", err)
-				}
 				if err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
 				} else {
+					if err := ledgerFile.Close(); err != nil {
+						log.Fatalf("Failed to close blockchain file: %v", err)
+					}
 					lgr.Printf("block produced: #%d\n", chainHeight+1)
 					numBlocksGenerated++
 					youngestBlockHeader = newBlock.GetHeader()
