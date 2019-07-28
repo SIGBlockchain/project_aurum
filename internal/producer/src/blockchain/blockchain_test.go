@@ -15,24 +15,34 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
-func setUp(filename string, database string) {
-	conn, _ := sql.Open("sqlite3", database)
+func setUp(filename string, database string) *sql.DB {
+	conn, err := sql.Open("sqlite3", database)
+	if err != nil {
+		panic("Failed to open database")
+	}
 	statement, _ := conn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
 	statement.Exec()
-	conn.Close()
 
 	file, err := os.Create(filename)
 	if err != nil {
 		panic("Failed to create file.")
 	}
 	file.Close()
+
+	return conn
 }
 
-func tearDown(filename string, database string) {
+func tearDown(metadata *sql.DB, filename string, database string) {
+	metadata.Close()
 	os.Remove(filename)
 	os.Remove(database)
 }
 
+func addBlockHelper(b block.Block, filename string, metadata *sql.DB) error {
+	f, _ := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
+	defer f.Close()
+	return AddBlock(b, f, metadata)
+}
 func TestPhaseOneAddBlock(t *testing.T) {
 
 	// Create a block
@@ -47,11 +57,10 @@ func TestPhaseOneAddBlock(t *testing.T) {
 	b.DataLen = uint16(len(b.Data))
 
 	// Setup
-	defer tearDown("testFile.txt", "testDatabase.db")
-	setUp("testFile.txt", "testDatabase.db")
+	metadata := setUp("testFile.txt", "testDatabase.db")
+	defer tearDown(metadata, "testFile.txt", "testDatabase.db")
 
-	// Add the block
-	err := AddBlock(b, "testFile.txt", "testDatabase.db")
+	err := addBlockHelper(b, "testFile.txt", metadata)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -70,16 +79,20 @@ func TestPhaseTwoGetBlockByHeight(t *testing.T) {
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 
 	// Setup
-	setUp("testBlockchain.dat", "testDatabase.db")
-	defer tearDown("testBlockchain.dat", "testDatabase.db")
+	metadata := setUp("testBlockchain.dat", "testDatabase.db")
+	defer tearDown(metadata, "testBlockchain.dat", "testDatabase.db")
+
 	// Add the block
-	err := AddBlock(expectedBlock, "testBlockchain.dat", "testDatabase.db")
+	err := addBlockHelper(expectedBlock, "testBlockchain.dat", metadata)
 	if err != nil {
-		t.Errorf("Failed to add block.")
+		t.Errorf("Failed to add block. " + err.Error())
 	}
-	actualBlock, err := GetBlockByHeight(0, "testBlockchain.dat", "testDatabase.db")
+
+	file, err := os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	defer file.Close()
+	actualBlock, err := GetBlockByHeight(0, file, metadata)
 	if err != nil {
-		t.Errorf("Failed to extract block.")
+		t.Errorf("Failed to extract block." + err.Error())
 	}
 	if bytes.Equal(expectedBlock.Serialize(), actualBlock) == false {
 		t.Errorf("Blocks do not match")
@@ -97,14 +110,18 @@ func TestPhaseTwoGetBlockPosition(t *testing.T) {
 	}
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 	// Setup
-	setUp("testBlockchain.dat", "testDatabase.db")
-	defer tearDown("testBlockchain.dat", "testDatabase.db")
+	metadata := setUp("testBlockchain.dat", "testDatabase.db")
+	defer tearDown(metadata, "testBlockchain.dat", "testDatabase.db")
+
 	// Add the block
-	err := AddBlock(expectedBlock, "testBlockchain.dat", "testDatabase.db")
+	err := addBlockHelper(expectedBlock, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block.")
 	}
-	actualBlock, err := GetBlockByPosition(0, "testBlockchain.dat", "testDatabase.db")
+
+	file, err := os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	defer file.Close()
+	actualBlock, err := GetBlockByPosition(0, file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 	}
@@ -125,14 +142,18 @@ func TestPhaseTwoGetBlockByHash(t *testing.T) {
 	}
 	expectedBlock.DataLen = uint16(len(expectedBlock.Data))
 	// Setup
-	setUp("testBlockchain.dat", "testDatabase.db")
-	defer tearDown("testBlockchain.dat", "testDatabase.db")
+	metadata := setUp("testBlockchain.dat", "testDatabase.db")
+	defer tearDown(metadata, "testBlockchain.dat", "testDatabase.db")
+
 	// Add the block
-	err := AddBlock(expectedBlock, "testBlockchain.dat", "testDatabase.db")
+	err := addBlockHelper(expectedBlock, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block.")
 	}
-	actualBlock, err := GetBlockByHash(block.HashBlock(expectedBlock), "testBlockchain.dat", "testDatabase.db")
+
+	file, err := os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	defer file.Close()
+	actualBlock, err := GetBlockByHash(block.HashBlock(expectedBlock), file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block.")
 	}
@@ -171,25 +192,28 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 	block2.DataLen = uint16(len(block2.Data))
 	// Setup
-	setUp("testBlockchain.dat", "testDatabase.db")
-	defer tearDown("testBlockchain.dat", "testDatabase.db")
+	metadata := setUp("testBlockchain.dat", "testDatabase.db")
+	defer tearDown(metadata, "testBlockchain.dat", "testDatabase.db")
+
 	// Add all the blocks
-	err := AddBlock(block0, "testBlockchain.dat", "testDatabase.db")
+	err := addBlockHelper(block0, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block0.")
 	}
-	err = AddBlock(block1, "testBlockchain.dat", "testDatabase.db")
+	err = addBlockHelper(block1, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block1.")
 	}
-	err = AddBlock(block2, "testBlockchain.dat", "testDatabase.db")
+	err = addBlockHelper(block2, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block2.")
 	}
 
+	file, err := os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	defer file.Close()
 	// Extract all three blocks
 	// Block 0 by hash
-	actualBlock0, err := GetBlockByHash(block.HashBlock(block0), "testBlockchain.dat", "testDatabase.db")
+	actualBlock0, err := GetBlockByHash(block.HashBlock(block0), file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 0 by hash).")
 	}
@@ -198,7 +222,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 
 	// Block 0 by height
-	actualBlock0, err = GetBlockByHeight(0, "testBlockchain.dat", "testDatabase.db")
+	actualBlock0, err = GetBlockByHeight(0, file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 0 by height).")
 	}
@@ -207,7 +231,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 
 	// Block 1 by hash
-	actualBlock1, err := GetBlockByHash(block.HashBlock(block1), "testBlockchain.dat", "testDatabase.db")
+	actualBlock1, err := GetBlockByHash(block.HashBlock(block1), file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 1 by hash).")
 	}
@@ -216,7 +240,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 
 	// Block 1 by height
-	actualBlock1, err = GetBlockByHeight(1, "testBlockchain.dat", "testDatabase.db")
+	actualBlock1, err = GetBlockByHeight(1, file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 1 by height).")
 	}
@@ -225,7 +249,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 
 	// Block 2
-	actualBlock2, err := GetBlockByHash(block.HashBlock(block2), "testBlockchain.dat", "testDatabase.db")
+	actualBlock2, err := GetBlockByHash(block.HashBlock(block2), file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 2 by hash).")
 	}
@@ -234,7 +258,7 @@ func TestPhaseTwoMultiple(t *testing.T) {
 	}
 
 	// Block 2
-	actualBlock2, err = GetBlockByHeight(2, "testBlockchain.dat", "testDatabase.db")
+	actualBlock2, err = GetBlockByHeight(2, file, metadata)
 	if err != nil {
 		t.Errorf("Failed to extract block (block 2 by height).")
 	}
@@ -246,12 +270,15 @@ func TestPhaseTwoMultiple(t *testing.T) {
 func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 	blockchain := "testBlockchain.dat"
 	table := "testTable.dat"
-	setUp(blockchain, table)
-	defer tearDown(blockchain, table)
-	_, err := GetYoungestBlock(blockchain, table)
+	metadata := setUp(blockchain, table)
+	defer tearDown(metadata, blockchain, table)
+
+	file, err := os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	_, err = GetYoungestBlock(file, metadata)
 	if err == nil {
 		t.Errorf("Should return error if blockchain is empty")
 	}
+	file.Close()
 	block0 := block.Block{
 		Version:        1,
 		Height:         0,
@@ -261,17 +288,19 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 		Data:           [][]byte{hashing.New([]byte("xoxo"))},
 	}
 	block0.DataLen = uint16(len(block0.Data))
-	err = AddBlock(block0, blockchain, table)
+	err = addBlockHelper(block0, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block")
 	}
-	actualBlock0, err := GetYoungestBlock(blockchain, table)
+	file, err = os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	actualBlock0, err := GetYoungestBlock(file, metadata)
 	if err != nil {
 		t.Errorf("Error extracting youngest block")
 	}
 	if !cmp.Equal(actualBlock0, block0) {
 		t.Errorf("Blocks do not match")
 	}
+	file.Close()
 	block1 := block.Block{
 		Version:        1,
 		Height:         1,
@@ -288,15 +317,17 @@ func TestGetYoungestBlockAndBlockHeader(t *testing.T) {
 		PreviousHash:   hashing.New([]byte{'0'}),
 		MerkleRootHash: hashing.New([]byte{'1'}),
 	}
-	err = AddBlock(block1, blockchain, table)
+	err = addBlockHelper(block1, "testBlockchain.dat", metadata)
 	if err != nil {
 		t.Errorf("Failed to add block")
 	}
-	actualBlock1Header, err := GetYoungestBlockHeader(blockchain, table)
+	file, err = os.OpenFile("testBlockchain.dat", os.O_RDONLY, 0644)
+	actualBlock1Header, err := GetYoungestBlockHeader(file, metadata)
 	if err != nil {
 		t.Errorf("Error extracting youngest block")
 	}
 	if !cmp.Equal(actualBlock1Header, block1Header) {
 		t.Errorf("Blocks Headers do not match")
 	}
+	file.Close()
 }
