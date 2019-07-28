@@ -293,7 +293,7 @@ func TestGetBalance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetBalance(tt.args.pkhash)
+			got, err := GetBalance(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetBalance() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -348,7 +348,7 @@ func TestGetStateNonce(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetStateNonce(tt.args.pkhash)
+			got, err := GetStateNonce(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStateNonce() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -403,7 +403,7 @@ func TestGetAccountInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAccountInfo(tt.args.pkhash)
+			got, err := GetAccountInfo(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAccountInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

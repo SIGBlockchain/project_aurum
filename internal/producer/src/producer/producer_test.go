@@ -322,7 +322,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 1000); err != nil {
 		t.Errorf("failed to insert sender account")
 	}
-	_, err = accountstable.GetAccountInfo(walletAddress)
+	_, err = accountstable.GetAccountInfo(dbc, walletAddress)
 	if err != nil {
 		t.Errorf("failed to retrieve account info:\n%s", err.Error())
 	}

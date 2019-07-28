@@ -3,10 +3,12 @@ package validation
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"database/sql"
 	"encoding/asn1"
 	"errors"
 	"math/big"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
@@ -48,8 +50,15 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// retrieve sender's balance from account balance table
+	dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		return errors.New("Failed to open account balance table")
+	}
 	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
-	senderAccountInfo, errAccount := accountstable.GetAccountInfo(senderPubKeyHash)
+	senderAccountInfo, errAccount := accountstable.GetAccountInfo(dbConnection, senderPubKeyHash)
+	if err := dbConnection.Close(); err != nil {
+		return errors.New("Failed to close account balance table")
+	}
 
 	if errAccount == nil {
 		// check insufficient funds
