@@ -20,7 +20,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
