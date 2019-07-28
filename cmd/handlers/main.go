@@ -24,9 +24,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
 	"github.com/SIGBlockchain/project_aurum/internal/handlers"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
-
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/genesis"
 )
 
 func main() {
@@ -42,16 +41,16 @@ func main() {
 	// If no blockchain.dat, perform airdrop
 	if _, err := os.Stat(constants.BlockchainFile); os.IsNotExist(err) {
 		log.Println("No blockchain file detected. Executing genesis procedure...")
-		addresses, err := producer.ReadGenesisHashes()
+		addresses, err := genesis.ReadGenesisHashes()
 		if err != nil {
 			log.Fatalf("Failed to read genesis addresses: %v", err)
 		}
-		genesisBlock, err := producer.BringOnTheGenesis(addresses, cfg.InitialAurumSupply)
+		genesisBlock, err := genesis.BringOnTheGenesis(addresses, cfg.InitialAurumSupply)
 		if err != nil {
 			log.Fatalf("Failed to create genesis block: %v", err)
 		}
 		log.Println("Attempting airdrop...")
-		if err := producer.Airdrop(constants.BlockchainFile, constants.MetadataTable, constants.AccountsTable, genesisBlock); err != nil {
+		if err := genesis.Airdrop(constants.BlockchainFile, constants.MetadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			log.Fatalf("Failed to perform airdrop: %v", err)
 		}
 		log.Println("Airdrop complete.")
