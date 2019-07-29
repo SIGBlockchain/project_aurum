@@ -4,11 +4,9 @@ package producer
 import (
 	"bytes"
 	"database/sql"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"

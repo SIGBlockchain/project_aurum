@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/genesis"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
@@ -79,7 +80,7 @@ func main() {
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		if err := genesis.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
+		if err := blockchain.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")

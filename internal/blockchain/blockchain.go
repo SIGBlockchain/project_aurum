@@ -4,6 +4,7 @@ package blockchain
 import (
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
@@ -437,5 +439,72 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 		return errors.New("Failed to execute statement")
 	}
 
+	return nil
+}
+
+func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
+	// create blockchain file
+	file, err := os.Create(blockchainz)
+	if err != nil {
+		return errors.New("Failed to create blockchain file")
+	}
+	file.Close()
+
+	// create metadata file
+	file, err = os.Create(metadata)
+	if err != nil {
+		return errors.New("Failed to create metadata table")
+	}
+	file.Close()
+
+	// open metadata file and create the table
+	db, err := sql.Open("sqlite3", metadata)
+	if err != nil {
+		return errors.New("Failed to open table")
+	}
+
+	_, err = db.Exec("CREATE table METADATA (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	if err != nil {
+		return errors.New("Failed to create table")
+	}
+	db.Close()
+
+	// add genesis block into blockchain
+	err = AddBlock(genesisBlock, blockchainz, metadata)
+	if err != nil {
+		return errors.New("Failed to add genesis block into blockchain")
+	}
+
+	// create accounts file
+	file, err = os.Create(accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to create accounts table")
+	}
+	file.Close()
+
+	accDb, err := sql.Open("sqlite3", accountBalanceTable)
+	if err != nil {
+		return errors.New("Failed to open newly created accounts db")
+	}
+	defer accDb.Close()
+
+	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	if err != nil {
+		return errors.New("Failed to create acount_balances table")
+	}
+
+	stmt, err := accDb.Prepare("INSERT INTO account_balances VALUES (?, ?, ?)")
+	if err != nil {
+		return errors.New("Failed to create statement for inserting into account table")
+	}
+
+	for _, contrcts := range genesisBlock.Data {
+		var contract contracts.Contract
+		contract.Deserialize(contrcts)
+		_, err := stmt.Exec(hex.EncodeToString(contract.RecipPubKeyHash), contract.Value, 0)
+		if err != nil {
+			return errors.New("Failed to execute statement for inserting into account table")
+		}
+	}
 	return nil
 }

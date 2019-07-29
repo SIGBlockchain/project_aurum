@@ -120,7 +120,7 @@ func TestByteChannel(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create genesis block:\n%s", err.Error())
 	}
-	if err := genesis.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
+	if err := blockchain.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 		t.Errorf("failed to perform air drop:\n%s", err.Error())
 	}
 	defer func() {

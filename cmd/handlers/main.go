@@ -50,7 +50,7 @@ func main() {
 			log.Fatalf("Failed to create genesis block: %v", err)
 		}
 		log.Println("Attempting airdrop...")
-		if err := genesis.Airdrop(constants.BlockchainFile, constants.MetadataTable, constants.AccountsTable, genesisBlock); err != nil {
+		if err := blockchain.Airdrop(constants.BlockchainFile, constants.MetadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			log.Fatalf("Failed to perform airdrop: %v", err)
 		}
 		log.Println("Airdrop complete.")

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -363,7 +364,7 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := genesis.BringOnTheGenesis(pkhashes, 1000)
-	if err := genesis.Airdrop(ljr, meta, constants.AccountsTable, genny); err != nil {
+	if err := Airdrop(ljr, meta, constants.AccountsTable, genny); err != nil {
 		t.Errorf("airdrop failed")
 	}
 
@@ -491,7 +492,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 		}
 	}
 	genesisBlk, _ := genesis.BringOnTheGenesis(pkhashes, 1000)
-	if err := genesis.Airdrop(ljr, meta, accts, genesisBlk); err != nil {
+	if err := Airdrop(ljr, meta, accts, genesisBlk); err != nil {
 		t.Errorf("airdrop failed")
 	}
 	// Insert pkhashes into account table for contract validation
@@ -637,6 +638,87 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 					t.Errorf("Key not found in table: %v", someKeyPKhsh)
 				}
 				row.Close()
+			}
+		})
+	}
+}
+
+func TestAirdrop(t *testing.T) {
+	var pkhashes [][]byte
+	for i := 0; i < 100; i++ {
+		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		pkhashes = append(pkhashes, someKeyPKHash)
+	}
+	genny, _ := genesis.BringOnTheGenesis(pkhashes, 1000)
+	type args struct {
+		blockchain   string
+		metadata     string
+		accounts     string
+		genesisBlock block.Block
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				blockchain:   "blockchain.dat",
+				metadata:     constants.MetadataTable,
+				accounts:     constants.AccountsTable,
+				genesisBlock: genny,
+			},
+		},
+	}
+	for _, tt := range tests {
+		defer func() {
+			os.Remove(tt.args.metadata)
+			os.Remove(tt.args.blockchain)
+			os.Remove(tt.args.accounts)
+		}()
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Airdrop(tt.args.blockchain, tt.args.metadata, tt.args.accounts, tt.args.genesisBlock); (err != nil) != tt.wantErr {
+				t.Errorf("Airdrop() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			fileGenny, err := ioutil.ReadFile(tt.args.blockchain)
+			if err != nil {
+				t.Errorf("Failed to open file" + err.Error())
+			}
+			serializedGenny := genny.Serialize()
+			if !bytes.Equal(fileGenny[4:], serializedGenny) {
+				t.Errorf("Genesis block does not match file block")
+			}
+
+			db, err := sql.Open("sqlite3", tt.args.accounts)
+			if err != nil {
+				t.Errorf("Failed to open accounts table: " + err.Error())
+			}
+			defer db.Close()
+
+			rows, err := db.Query(sqlstatements.GET_PUB_KEY_HASH_BALANCE_NONCE_FROM_ACCOUNT_BALANCES)
+			if err != nil {
+				t.Errorf("failed to create rows for queries")
+			}
+			defer rows.Close()
+
+			var pkhCount int
+			var pkhStr string
+			var balance int
+			var nonce int
+			for rows.Next() {
+				rows.Scan(&pkhStr, &balance, &nonce)
+				pkhash, _ := hex.DecodeString(pkhStr)
+				if !bytes.Equal(pkhash, pkhashes[pkhCount]) {
+					t.Errorf("hashes don't match: %v != %v\n", pkhash, pkhashes[pkhCount])
+				}
+				if balance != 10 {
+					t.Errorf("balance does not match: %v != %v\n", balance, 10)
+				}
+				if nonce != 0 {
+					t.Errorf("nonce does not match: %v != %v\n", nonce, 0)
+				}
+				pkhCount++
 			}
 		})
 	}
