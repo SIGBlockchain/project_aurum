@@ -7,12 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
@@ -298,144 +296,4 @@ func GetYoungestBlockHeader(blockchain string, table string) (block.BlockHeader,
 		MerkleRootHash: latestBlock.MerkleRootHash,
 	}
 	return latestBlockHeader, nil
-}
-
-// This is a security feature for the ledger. If the metadata table gets lost somehow, this function will restore it completely.
-//
-// Another situation is when a producer in a decentralized system joins the network and wants the full ledger.
-func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, accountBalanceTable string) error {
-	//check if metadata file exists
-	err := emptyFile(metadataFilename)
-	if err != nil {
-		log.Printf("Failed to create an empty metadata file: %s", err.Error())
-		return errors.New("Failed to create an empty metadata file")
-	}
-	//check if account balance file exists
-	err = emptyFile(accountBalanceTable)
-	if err != nil {
-		log.Printf("Failed to create an empty account file: %s", err.Error())
-		return errors.New("Failed to create an empty account file")
-	}
-
-	//set up the two database tables
-	metaDb, err := sql.Open("sqlite3", metadataFilename)
-	if err != nil {
-		return errors.New("Failed to open newly created metadata db")
-	}
-	defer metaDb.Close()
-	_, err = metaDb.Exec("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
-	if err != nil {
-		return errors.New("Failed to create metadata table")
-	}
-
-	accDb, err := sql.Open("sqlite3", accountBalanceTable)
-	if err != nil {
-		return errors.New("Failed to open newly created accounts db")
-	}
-	defer accDb.Close()
-	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
-	if err != nil {
-		return errors.New("Failed to create acount_balances table")
-	}
-
-	// open ledger file
-	ledgerFile, err := os.OpenFile(ledgerFilename, os.O_RDONLY, 0644)
-	if err != nil {
-		return errors.New("Failed to open ledger file")
-	}
-	defer ledgerFile.Close()
-
-	// loop that adds blocks' metadata into database
-	bPosition := int64(0)
-	for {
-		bOldPos := bPosition
-		deserializedBlock, bLen, err := extractBlock(ledgerFile, &bPosition)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Printf("Failed to extract block from ledger: %s", err.Error())
-			return errors.New("Failed to extract block from ledger")
-		}
-
-		//update the metadata table
-		err = insertMetadata(metaDb, deserializedBlock, bLen, bOldPos)
-		if err != nil {
-			return err
-		}
-
-		//update the account table
-		err = accountstable.UpdateAccountTable(accDb, deserializedBlock)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return err
-}
-
-//creates an empty file if the file doesn't exist, or clears if the contents of the file if it exists
-func emptyFile(fileName string) error {
-	_, err := os.Stat(fileName)
-	if err != nil {
-		f, err := os.Create(fileName)
-		if err != nil {
-			return errors.New("Failed to create " + fileName)
-		}
-		f.Close()
-	} else { //file exits, so clear the file
-		err = os.Truncate(fileName, 0)
-		if err != nil {
-			return errors.New("Failed to truncate " + fileName)
-		}
-	}
-	return nil
-}
-
-//extract a block from the file, also update file position
-func extractBlock(ledgerFile *os.File, pos *int64) (*block.Block, uint32, error) {
-	length := make([]byte, 4)
-
-	// read 4 bytes for blocks' length
-	_, err := ledgerFile.Read(length)
-	if err == io.EOF {
-		return nil, 0, err
-	} else if err != nil {
-		return nil, 0, errors.New("Failed to read ledger file")
-	}
-
-	bLen := binary.LittleEndian.Uint32(length)
-
-	// set offset for next read to get to the position of the block
-	ledgerFile.Seek(*pos+int64(len(length)), 0)
-	serialized := make([]byte, bLen)
-
-	//update file position
-	*pos += int64(len(length) + len(serialized))
-
-	//extract block
-	_, err = io.ReadAtLeast(ledgerFile, serialized, int(bLen))
-	if err != nil {
-		return nil, 0, errors.New("Failed to retrieve serialized block")
-	}
-
-	deserializedBlock := block.Deserialize(serialized)
-	return &deserializedBlock, bLen, nil
-}
-
-/*inserts the block metadata into the metadata table
-  NOTE: the db connection passed in should be open
-*/
-func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
-	bHeight := b.Height
-	bHash := block.HashBlock(*b)
-
-	sqlQuery := "INSERT INTO metadata (height, position, size, hash) VALUES ($1, $2, $3, $4)"
-	_, err := db.Exec(sqlQuery, bHeight, pos, bLen, bHash)
-	if err != nil {
-		log.Printf("Failed to execute statement: %s", err.Error())
-		return errors.New("Failed to execute statement")
-	}
-
-	return nil
 }
