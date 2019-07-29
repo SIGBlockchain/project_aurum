@@ -191,7 +191,15 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 			if buf[8] == 2 {
 				lgr.Println("Received account info request")
 				// TODO: Will require a sync.Mutex lock here eventually
-				accInfo, err := accountstable.GetAccountInfo(buf[9:nRcvd])
+				// Open connection to account table
+				dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+				if err != nil {
+					lgr.Fatalf("Failed to open account table: %s\n", err)
+				}
+				accInfo, err := accountstable.GetAccountInfo(dbConnection, buf[9:nRcvd])
+				if err := dbConnection.Close(); err != nil {
+					lgr.Fatalf("Failed to close account table: %s\n", err)
+				}
 				var responseMessage []byte
 				responseMessage = append(responseMessage, SecretBytes...)
 				if err != nil {
@@ -235,6 +243,17 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		lgr.Fatalf("failed to open metadata table: %s\n", err)
 	}
 	defer metadataConn.Close()
+
+	// Open connection to account database
+	dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		lgr.Fatalf("Failed to open account table: %s\n", err)
+	}
+	defer func() {
+		if err := dbConnection.Close(); err != nil {
+			lgr.Fatalf("Failed to close account table: %v", err)
+		}
+	}()
 
 	// Retrieve youngest block header
 	ledgerFile, err := os.OpenFile(ledger, os.O_RDONLY, 0644)
@@ -281,7 +300,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 				var newContract contracts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
 					// TODO: Validate the contract prior to adding
-					if err := validation.ValidateContract(&newContract); err != nil {
+					if err := validation.ValidateContract(dbConnection, &newContract); err != nil {
 						lgr.Println("Invalid contract because: " + err.Error())
 					} else {
 						dataPool = append(dataPool, newContract)

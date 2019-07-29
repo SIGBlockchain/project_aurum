@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
@@ -43,8 +42,8 @@ Increment both nonces by 1
 */
 func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
 	// retrieve both sender's and recipient's balance and nonce
-	senderAccountInfo, errSenderAccount := GetAccountInfo(senderPKH)
-	recipientAccountInfo, errRecipientAccount := GetAccountInfo(recipPKH)
+	senderAccountInfo, errSenderAccount := GetAccountInfo(dbConnection, senderPKH)
+	recipientAccountInfo, errRecipientAccount := GetAccountInfo(dbConnection, recipPKH)
 
 	if errSenderAccount == nil {
 		// update sender's balance by subtracting the amount indicated by value and adding one to nonce
@@ -90,7 +89,7 @@ Increment nonce by 1
 */
 func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
 	// retrieve pkhash's balance and nonce
-	accountInfo, errAccount := GetAccountInfo(pkhash)
+	accountInfo, errAccount := GetAccountInfo(dbConnection, pkhash)
 
 	if errAccount == nil {
 		// update pkhash's balance by adding the amount indicated by value, and add one to nonce
@@ -106,16 +105,9 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 	return errors.New("Failed to find row")
 }
 
-func GetBalance(pkhash []byte) (uint64, error) {
-	// open account balance table
-	db, err := sql.Open("sqlite3", constants.AccountsTable)
-	if err != nil {
-		return 0, errors.New("Failed to open account balance table")
-	}
-	defer db.Close()
-
+func GetBalance(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 	// search for pkhash's balance
-	row, err := db.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
+	row, err := dbConnection.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
@@ -133,16 +125,9 @@ func GetBalance(pkhash []byte) (uint64, error) {
 	return balance, nil
 }
 
-func GetStateNonce(pkhash []byte) (uint64, error) {
-	// open account balance table
-	db, err := sql.Open("sqlite3", constants.AccountsTable)
-	if err != nil {
-		return 0, errors.New("Failed to open account balance table")
-	}
-	defer db.Close()
-
+func GetStateNonce(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 	// search for pkhash's stateNonce
-	row, err := db.Query(sqlstatements.GET_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
+	row, err := dbConnection.Query(sqlstatements.GET_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
@@ -160,15 +145,15 @@ func GetStateNonce(pkhash []byte) (uint64, error) {
 	return stateNonce, nil
 }
 
-func GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error) {
+func GetAccountInfo(dbConnection *sql.DB, pkhash []byte) (*accountinfo.AccountInfo, error) {
 	// retrieve pkhash's balance
-	balance, err := GetBalance(pkhash)
+	balance, err := GetBalance(dbConnection, pkhash)
 	if err != nil {
 		return nil, errors.New("Failed to retreive balance: " + err.Error())
 	}
 
 	// retrieve pkhash's stateNonce
-	stateNonce, err := GetStateNonce(pkhash)
+	stateNonce, err := GetStateNonce(dbConnection, pkhash)
 	if err != nil {
 		return nil, errors.New("Failed to retreive stateNonce: " + err.Error())
 	}

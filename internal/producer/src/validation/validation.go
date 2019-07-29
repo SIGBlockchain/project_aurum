@@ -3,6 +3,7 @@ package validation
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"database/sql"
 	"encoding/asn1"
 	"errors"
 	"math/big"
@@ -13,7 +14,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
-func ValidateContract(c *contracts.Contract) error {
+func ValidateContract(dbConnection *sql.DB, c *contracts.Contract) error {
 	// check for zero value transaction
 	if c.Value == 0 {
 		return errors.New("Invalid contract: zero value transaction")
@@ -49,7 +50,7 @@ func ValidateContract(c *contracts.Contract) error {
 
 	// retrieve sender's balance from account balance table
 	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
-	senderAccountInfo, errAccount := accountstable.GetAccountInfo(senderPubKeyHash)
+	senderAccountInfo, errAccount := accountstable.GetAccountInfo(dbConnection, senderPubKeyHash)
 
 	if errAccount == nil {
 		// check insufficient funds
