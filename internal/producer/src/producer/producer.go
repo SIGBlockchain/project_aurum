@@ -244,6 +244,17 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 	}
 	defer metadataConn.Close()
 
+	// Open connection to account database
+	dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		lgr.Fatalf("Failed to open account table: %s\n", err)
+	}
+	defer func() {
+		if err := dbConnection.Close(); err != nil {
+			lgr.Fatalf("Failed to close account table: %v", err)
+		}
+	}()
+
 	// Retrieve youngest block header
 	ledgerFile, err := os.OpenFile(ledger, os.O_RDONLY, 0644)
 	if err != nil {
@@ -289,7 +300,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 				var newContract contracts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
 					// TODO: Validate the contract prior to adding
-					if err := validation.ValidateContract(&newContract); err != nil {
+					if err := validation.ValidateContract(dbConnection, &newContract); err != nil {
 						lgr.Println("Invalid contract because: " + err.Error())
 					} else {
 						dataPool = append(dataPool, newContract)

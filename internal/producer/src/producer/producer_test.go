@@ -825,7 +825,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	recipPKHash := hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
 	contract1, _ := contracts.New(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.Sign(somePVKeys[0])
-	err = validation.ValidateContract(contract1)
+	err = validation.ValidateContract(acctsDB, contract1)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -836,7 +836,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
 	contract2, _ := contracts.New(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.Sign(somePVKeys[1])
-	err = validation.ValidateContract(contract2)
+	err = validation.ValidateContract(acctsDB, contract2)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -847,7 +847,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
 	contract3, _ := contracts.New(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.Sign(somePVKeys[2])
-	err = validation.ValidateContract(contract3)
+	err = validation.ValidateContract(acctsDB, contract3)
 	if err != nil {
 		t.Error(err.Error())
 	}

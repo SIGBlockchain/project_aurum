@@ -8,14 +8,13 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
-func ValidateContract(c *contracts.Contract) error {
+func ValidateContract(dbConnection *sql.DB, c *contracts.Contract) error {
 	// check for zero value transaction
 	if c.Value == 0 {
 		return errors.New("Invalid contract: zero value transaction")
@@ -50,15 +49,8 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// retrieve sender's balance from account balance table
-	dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
-	if err != nil {
-		return errors.New("Failed to open account balance table")
-	}
 	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
 	senderAccountInfo, errAccount := accountstable.GetAccountInfo(dbConnection, senderPubKeyHash)
-	if err := dbConnection.Close(); err != nil {
-		return errors.New("Failed to close account balance table")
-	}
 
 	if errAccount == nil {
 		// check insufficient funds

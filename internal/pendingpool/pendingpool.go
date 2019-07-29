@@ -43,7 +43,7 @@ func (m *PendingMap) Add(c *contracts.Contract, accDB *sql.DB) error {
 
 	senderPD, inMap := m.Sender[senderPKStr]
 	if !inMap { // if the key is not in the map
-		err := validation.ValidateContract(c)
+		err := validation.ValidateContract(accDB, c)
 		if err != nil {
 			return errors.New("Failed to validate contract: " + err.Error())
 		}
