@@ -4,24 +4,37 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 )
 
+// AurumPublicKey struct holds public key for user
 type AurumPublicKey struct {
 	Key *ecdsa.PublicKey
 }
 
-// Returns the PEM-Encoded byte slice from a given public key
-func Encode(key *ecdsa.PublicKey) []byte {
-	x509EncodedPub, _ := x509.MarshalPKIXPublicKey(key)
-	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
+// Encode returns the PEM-Encoded byte slice from a given public key or a non-nil error if fail
+func Encode(key *ecdsa.PublicKey) ([]byte, error) {
+	x509EncodedPub, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub}), nil
 }
 
-// Returns the public key from a given PEM-Encoded byte slice representation of the public key
-func Decode(key []byte) *ecdsa.PublicKey {
+// Decode returns the public key from a given PEM-Encoded byte slice representation of the public key or a non-nil error if fail
+func Decode(key []byte) (*ecdsa.PublicKey, error) {
 	blockPub, _ := pem.Decode(key)
+	// pem.Decode will return nil for the first value if no PEM data is found. This would be bad
+	if blockPub == nil {
+		return nil, errors.New("Could not return the public key - the key value is nil")
+	}
+
 	x509EncodedPub := blockPub.Bytes
-	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
-	return genericPublicKey.(*ecdsa.PublicKey)
+	genericPublicKey, err := x509.ParsePKIXPublicKey(x509EncodedPub)
+	if err != nil {
+		return nil, err
+	}
+	return genericPublicKey.(*ecdsa.PublicKey), nil
 }
 
 // Equals returns true if the given two *ecdsa.PublicKey are equal
