@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/config"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"

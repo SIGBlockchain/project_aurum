@@ -6,10 +6,10 @@ import (
 	"errors"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/validation"
 )
 
 //PendingData contains pending balance and pending nonce

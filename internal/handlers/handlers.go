@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"

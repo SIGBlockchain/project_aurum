@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )

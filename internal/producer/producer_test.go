@@ -18,22 +18,14 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/genesis"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 var removeFiles = true
-
-// Test will fail in airplane mode, or just remove wireless connection.
-func TestCheckConnectivity(t *testing.T) {
-	err := CheckConnectivity()
-	if err != nil {
-		t.Errorf("Internet connection check failed.")
-	}
-}
 
 func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

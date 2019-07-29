@@ -14,8 +14,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
-	block "github.com/SIGBlockchain/project_aurum/internal/producer/src/block"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
+	block "github.com/SIGBlockchain/project_aurum/internal/block"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
