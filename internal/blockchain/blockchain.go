@@ -246,7 +246,7 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		return errors.New("Failed to open newly created metadata db")
 	}
 	defer metaDb.Close()
-	_, err = metaDb.Exec("CREATE TABLE metadata (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	_, err = metaDb.Exec(sqlstatements.CREATE_METADATA_TABLE)
 	if err != nil {
 		return errors.New("Failed to create metadata table")
 	}
@@ -256,7 +256,7 @@ func RecoverBlockchainMetadata(ledgerFilename string, metadataFilename string, a
 		return errors.New("Failed to open newly created accounts db")
 	}
 	defer accDb.Close()
-	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	_, err = accDb.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	if err != nil {
 		return errors.New("Failed to create acount_balances table")
 	}
@@ -353,7 +353,7 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	bHeight := b.Height
 	bHash := block.HashBlock(*b)
 
-	sqlQuery := "INSERT INTO metadata (height, position, size, hash) VALUES ($1, $2, $3, $4)"
+	sqlQuery := sqlstatements.INSERT_1234_INTO_METADATA
 	_, err := db.Exec(sqlQuery, bHeight, pos, bLen, bHash)
 	if err != nil {
 		log.Printf("Failed to execute statement: %s", err.Error())
@@ -385,7 +385,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	}
 	defer db.Close()
 
-	_, err = db.Exec("CREATE table METADATA (height INTEGER PRIMARY KEY, position INTEGER, size INTEGER, hash TEXT)")
+	_, err = db.Exec(sqlstatements.CREATE_METADATA_TABLE)
 	if err != nil {
 		return errors.New("Failed to create table")
 	}
@@ -416,12 +416,12 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	}
 	defer accDb.Close()
 
-	_, err = accDb.Exec("CREATE TABLE account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	_, err = accDb.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	if err != nil {
 		return errors.New("Failed to create acount_balances table")
 	}
 
-	stmt, err := accDb.Prepare("INSERT INTO account_balances VALUES (?, ?, ?)")
+	stmt, err := accDb.Prepare(sqlstatements.INSERT_BLANK_VALUES_INTO_ACCOUNT_BALANCES)
 	if err != nil {
 		return errors.New("Failed to create statement for inserting into account table")
 	}

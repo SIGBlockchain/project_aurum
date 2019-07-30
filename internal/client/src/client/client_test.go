@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -504,7 +505,7 @@ func TestRequestWalletInfo(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	_, err := dbc.Exec("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	_, err := dbc.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	if err != nil {
 		t.Errorf("Failed to create table in database: %s", err)
 	}

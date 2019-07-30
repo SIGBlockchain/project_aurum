@@ -9,7 +9,6 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
-	// "github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
@@ -237,14 +236,14 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 			var balance int
 			var nonce int
 
-			sqlQuery := fmt.Sprintf("SELECT balance, nonce FROM account_balances WHERE public_key_hash= \"%s\"", hex.EncodeToString(acc.accountPKH))
+			sqlQuery := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(acc.accountPKH))
 			row, _ := db.Query(sqlQuery)
 			if row.Next() {
 				row.Scan(&balance, &nonce) // retrieve balance and nonce from account_balances
 				row.Close()
 
 				// update balance and nonce
-				sqlUpdate := fmt.Sprintf("UPDATE account_balances set balance=%d, nonce=%d WHERE public_key_hash= \"%s\"",
+				sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 					acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
 				_, err := db.Exec(sqlUpdate)
 				if err != nil {
