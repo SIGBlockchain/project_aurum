@@ -41,9 +41,11 @@ func TestValidateContract(t *testing.T) {
 	statement.Exec()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
+	encodedSenderPublicKey, _ := publickey.Encode(&sender.PublicKey)
+	senderPKH := hashing.New(encodedSenderPublicKey)
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipient.PublicKey)
+	recipientPKH := hashing.New(encodedRecipientPublicKey)
 	err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 1000)
 	if err != nil {
 		t.Errorf("Failed to insert zero Sender account")
@@ -76,14 +78,16 @@ func TestValidateContract(t *testing.T) {
 	validTwoExistingAccountsContract.Sign(sender)
 
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
+	encodedKeyNotInTablePublicKey, _ := publickey.Encode(&keyNotInTable.PublicKey)
+	keyNotInTablePKH := hashing.New(encodedKeyNotInTablePublicKey)
 
 	validOneExistingAccountsContract, _ := contracts.New(1, sender, keyNotInTablePKH, 500, 1)
 	validOneExistingAccountsContract.Sign(sender)
 	accountstable.InsertAccountIntoAccountBalanceTable(dbc, keyNotInTablePKH, 500)
 
 	anotherKeyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	anotherKeyNotInTablePKH := hashing.New(publickey.Encode(&anotherKeyNotInTable.PublicKey))
+	encodedAnotherKeyNotInTablePublicKey, _ := publickey.Encode(&anotherKeyNotInTable.PublicKey)
+	anotherKeyNotInTablePKH := hashing.New(encodedAnotherKeyNotInTablePublicKey)
 
 	newAccountToANewerAccountContract, _ := contracts.New(1, keyNotInTable, anotherKeyNotInTablePKH, 500, 1)
 	newAccountToANewerAccountContract.Sign(keyNotInTable)
@@ -166,9 +170,11 @@ func TestValidateContract(t *testing.T) {
 
 func TestValidatePending(t *testing.T) {
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
+	encodedSenderPublicKey, _ := publickey.Encode(&sender.PublicKey)
+	senderPKH := hashing.New(encodedSenderPublicKey)
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipient.PublicKey)
+	recipientPKH := hashing.New(encodedRecipientPublicKey)
 
 	zeroValueContract, _ := contracts.New(1, sender, recipientPKH, 0, 1)
 	zeroValueContract.Sign(sender)
@@ -196,7 +202,11 @@ func TestValidatePending(t *testing.T) {
 
 	// pBalance = 50, pNonce = 1
 	keyNotInTable, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	keyNotInTablePKH := hashing.New(publickey.Encode(&keyNotInTable.PublicKey))
+	encodedSenderPublicKey, err := publickey.Encode(&keyNotInTable.PublicKey)
+	if err != nil {
+		t.Errorf("failure to encode Sender Public Key: %v", err)
+	}
+	keyNotInTablePKH := hashing.New(encodedSenderPublicKey)
 
 	InvalidBalanceContract, _ := contracts.New(1, sender, keyNotInTablePKH, 51, 2)
 	InvalidBalanceContract.Sign(sender)

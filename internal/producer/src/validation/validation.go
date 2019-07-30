@@ -20,7 +20,9 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
-	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(publickey.Encode(c.SenderPubKey))) {
+	senderPublicKey := c.SenderPubKey
+	encodedSenderPublicKey, _ := publickey.Encode(senderPublicKey)
+	if c.SenderPubKey == nil || bytes.Equal(c.RecipPubKeyHash, hashing.New(encodedSenderPublicKey)) {
 		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 
@@ -48,7 +50,11 @@ func ValidateContract(c *contracts.Contract) error {
 	}
 
 	// retrieve sender's balance from account balance table
-	senderPubKeyHash := hashing.New(publickey.Encode(c.SenderPubKey))
+	encodedSenderPublicKey, err = publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return err
+	}
+	senderPubKeyHash := hashing.New(encodedSenderPublicKey)
 	senderAccountInfo, errAccount := accountstable.GetAccountInfo(senderPubKeyHash)
 
 	if errAccount == nil {
@@ -80,7 +86,11 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 
 	// check for nil sender public key and recip == sha-256 hash of senderPK
 	recipPKhash := hashing.SHA256Hash{SecureHash: c.RecipPubKeyHash}
-	if c.SenderPubKey == nil || recipPKhash.Equals(publickey.Encode(c.SenderPubKey)) {
+	encodedSenderPublicKey, err := publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return err
+	}
+	if c.SenderPubKey == nil || recipPKhash.Equals(encodedSenderPublicKey) {
 		return errors.New("Invalid contract: sender cannot be nil nor same as recipient")
 	}
 

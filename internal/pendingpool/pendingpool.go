@@ -38,7 +38,11 @@ func NewPendingMap() PendingMap {
 //Otherwise, Add either inserts the sender's PKhash and the PendingData struct into the map,
 //or updates the pending balance and pending nonce for that sender's PKhash in the map
 func (m *PendingMap) Add(c *contracts.Contract, accDB *sql.DB) error {
-	senderPKHash := hashing.New(publickey.Encode(c.SenderPubKey))
+	encodedSenderPublicKey, err := publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return err
+	}
+	senderPKHash := hashing.New(encodedSenderPublicKey)
 	senderPKStr := hex.EncodeToString(senderPKHash) // hex encoded sender PKhash string for the key
 
 	senderPD, inMap := m.Sender[senderPKStr]

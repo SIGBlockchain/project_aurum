@@ -20,9 +20,9 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 
+	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 
 	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
@@ -235,8 +235,9 @@ func TestPrintPublicKeyAndHash(t *testing.T) {
 			x509Encoded := pemDecodedKey.Bytes
 			privateKey, err := x509.ParseECPrivateKey(x509Encoded)
 			publicKey := privateKey.PublicKey
-			publicKeyString := hex.EncodeToString(publickey.Encode(&publicKey))
-			publicKeyHash := hashing.New(publickey.Encode(&publicKey))
+			encodedPublicKey, _ := publickey.Encode(&publicKey)
+			publicKeyString := hex.EncodeToString(encodedPublicKey)
+			publicKeyHash := hashing.New(encodedPublicKey)
 			publicKeyHashString := hex.EncodeToString(publicKeyHash)
 			if err != nil {
 				t.Errorf("Failed to parse private key: %s", err)
@@ -351,7 +352,8 @@ func TestGetWalletAddress(t *testing.T) {
 	x509Encoded := pemDecodedKey.Bytes
 	privateKey, err := x509.ParseECPrivateKey(x509Encoded)
 	publicKey := privateKey.PublicKey
-	publicKeyHash := hashing.New(publickey.Encode(&publicKey))
+	encodedPublicKey, _ := publickey.Encode(&publicKey)
+	publicKeyHash := hashing.New(encodedPublicKey)
 	if err != nil {
 		t.Errorf("Failed to parse private key: %s", err)
 	}

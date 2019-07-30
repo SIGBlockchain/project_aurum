@@ -79,10 +79,14 @@ func (c *Contract) Serialize() ([]byte, error) {
 
 	// if contract's sender pubkey is nil, make 178 zeros in its place instead
 	var spubkey []byte
+	var err error
 	if c.SenderPubKey == nil {
 		spubkey = make([]byte, 178)
 	} else {
-		spubkey = publickey.Encode(c.SenderPubKey) //size 178
+		spubkey, err = publickey.Encode(c.SenderPubKey) //size 178
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	//unsigned contract
@@ -115,12 +119,16 @@ func (c *Contract) Serialize() ([]byte, error) {
 // Deserialize into a struct
 func (c *Contract) Deserialize(b []byte) error {
 	var spubkeydecoded *ecdsa.PublicKey
+	var err error
 
 	// if serialized sender public key contains only zeros, sender public key is nil
 	if bytes.Equal(b[2:180], make([]byte, 178)) {
 		spubkeydecoded = nil
 	} else {
-		spubkeydecoded = publickey.Decode(b[2:180])
+		spubkeydecoded, err = publickey.Decode(b[2:180])
+		if err != nil {
+			return err
+		}
 	}
 	siglen := int(b[180])
 
@@ -196,9 +204,13 @@ func Equals(contract1 Contract, contract2 Contract) bool {
 	return true
 }
 
-// ContractToString takes in a Contract and return a string version
+// ToString takes in a Contract and return a string version
 func (c Contract) ToString() string {
+	encodedSenderPublicKey, err := publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return "Error on encoding Sender Public Key"
+	}
 	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
-		c.Version, hex.EncodeToString(publickey.Encode(c.SenderPubKey)), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
+		c.Version, hex.EncodeToString(encodedSenderPublicKey), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
 		c.Value, c.StateNonce)
 }

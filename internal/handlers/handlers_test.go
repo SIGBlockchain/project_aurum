@@ -55,7 +55,8 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var walletAddress = hashing.New(publickey.Encode(&privateKey.PublicKey))
+	encodedSenderPublicKey, _ := publickey.Encode(&privateKey.PublicKey)
+	var walletAddress = hashing.New(encodedSenderPublicKey)
 	err = accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337)
 	if err != nil {
 		t.Errorf("failed to insert sender account")
@@ -125,13 +126,16 @@ func TestContractRequestHandler(t *testing.T) {
 	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap, pLock))
 
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSenderStr := hex.EncodeToString(hashing.New(publickey.Encode(&senderPrivateKey.PublicKey)))
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	encodedSenderStr := hex.EncodeToString(hashing.New(encodedSenderPublicKey))
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	var recipientWalletAddress = hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	var recipientWalletAddress = hashing.New(encodedRecipientPublicKey)
 
 	sender2PrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSender2Str := hex.EncodeToString(hashing.New(publickey.Encode(&sender2PrivateKey.PublicKey)))
-	var walletAddress2 = hashing.New(publickey.Encode(&sender2PrivateKey.PublicKey))
+	encodedSender2PublicKey, _ := publickey.Encode(&sender2PrivateKey.PublicKey)
+	encodedSender2Str := hex.EncodeToString(hashing.New(encodedSender2PublicKey))
+	var walletAddress2 = hashing.New(encodedSender2PublicKey)
 	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress2, 5000); err != nil {
 		t.Errorf("failed to insert sender account")
 	}
@@ -173,7 +177,7 @@ func TestContractRequestHandler(t *testing.T) {
 		t.Logf("%s", rr.Body.String())
 	}
 
-	var walletAddress = hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
+	var walletAddress = hashing.New(encodedSenderPublicKey)
 	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbConn, walletAddress, 1337); err != nil {
 		t.Errorf("failed to insert sender account")
 	}

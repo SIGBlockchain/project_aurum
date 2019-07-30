@@ -324,8 +324,12 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 						lgr.Fatalf("Failed to connect to accounts database: %v", err)
 					}
 					for _, contract := range dataPool {
-						senderPKH := hashing.New(publickey.Encode(contract.SenderPubKey))
-						err := accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
+						encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
+						if err != nil {
+							error.Error(err)
+						}
+						senderPKH := hashing.New(encodedContractSenderPublicKey)
+						err = accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
 						if err != nil {
 							lgr.Printf("Failed to add contract to accounts database: %v", err)
 						}
@@ -664,7 +668,11 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 		}
 
 		for i := 0; i < len(totalBalances); i++ {
-			if bytes.Compare(totalBalances[i].accountPKH, hashing.New(publickey.Encode(contract.SenderPubKey))) == 0 {
+			encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
+			if err != nil {
+				return err
+			}
+			if bytes.Compare(totalBalances[i].accountPKH, hashing.New(encodedContractSenderPublicKey)) == 0 {
 				//subtract the value of the contract from the sender's account
 				addSender = false
 				totalBalances[i].balance -= int64(contract.Value)
@@ -679,8 +687,12 @@ func updateAccountTable(db *sql.DB, b *block.Block) error {
 
 		//add the sender's account info into totalBalances
 		if addSender {
+			encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
+			if err != nil {
+				return err
+			}
 			totalBalances = append(totalBalances,
-				accountInfo{accountPKH: hashing.New(publickey.Encode(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
+				accountInfo{accountPKH: hashing.New(encodedContractSenderPublicKey), balance: -1 * int64(contract.Value), nonce: 1})
 		}
 
 		//add the recipient's account info into totalBalances
@@ -754,7 +766,7 @@ func ReadGenesisHashes() ([][]byte, error) {
 // Create the genesisHashFile
 // Generate numHashes number of public key hashes
 // Store them AS STRINGS (not bytes) in the file, line by line
-func GenerateGenesisHashFile(numHashes uint16) {
+func GenerateGenesisHashFile(numHashes uint16) error {
 
 	// creating the new file
 	genHashfile, _ := os.Create(constants.GenesisAddresses)
@@ -767,7 +779,11 @@ func GenerateGenesisHashFile(numHashes uint16) {
 		privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 		// get public kek and hash it
-		hashedPubKey := hashing.New(publickey.Encode(&privateKey.PublicKey))
+		encodedPublicKey, err := publickey.Encode(&privateKey.PublicKey)
+		if err != nil {
+			return err
+		}
+		hashedPubKey := hashing.New(encodedPublicKey)
 
 		// get pub key hash as string to store in txt file
 		hashPubKeyStr := hex.EncodeToString(hashedPubKey)
@@ -775,6 +791,7 @@ func GenerateGenesisHashFile(numHashes uint16) {
 		// write pub key hash into genesisHashFile
 		genHashfile.WriteString(hashPubKeyStr + "\n")
 	}
+	return nil
 }
 
 // Generates n random keys and writes them to the file at filename

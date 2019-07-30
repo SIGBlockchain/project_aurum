@@ -95,7 +95,8 @@ func TestCheckConnectivity(t *testing.T) {
 func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	recipientPublicKeyHash := hashing.New(encodedRecipientPublicKey)
 	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, err := contract.Serialize()
@@ -216,7 +217,8 @@ func TestByteChannel(t *testing.T) {
 	}
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	recipientPublicKeyHash := hashing.New(encodedRecipientPublicKey)
 	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, _ := contract.Serialize()
@@ -363,7 +365,8 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 
 func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	spkh := hashing.New(encodedSenderPublicKey)
 	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
@@ -417,7 +420,8 @@ func TestData_Serialize(t *testing.T) {
 
 func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	spkh := hashing.New(encodedSenderPublicKey)
 	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	// someData := &Data{
 	// 	Hdr: DataHeader{
@@ -462,7 +466,8 @@ func TestBringOnTheGenesis(t *testing.T) {
 	var datum []contracts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		encodedSomePublicKey, _ := publickey.Encode(&someKey.PublicKey)
+		someKeyPKHash := hashing.New(encodedSomePublicKey)
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 10, 0)
 		datum = append(datum, *someAirdropContract)
@@ -523,7 +528,8 @@ func TestAirdrop(t *testing.T) {
 	var pkhashes [][]byte
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		encodedSomePublicKey, _ := publickey.Encode(&someKey.PublicKey)
+		someKeyPKHash := hashing.New(encodedSomePublicKey)
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
@@ -673,7 +679,8 @@ func TestRecoverBlockchainMetadata(t *testing.T) {
 	var pkhashes [][]byte
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		encodedSomePublicKey, _ := publickey.Encode(&someKey.PublicKey)
+		someKeyPKHash := hashing.New(encodedSomePublicKey)
 		pkhashes = append(pkhashes, someKeyPKHash)
 	}
 	genny, _ := BringOnTheGenesis(pkhashes, 1000)
@@ -800,7 +807,8 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	somePVKeys := make([]*ecdsa.PrivateKey, 3) // Grab 3 private keys for creating contracts
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		encodedSomePublicKey, _ := publickey.Encode(&someKey.PublicKey)
+		someKeyPKHash := hashing.New(encodedSomePublicKey)
 		pkhashes = append(pkhashes, someKeyPKHash)
 		if i < 3 {
 			somePVKeys[i] = someKey
@@ -822,36 +830,43 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	contrcts := make([]contracts.Contract, 3)
 
 	// Contract 1
-	recipPKHash := hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
+	somePVKeyPublicKey, _ := publickey.Encode(&(somePVKeys[1].PublicKey))
+	recipPKHash := hashing.New(somePVKeyPublicKey)
 	contract1, _ := contracts.New(1, somePVKeys[0], recipPKHash, 5, 1) // pkh1 to pkh2
 	contract1.Sign(somePVKeys[0])
 	err = validation.ValidateContract(contract1)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash := hashing.New(publickey.Encode(&(somePVKeys[0].PublicKey)))
+	somePVKeysPublicKey, _ := publickey.Encode(&(somePVKeys[0].PublicKey))
+	senderPKHash := hashing.New(somePVKeysPublicKey)
 	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
 
 	// Contract 2
-	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
+	anotherSomePVKeysPublicKey, _ := publickey.Encode(&(somePVKeys[2].PublicKey))
+	recipPKHash = hashing.New(anotherSomePVKeysPublicKey)
 	contract2, _ := contracts.New(1, somePVKeys[1], recipPKHash, 7, 2) // pkh2 to pkh3
 	contract2.Sign(somePVKeys[1])
 	err = validation.ValidateContract(contract2)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[1].PublicKey))
+
+	encodedSomePVKeyPublicKey, _ := publickey.Encode(&somePVKeys[1].PublicKey)
+	senderPKHash = hashing.New(encodedSomePVKeyPublicKey)
 	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
 
 	// Contract 3
-	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
+	encodedSomePVKeyPublicKey, _ = publickey.Encode(&(somePVKeys[1].PublicKey))
+	recipPKHash = hashing.New(encodedSomePVKeyPublicKey)
 	contract3, _ := contracts.New(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.Sign(somePVKeys[2])
 	err = validation.ValidateContract(contract3)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[2].PublicKey))
+	encodedSomePVKeyPublicKey, _ = publickey.Encode(&somePVKeys[2].PublicKey)
+	senderPKHash = hashing.New(encodedSomePVKeyPublicKey)
 	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
 	acctsDB.Close()
 
@@ -917,7 +932,8 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 			}()
 
 			for i, key := range somePVKeys {
-				someKeyPKhsh := hashing.New(publickey.Encode(&key.PublicKey))
+				encodedSomePVKeyPublicKey, _ := publickey.Encode(&key.PublicKey)
+				someKeyPKhsh := hashing.New(encodedSomePVKeyPublicKey)
 				var balance uint64
 				var nonce uint64
 				queryStr := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(someKeyPKhsh))

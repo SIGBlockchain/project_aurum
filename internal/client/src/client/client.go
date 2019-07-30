@@ -20,9 +20,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
-	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
@@ -229,7 +229,7 @@ func PrintPublicKeyAndHash() error {
 
 	// Gets and encodes the public key
 	publicKey := privateKey.PublicKey
-	pemEncodedPub := publickey.Encode(&publicKey)
+	pemEncodedPub, _ := publickey.Encode(&publicKey)
 
 	// Encodes the public key into a string and a hash
 	publicKeyString := hex.EncodeToString(pemEncodedPub)
@@ -376,7 +376,8 @@ func GetWalletAddress() ([]byte, error) {
 	}
 
 	// Get the PEM encoded public key
-	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
+	encodedPublicKey, _ := publickey.Encode(&privKey.PublicKey)
+	pubKeyEncoded := encodedPublicKey
 	return hashing.New(pubKeyEncoded), nil
 }
 

@@ -19,9 +19,9 @@ func TestEncoding(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected err to not be nil, but it was...")
 	}
-	encoded, err := Encode(&public)
+	encoded, er := Encode(&public)
 	// test that Encoding does not receive an error for valid input
-	if err != nil {
+	if er != nil {
 		t.Errorf("Received an error for valid input")
 	}
 	x509EncodedPub, _ = x509.MarshalPKIXPublicKey(&public)
