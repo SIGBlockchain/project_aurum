@@ -65,6 +65,13 @@ func main() {
 	}
 	defer accountsDatabaseConnection.Close()
 
+	// Open connection to metadata database
+	metadataDatabaseConnection, err := sql.Open("sqlite3", constants.MetadataTable)
+	if err != nil {
+		log.Fatalf("Failed to open connection : %v", err)
+	}
+	defer metadataDatabaseConnection.Close()
+
 	// Declare channel for new contracts
 	contractChannel := make(chan contracts.Contract)
 
@@ -76,11 +83,17 @@ func main() {
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	// Extract youngest block header from blockchain
-	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(constants.BlockchainFile, constants.MetadataTable)
+	ledgerFile, err := os.OpenFile(constants.BlockchainFile, os.O_RDONLY, 0644)
+	if err != nil {
+		log.Fatalf("Failed to open ledger file")
+	}
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledgerFile, metadataDatabaseConnection)
 	if err != nil {
 		log.Fatalf("Failed to get youngestBlockHeader")
 	}
-
+	if err := ledgerFile.Close(); err != nil {
+		log.Fatalf("Failed to close ledger file: %v", err)
+	}
 	// Metadata about block production
 	var chainHeight = youngestBlockHeader.Height
 	var numBlocksGenerated uint64
@@ -135,9 +148,17 @@ func main() {
 			} else {
 
 				// Add block to blockchain
-				if err := blockchain.AddBlock(newBlock, constants.BlockchainFile, constants.MetadataTable); err != nil {
+				blockchainFile, err := os.OpenFile(constants.BlockchainFile, os.O_APPEND|os.O_WRONLY, 0644)
+				if err != nil {
+					log.Fatalf("failed to open ledger file: %s\n", err)
+				}
+				err = blockchain.AddBlock(newBlock, blockchainFile, metadataDatabaseConnection)
+				if err != nil {
 					log.Fatalf("Failed to add block %v", err)
 				} else {
+					if err := blockchainFile.Close(); err != nil {
+						log.Fatalf("Failed to close blockchain file: %v", err)
+					}
 					chainHeight++
 					// Reset pending pool map to empty
 					for k := range pendingMap.Sender {

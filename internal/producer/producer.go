@@ -103,7 +103,15 @@ func RunServer(ln net.Listener, bChan chan []byte, debug bool) {
 			if buf[8] == 2 {
 				lgr.Println("Received account info request")
 				// TODO: Will require a sync.Mutex lock here eventually
-				accInfo, err := accountstable.GetAccountInfo(buf[9:nRcvd])
+				// Open connection to account table
+				dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+				if err != nil {
+					lgr.Fatalf("Failed to open account table: %s\n", err)
+				}
+				accInfo, err := accountstable.GetAccountInfo(dbConnection, buf[9:nRcvd])
+				if err := dbConnection.Close(); err != nil {
+					lgr.Fatalf("Failed to close account table: %s\n", err)
+				}
 				var responseMessage []byte
 				responseMessage = append(responseMessage, SecretBytes...)
 				if err != nil {
@@ -141,10 +149,35 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 		lgr.SetOutput(os.Stdout)
 	}
 
+	// Open connection to metadata database
+	metadataConn, err := sql.Open("sqlite3", metadataTable)
+	if err != nil {
+		lgr.Fatalf("failed to open metadata table: %s\n", err)
+	}
+	defer metadataConn.Close()
+
+	// Open connection to account database
+	dbConnection, err := sql.Open("sqlite3", constants.AccountsTable)
+	if err != nil {
+		lgr.Fatalf("Failed to open account table: %s\n", err)
+	}
+	defer func() {
+		if err := dbConnection.Close(); err != nil {
+			lgr.Fatalf("Failed to close account table: %v", err)
+		}
+	}()
+
 	// Retrieve youngest block header
-	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledger, metadataTable)
+	ledgerFile, err := os.OpenFile(ledger, os.O_RDONLY, 0644)
+	if err != nil {
+		lgr.Fatalf("failed to open ledger file: %s\n", err)
+	}
+	youngestBlockHeader, err := blockchain.GetYoungestBlockHeader(ledgerFile, metadataConn)
 	if err != nil {
 		lgr.Fatalf("failed to retrieve youngest block: %s\n", err)
+	}
+	if err := ledgerFile.Close(); err != nil {
+		lgr.Fatalf("Failed to close blockchain file: %v", err)
 	}
 
 	// Set up SIGINT channel
@@ -179,7 +212,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 				var newContract contracts.Contract
 				if err := newContract.Deserialize(message[9:]); err == nil {
 					// TODO: Validate the contract prior to adding
-					if err := validation.ValidateContract(&newContract); err != nil {
+					if err := validation.ValidateContract(dbConnection, &newContract); err != nil {
 						lgr.Println("Invalid contract because: " + err.Error())
 					} else {
 						dataPool = append(dataPool, newContract)
@@ -198,10 +231,18 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 			} else {
 
 				// Add the block
-				if err := blockchain.AddBlock(newBlock, ledger, metadataTable); err != nil {
+				ledgerFile, err := os.OpenFile(constants.BlockchainFile, os.O_APPEND|os.O_WRONLY, 0644)
+				if err != nil {
+					lgr.Fatalf("failed to open ledger file: %s\n", err)
+				}
+				err = blockchain.AddBlock(newBlock, ledgerFile, metadataConn)
+				if err != nil {
 					lgr.Fatalf("failed to add block: %s", err.Error())
 					os.Exit(1)
 				} else {
+					if err := ledgerFile.Close(); err != nil {
+						log.Fatalf("Failed to close blockchain file: %v", err)
+					}
 					lgr.Printf("block produced: #%d\n", chainHeight+1)
 					numBlocksGenerated++
 					youngestBlockHeader = newBlock.GetHeader()

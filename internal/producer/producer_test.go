@@ -13,13 +13,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/genesis"
-	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/genesis"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
@@ -115,8 +115,12 @@ func TestByteChannel(t *testing.T) {
 	if err := blockchain.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 		t.Errorf("failed to perform air drop:\n%s", err.Error())
 	}
+	ledgerFile, err := os.OpenFile("blockchain.dat", os.O_RDONLY, 0644)
+	metadataConn, _ := sql.Open("sqlite3", constants.MetadataTable)
 	defer func() {
 		if removeFiles {
+			ledgerFile.Close()
+			metadataConn.Close()
 			if err := os.Remove("blockchain.dat"); err != nil {
 				t.Errorf("failed to remove blockchain.dat:\n%s", err.Error())
 			}
@@ -167,7 +171,7 @@ func TestByteChannel(t *testing.T) {
 	}
 	ProduceBlocks(byteChan, fl, true)
 
-	youngestBlock, err := blockchain.GetYoungestBlock(ledger, metadataTable)
+	youngestBlock, err := blockchain.GetYoungestBlock(ledgerFile, metadataConn)
 	if err != nil {
 		t.Errorf("failed to get youngest block:\n%s", err.Error())
 	}
@@ -253,7 +257,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	if err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, 1000); err != nil {
 		t.Errorf("failed to insert sender account")
 	}
-	_, err = accountstable.GetAccountInfo(walletAddress)
+	_, err = accountstable.GetAccountInfo(dbc, walletAddress)
 	if err != nil {
 		t.Errorf("failed to retrieve account info:\n%s", err.Error())
 	}
