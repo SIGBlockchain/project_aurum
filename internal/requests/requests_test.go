@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 

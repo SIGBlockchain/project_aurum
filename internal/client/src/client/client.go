@@ -20,8 +20,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )

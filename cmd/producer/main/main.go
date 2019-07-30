@@ -17,8 +17,10 @@ import (
 	"net"
 	"os"
 
+	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/internal/genesis"
+	"github.com/SIGBlockchain/project_aurum/internal/producer"
 
 	"github.com/pborman/getopt"
 )
@@ -64,7 +66,7 @@ func main() {
 	}
 
 	if *fl.Genesis {
-		genesisHashes, err := producer.ReadGenesisHashes()
+		genesisHashes, err := genesis.ReadGenesisHashes()
 		if err != nil {
 			lgr.Fatalf("failed to read in genesis hashes because %s", err.Error())
 		}
@@ -74,11 +76,11 @@ func main() {
 		if *fl.InitSupply < uint64(len(genesisHashes)) {
 			lgr.Fatalln("must allocate at least 1 aurum per genesis hash")
 		}
-		genesisBlock, err := producer.BringOnTheGenesis(genesisHashes, *fl.InitSupply)
+		genesisBlock, err := genesis.BringOnTheGenesis(genesisHashes, *fl.InitSupply)
 		if err != nil {
 			lgr.Fatalf("failed to create genesis block because: %s", err.Error())
 		}
-		if err := producer.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
+		if err := blockchain.Airdrop(ledger, metadataTable, constants.AccountsTable, genesisBlock); err != nil {
 			lgr.Fatalf("failed to execute airdrop because: %s", err.Error())
 		} else {
 			lgr.Println("airdrop successful.")

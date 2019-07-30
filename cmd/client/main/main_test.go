@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 

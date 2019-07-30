@@ -10,8 +10,8 @@ import (
 	"strconv"
 
 	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
-	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	producer "github.com/SIGBlockchain/project_aurum/internal/producer"
 	"github.com/pborman/getopt"
 )
 

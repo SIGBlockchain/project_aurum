@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 var removeFiles = true
@@ -66,7 +67,7 @@ func TestSuite(t *testing.T) {
 	}()
 	var count int
 	var expectedCount = 4
-	if err := dbc.QueryRow("SELECT COUNT(*) FROM METADATA").Scan(&count); err != nil {
+	if err := dbc.QueryRow(sqlstatements.GET_COUNT_EVERYTHING_FROM_METADATA).Scan(&count); err != nil {
 		t.Errorf("failed to query rows")
 	}
 	if count != expectedCount {

@@ -10,22 +10,21 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net"
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 
-	producer "github.com/SIGBlockchain/project_aurum/internal/producer/src/producer"
+	producer "github.com/SIGBlockchain/project_aurum/internal/producer"
 )
 
 // Test will fail in airplane mode, or just remove wireless connection.
@@ -50,36 +49,6 @@ func TestGetUserInput(t *testing.T) {
 	if user_input != "TEST" {
 		t.Errorf("User Input Check Failed.")
 	}
-}
-
-// Test send to producer with small max length message for one send
-func TestSendToProducer(t *testing.T) {
-	sz := 1024
-	testbuf := make([]byte, sz)
-	for i, _ := range testbuf {
-		testbuf[i] = 1
-	}
-	addr := "localhost:8080"
-	ln, err := net.Listen("tcp", addr)
-	var buffer bytes.Buffer
-	bp := producer.BlockProducer{
-		Server:        ln,
-		NewConnection: make(chan net.Conn, 128),
-		Logger:        log.New(&buffer, "LOG:", log.Ldate),
-	}
-	go bp.AcceptConnections()
-	time.Sleep(1)
-	if err != nil {
-		t.Errorf("Failed to set up listener")
-	}
-	n, err := SendToProducer(testbuf, addr)
-	if err != nil {
-		t.Errorf("Failed to send to producer")
-	}
-	if n != sz {
-		t.Errorf("Did not write all bytes to connection")
-	}
-	ln.Close()
 }
 
 func TestSetupWallet(t *testing.T) {
@@ -536,7 +505,7 @@ func TestRequestWalletInfo(t *testing.T) {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 	}()
-	_, err := dbc.Exec("CREATE TABLE IF NOT EXISTS account_balances (public_key_hash TEXT, balance INTEGER, nonce INTEGER)")
+	_, err := dbc.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	if err != nil {
 		t.Errorf("Failed to create table in database: %s", err)
 	}
