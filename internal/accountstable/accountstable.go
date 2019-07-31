@@ -236,8 +236,7 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 			var balance int
 			var nonce int
 
-			sqlQuery := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(acc.accountPKH))
-			row, _ := db.Query(sqlQuery)
+			row, _ := db.Query(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(acc.accountPKH))
 			if row.Next() {
 				row.Scan(&balance, &nonce) // retrieve balance and nonce from account_balances
 				row.Close()
