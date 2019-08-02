@@ -16,7 +16,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
-	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
+	"github.com/SIGBlockchain/project_aurum/internal/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/genesis"
