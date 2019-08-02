@@ -16,6 +16,4 @@ const (
 	GET_POSITION_SIZE_HASH_FROM_METADATA                    = "SELECT position, size, hash FROM metadata"
 	GET_HEIGHT_FROM_METADATA                                = "SELECT height FROM metadata"
 	GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH = "SELECT balance, nonce FROM account_balances WHERE public_key_hash = ?"
-	// LAST FINISED WAS BLOCKCHAIN...
-	// NOW MOVE ON TO CLIENT
 )
