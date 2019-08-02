@@ -239,6 +239,8 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 				row.Close()
 
 				// update balance and nonce
+				// sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
+				// 	acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
 				_, err := db.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 					acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
 				if err != nil {
