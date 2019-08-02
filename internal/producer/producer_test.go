@@ -16,13 +16,13 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
-	"github.com/SIGBlockchain/project_aurum/internal/client/src/client"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/genesis"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
+	"github.com/SIGBlockchain/project_aurum/internal/wallet"
 )
 
 var removeFiles = true
@@ -186,7 +186,7 @@ func TestByteChannel(t *testing.T) {
 }
 
 func TestResponseToAccountInfoRequest(t *testing.T) {
-	if err := client.SetupWallet(); err != nil {
+	if err := wallet.SetupWallet(); err != nil {
 		t.Errorf("failed to setup wallet:\n%s", err.Error())
 	}
 	defer func() {
@@ -208,7 +208,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 	}()
 	statement, _ := dbc.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
-	walletAddress, err := client.GetWalletAddress()
+	walletAddress, err := wallet.GetWalletAddress()
 	// t.Logf("Wallet address: %v", walletAddress)
 	if err != nil {
 		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())

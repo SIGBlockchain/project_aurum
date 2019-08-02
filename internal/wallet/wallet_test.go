@@ -1,4 +1,4 @@
-package client
+package wallet
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -16,40 +15,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
-
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
+	"github.com/SIGBlockchain/project_aurum/internal/producer"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
-
-	producer "github.com/SIGBlockchain/project_aurum/internal/producer"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
-
-// Test will fail in airplane mode, or just remove wireless connection.
-func TestCheckConnection(t *testing.T) {
-	err := CheckConnection()
-	if err != nil {
-		t.Errorf("Internet connection check failed.")
-	}
-}
-
-// Test will simulate user input and ensure that the function will collect the correct string
-func TestGetUserInput(t *testing.T) {
-
-	var testread bytes.Buffer
-	testread.Write([]byte("TEST\n"))
-
-	var user_input string
-	if GetUserInput(&user_input, &testread) != nil {
-		t.Errorf("User Input Check Failed.")
-	}
-
-	if user_input != "TEST" {
-		t.Errorf("User Input Check Failed.")
-	}
-}
 
 func TestSetupWallet(t *testing.T) {
 	if err := SetupWallet(); err != nil {
@@ -98,138 +71,6 @@ func TestSetupWallet(t *testing.T) {
 	}
 	if err := SetupWallet(); err == nil {
 		t.Errorf("supposed to cause error when attempting to call SetupWallet() when wallet already exists")
-	}
-}
-
-func TestCheckBalance(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type walletData struct {
-				PrivateKey string
-				Balance    uint64
-				Nonce      uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wd walletData
-			err = json.Unmarshal(bytes, &wd)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := CheckBalance(); (err != nil) != tt.wantErr {
-				t.Errorf("CheckBalance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "Your balance: 0 AUR\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
-	}
-}
-
-func TestPrintPublicKeyAndHash(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type walletData struct {
-				PrivateKey string
-				Balance    uint64
-				Nonce      uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wd walletData
-			err = json.Unmarshal(bytes, &wd)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			privateKeyString, err := hex.DecodeString(wd.PrivateKey)
-			if err != nil {
-				t.Errorf("Failed to decode private key: %s", err)
-			}
-			pemDecodedKey, _ := pem.Decode(privateKeyString)
-			x509Encoded := pemDecodedKey.Bytes
-			privateKey, err := x509.ParseECPrivateKey(x509Encoded)
-			publicKey := privateKey.PublicKey
-			publicKeyString := hex.EncodeToString(publickey.Encode(&publicKey))
-			publicKeyHash := hashing.New(publickey.Encode(&publicKey))
-			publicKeyHashString := hex.EncodeToString(publicKeyHash)
-			if err != nil {
-				t.Errorf("Failed to parse private key: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := PrintPublicKeyAndHash(); (err != nil) != tt.wantErr {
-				t.Errorf("PrintPublicKeyAndHash() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := fmt.Sprintf("Public Key: %s\nHashed Key: %s\n", publicKeyString, publicKeyHashString)
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
 	}
 }
 
