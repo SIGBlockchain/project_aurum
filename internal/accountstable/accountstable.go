@@ -108,7 +108,6 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 
 func GetBalance(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 	// search for pkhash's balance
-	// row, err := dbConnection.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
 	row, err := dbConnection.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(pkhash))
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
@@ -239,8 +238,6 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 				row.Close()
 
 				// update balance and nonce
-				// sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
-				// 	acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
 				_, err := db.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 					acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
 				if err != nil {
