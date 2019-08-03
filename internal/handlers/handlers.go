@@ -23,7 +23,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 		var walletAddress = r.URL.Query().Get("w") // assume this is hex-encoded
 		// Query the database
 		// TODO: will most likely need a lock on this dbConnection everywhere
-		row, err := dbConn.Query(sqlstatements.GET_EVERYTHING_FROM_ACCOUNT_BALANCE_BY_WALLETADDRESS + walletAddress + `"`)
+		row, err := dbConn.Query(sqlstatements.GET_EVERYTHING_FROM_ACCOUNT_BALANCE_BY_WALLETADDRESS, walletAddress)
 
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)

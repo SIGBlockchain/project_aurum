@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
@@ -25,7 +24,7 @@ Return every error possible with an explicit message
 */
 func InsertAccountIntoAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, value uint64) error {
 	// create a prepared statement to insert into account_balances
-	statement, err := dbConnection.Prepare(sqlstatements.INSERT_BLANK_VALUES_INTO_ACCOUNT_BALANCES)
+	statement, err := dbConnection.Prepare(sqlstatements.INSERT_VALUES_INTO_ACCOUNT_BALANCES)
 	if err != nil {
 		return errors.New("Failed to prepare statement to insert account into table")
 	}
@@ -56,9 +55,8 @@ func ExchangeAndUpdateAccounts(dbConnection *sql.DB, c *contracts.Contract) erro
 
 	if errSenderAccount == nil {
 		// update sender's balance by subtracting the amount indicated by value and adding one to nonce
-		sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
+		_, err := dbConnection.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 			int(senderAccountInfo.Balance-value), int(senderAccountInfo.StateNonce+1), hex.EncodeToString(senderPKH))
-		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to execute sqlUpdate for sender")
 		}
@@ -83,8 +81,7 @@ func ExchangeAndUpdateAccounts(dbConnection *sql.DB, c *contracts.Contract) erro
 	}
 
 	// update recipient's balance with updatedBal and nonce with updatedNonce
-	sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
-	_, err := dbConnection.Exec(sqlUpdate)
+	_, err := dbConnection.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
 	if err != nil {
 		return errors.New("Failed to execute sqlUpdate for recipient")
 	}
@@ -102,9 +99,8 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 
 	if errAccount == nil {
 		// update pkhash's balance by adding the amount indicated by value, and add one to nonce
-		sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
+		_, err := dbConnection.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 			int(accountInfo.Balance)+int(value), int(accountInfo.StateNonce)+1, hex.EncodeToString(pkhash))
-		_, err := dbConnection.Exec(sqlUpdate)
 		if err != nil {
 			return errors.New("Failed to update phash's balance")
 		}
@@ -116,7 +112,7 @@ func MintAurumUpdateAccountBalanceTable(dbConnection *sql.DB, pkhash []byte, val
 
 func GetBalance(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 	// search for pkhash's balance
-	row, err := dbConnection.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
+	row, err := dbConnection.Query(sqlstatements.GET_BALANCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(pkhash))
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
@@ -136,7 +132,7 @@ func GetBalance(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 
 func GetStateNonce(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 	// search for pkhash's stateNonce
-	row, err := dbConnection.Query(sqlstatements.GET_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH + hex.EncodeToString(pkhash) + "\"")
+	row, err := dbConnection.Query(sqlstatements.GET_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(pkhash))
 	if err != nil {
 		return 0, errors.New("Failed to create row for query")
 	}
@@ -240,16 +236,14 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 			var balance int
 			var nonce int
 
-			sqlQuery := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(acc.accountPKH))
-			row, _ := db.Query(sqlQuery)
+			row, _ := db.Query(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(acc.accountPKH))
 			if row.Next() {
 				row.Scan(&balance, &nonce) // retrieve balance and nonce from account_balances
 				row.Close()
 
 				// update balance and nonce
-				sqlUpdate := fmt.Sprintf(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
+				_, err := db.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH,
 					acc.balance+int64(balance), acc.nonce+uint64(nonce), hex.EncodeToString(acc.accountPKH))
-				_, err := db.Exec(sqlUpdate)
 				if err != nil {
 					return errors.New("Failed to execute query to update balance and nonce: " + err.Error())
 				}

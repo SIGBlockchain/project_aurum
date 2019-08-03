@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -638,8 +637,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 				someKeyPKhsh := hashing.New(publickey.Encode(&key.PublicKey))
 				var balance uint64
 				var nonce uint64
-				queryStr := fmt.Sprintf(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(someKeyPKhsh))
-				row, err := dbc.Query(queryStr)
+				row, err := dbc.Query(sqlstatements.GET_BALANCE_NONCE_FROM_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, hex.EncodeToString(someKeyPKhsh))
 				if err != nil {
 					t.Errorf("Failed to acquire row from table")
 				}

@@ -40,7 +40,7 @@ func AddBlock(b block.Block, file *os.File, database *sql.DB) error {
 		return errors.New("Unable to write serialized block with it's size prepended onto file")
 	}
 
-	statement, err := database.Prepare(sqlstatements.INSERT_BLANK_VALUES_INTO_METADATA)
+	statement, err := database.Prepare(sqlstatements.INSERT_VALUES_INTO_METADATA)
 	if err != nil {
 		fmt.Println(err)
 		return errors.New("Failed to prepare a statement for further queries")
@@ -353,7 +353,7 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	bHeight := b.Height
 	bHash := block.HashBlock(*b)
 
-	sqlQuery := sqlstatements.INSERT_1234_INTO_METADATA
+	sqlQuery := sqlstatements.INSERT_VALUES_INTO_METADATA
 	_, err := db.Exec(sqlQuery, bHeight, pos, bLen, bHash)
 	if err != nil {
 		log.Printf("Failed to execute statement: %s", err.Error())
@@ -421,7 +421,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 		return errors.New("Failed to create acount_balances table")
 	}
 
-	stmt, err := accDb.Prepare(sqlstatements.INSERT_BLANK_VALUES_INTO_ACCOUNT_BALANCES)
+	stmt, err := accDb.Prepare(sqlstatements.INSERT_VALUES_INTO_ACCOUNT_BALANCES)
 	if err != nil {
 		return errors.New("Failed to create statement for inserting into account table")
 	}
