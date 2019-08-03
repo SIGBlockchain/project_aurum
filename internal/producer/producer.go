@@ -21,7 +21,6 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
-	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/validation"
 )
 
@@ -255,8 +254,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 						lgr.Fatalf("Failed to connect to accounts database: %v", err)
 					}
 					for _, contract := range dataPool {
-						senderPKH := hashing.New(publickey.Encode(contract.SenderPubKey))
-						err := accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)
+						err := accountstable.ExchangeAndUpdateAccounts(dbConn, &contract)
 						if err != nil {
 							lgr.Printf("Failed to add contract to accounts database: %v", err)
 						}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
@@ -88,7 +89,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 	}
 }
 
-func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
+func TestExchangeAndUpdateAccounts(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
@@ -115,11 +116,17 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to insert sender account")
 	}
+	c, err := contracts.New(1, senderPrivateKey, rpkh, 250, 1)
+	if err != nil {
+		t.Errorf("failed to create new contract")
+	}
+	err = c.Sign(senderPrivateKey)
+	if err != nil {
+		t.Errorf("failed to sign contract")
+	}
 	type args struct {
 		dbConnection *sql.DB
-		senderPKH    []byte
-		recipPKH     []byte
-		value        uint64
+		contract     *contracts.Contract
 	}
 	tests := []struct {
 		name    string
@@ -129,17 +136,15 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 		{
 			args: args{
 				dbConnection: dbc,
-				senderPKH:    spkh,
-				recipPKH:     rpkh,
-				value:        250,
+				contract:     c,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ExchangeBetweenAccountsUpdateAccountBalanceTable(tt.args.dbConnection, tt.args.senderPKH, tt.args.recipPKH, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("ExchangeBetweenAccountsUpdateAccountBalanceTable() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ExchangeAndUpdateAccounts(tt.args.dbConnection, tt.args.contract); (err != nil) != tt.wantErr {
+				t.Errorf("ExchangeAndUpdateAccounts() error = %v, wantErr %v", err, tt.wantErr)
 				var pkhash string
 				var balance uint64
 				var nonce uint64

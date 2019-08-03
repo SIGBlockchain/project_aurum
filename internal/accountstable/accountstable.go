@@ -45,7 +45,11 @@ Deduct value from sender's balance
 Add value to recipient's balance
 Increment both nonces by 1
 */
-func ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConnection *sql.DB, senderPKH []byte, recipPKH []byte, value uint64) error {
+func ExchangeAndUpdateAccounts(dbConnection *sql.DB, c *contracts.Contract) error {
+	senderPKH := hashing.New(publickey.Encode(c.SenderPubKey))
+	recipPKH := c.RecipPubKeyHash
+	value := c.Value
+
 	// retrieve both sender's and recipient's balance and nonce
 	senderAccountInfo, errSenderAccount := GetAccountInfo(dbConnection, senderPKH)
 	recipientAccountInfo, errRecipientAccount := GetAccountInfo(dbConnection, recipPKH)
