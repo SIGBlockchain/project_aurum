@@ -4,24 +4,18 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/x509"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 	"math/rand"
-	"net"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
-	"github.com/SIGBlockchain/project_aurum/internal/producer"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
-	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
 func TestSetupWallet(t *testing.T) {

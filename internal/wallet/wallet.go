@@ -8,10 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"net"
 	"os"
 
-	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
