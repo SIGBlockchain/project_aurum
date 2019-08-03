@@ -550,8 +550,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash := hashing.New(publickey.Encode(&(somePVKeys[0].PublicKey)))
-	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table for further contracts
+	accountstable.ExchangeAndUpdateAccounts(acctsDB, contract1) // update accts table for further contracts
 
 	// Contract 2
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[2].PublicKey)))
@@ -561,8 +560,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[1].PublicKey))
-	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 7) // update accts table for further contracts
+	accountstable.ExchangeAndUpdateAccounts(acctsDB, contract2) // update accts table for further contracts
 
 	// Contract 3
 	recipPKHash = hashing.New(publickey.Encode(&(somePVKeys[1].PublicKey)))
@@ -572,8 +570,7 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-	senderPKHash = hashing.New(publickey.Encode(&somePVKeys[2].PublicKey))
-	accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(acctsDB, senderPKHash, recipPKHash, 5) // update accts table
+	accountstable.ExchangeAndUpdateAccounts(acctsDB, contract3) // update accts table
 	acctsDB.Close()
 
 	contrcts[0] = *contract1
