@@ -17,8 +17,6 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
-var SecretBytes = hashing.New([]byte("aurum"))[8:16]
-
 // SetupWallet initializes a JSON file called "aurum_wallet.json"
 // with the hex encoded privatekey, balance, and nonce
 func SetupWallet() error {
@@ -208,44 +206,6 @@ func GetWalletAddress() ([]byte, error) {
 	// Get the PEM encoded public key
 	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
 	return hashing.New(pubKeyEncoded), nil
-}
-
-func RequestWalletInfo(producerAddr string) (accountinfo.AccountInfo, error) {
-	var accInfo accountinfo.AccountInfo
-	walletAddress, err := GetWalletAddress()
-	if err != nil {
-		return accInfo, errors.New("failed to get wallet address: " + err.Error())
-	}
-	var requestInfoMessage []byte
-	requestInfoMessage = append(requestInfoMessage, SecretBytes...)
-	requestInfoMessage = append(requestInfoMessage, 2)
-	requestInfoMessage = append(requestInfoMessage, walletAddress...)
-	conn, err := net.Dial("tcp", producerAddr)
-	if err != nil {
-		return accInfo, errors.New("failed to connect to producer: " + err.Error())
-	}
-	if _, err := conn.Write(requestInfoMessage); err != nil {
-		return accInfo, errors.New("failed to send message to producer: " + err.Error())
-	}
-	// Should receive Thank you first
-	buf := make([]byte, 1024)
-	if _, err := conn.Read(buf); err != nil {
-		return accInfo, errors.New("failed to get thank you message: " + err.Error())
-	}
-	// Should receive message next
-	buf = make([]byte, 1024)
-	nRead, err := conn.Read(buf)
-	if err != nil {
-		return accInfo, errors.New("failed to get response message: " + err.Error())
-	}
-	if buf[8] == 1 {
-		return accInfo, errors.New("got back failure message from producer")
-	} else if buf[8] == 0 {
-		if err := accInfo.Deserialize(buf[9:nRead]); err != nil {
-			return accountinfo.AccountInfo{}, errors.New("failed to deserialize account info: " + err.Error())
-		}
-	}
-	return accInfo, nil
 }
 
 func UpdateWallet(balance, stateNonce uint64) error {
