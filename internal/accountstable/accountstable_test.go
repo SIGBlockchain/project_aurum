@@ -11,9 +11,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountinfo"
-	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 	_ "github.com/mattn/go-sqlite3"
@@ -89,7 +90,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 	}
 }
 
-func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
+func TestExchangeAndUpdateAccounts(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
 	spkh := hashing.New(encodedSenderPublicKey)
@@ -118,11 +119,17 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to insert sender account")
 	}
+	c, err := contracts.New(1, senderPrivateKey, rpkh, 250, 1)
+	if err != nil {
+		t.Errorf("failed to create new contract")
+	}
+	err = c.Sign(senderPrivateKey)
+	if err != nil {
+		t.Errorf("failed to sign contract")
+	}
 	type args struct {
 		dbConnection *sql.DB
-		senderPKH    []byte
-		recipPKH     []byte
-		value        uint64
+		contract     *contracts.Contract
 	}
 	tests := []struct {
 		name    string
@@ -132,17 +139,15 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 		{
 			args: args{
 				dbConnection: dbc,
-				senderPKH:    spkh,
-				recipPKH:     rpkh,
-				value:        250,
+				contract:     c,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ExchangeBetweenAccountsUpdateAccountBalanceTable(tt.args.dbConnection, tt.args.senderPKH, tt.args.recipPKH, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("ExchangeBetweenAccountsUpdateAccountBalanceTable() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ExchangeAndUpdateAccounts(tt.args.dbConnection, tt.args.contract); (err != nil) != tt.wantErr {
+				t.Errorf("ExchangeAndUpdateAccounts() error = %v, wantErr %v", err, tt.wantErr)
 				var pkhash string
 				var balance uint64
 				var nonce uint64
@@ -298,7 +303,7 @@ func TestGetBalance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetBalance(tt.args.pkhash)
+			got, err := GetBalance(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetBalance() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -354,7 +359,7 @@ func TestGetStateNonce(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetStateNonce(tt.args.pkhash)
+			got, err := GetStateNonce(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStateNonce() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -410,7 +415,7 @@ func TestGetAccountInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAccountInfo(tt.args.pkhash)
+			got, err := GetAccountInfo(dbc, tt.args.pkhash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAccountInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
