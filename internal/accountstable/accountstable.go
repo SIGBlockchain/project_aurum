@@ -45,7 +45,11 @@ Add value to recipient's balance
 Increment both nonces by 1
 */
 func ExchangeAndUpdateAccounts(dbConnection *sql.DB, c *contracts.Contract) error {
-	senderPKH := hashing.New(publickey.Encode(c.SenderPubKey))
+	encodedCContractSenderPublicKey, err := publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return err
+	}
+	senderPKH := hashing.New(encodedCContractSenderPublicKey)
 	recipPKH := c.RecipPubKeyHash
 	value := c.Value
 
@@ -81,7 +85,7 @@ func ExchangeAndUpdateAccounts(dbConnection *sql.DB, c *contracts.Contract) erro
 	}
 
 	// update recipient's balance with updatedBal and nonce with updatedNonce
-	_, err := dbConnection.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
+	_, err = dbConnection.Exec(sqlstatements.UPDATE_ACCOUNT_BALANCES_BY_PUB_KEY_HASH, updatedBal, updatedNonce, hex.EncodeToString(recipPKH))
 	if err != nil {
 		return errors.New("Failed to execute sqlUpdate for recipient")
 	}
@@ -191,6 +195,10 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 	totalBalances := make([]accountInfo, 0)
 	minting := false
 	for _, contract := range contrcts {
+		encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
+		if err != nil {
+			return err
+		}
 		addRecip := true
 		addSender := true
 
@@ -204,7 +212,7 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 		}
 
 		for i := 0; i < len(totalBalances); i++ {
-			if bytes.Compare(totalBalances[i].accountPKH, hashing.New(publickey.Encode(contract.SenderPubKey))) == 0 {
+			if bytes.Compare(totalBalances[i].accountPKH, hashing.New(encodedContractSenderPublicKey)) == 0 {
 				//subtract the value of the contract from the sender's account
 				addSender = false
 				totalBalances[i].balance -= int64(contract.Value)
@@ -220,7 +228,7 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 		//add the sender's account info into totalBalances
 		if addSender {
 			totalBalances = append(totalBalances,
-				accountInfo{accountPKH: hashing.New(publickey.Encode(contract.SenderPubKey)), balance: -1 * int64(contract.Value), nonce: 1})
+				accountInfo{accountPKH: hashing.New(encodedContractSenderPublicKey), balance: -1 * int64(contract.Value), nonce: 1})
 		}
 
 		//add the recipient's account info into totalBalances

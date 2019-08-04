@@ -90,7 +90,7 @@ func ReadGenesisHashes() ([][]byte, error) {
 // Create the genesisHashFile
 // Generate numHashes number of public key hashes
 // Store them AS STRINGS (not bytes) in the file, line by line
-func GenerateGenesisHashFile(numHashes uint16) {
+func GenerateGenesisHashFile(numHashes uint16) error{
 
 	// creating the new file
 	genHashfile, _ := os.Create(constants.GenesisAddresses)
@@ -101,9 +101,12 @@ func GenerateGenesisHashFile(numHashes uint16) {
 	for i := 0; i < int(numHashes); i++ {
 		// generate private key
 		privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-
+		encodedPublicKey, err := publickey.Encode(&privateKey.PublicKey)
+		if err != nil {
+			return err
+		}
 		// get public kek and hash it
-		hashedPubKey := hashing.New(publickey.Encode(&privateKey.PublicKey))
+		hashedPubKey := hashing.New(encodedPublicKey)
 
 		// get pub key hash as string to store in txt file
 		hashPubKeyStr := hex.EncodeToString(hashedPubKey)
@@ -111,4 +114,5 @@ func GenerateGenesisHashFile(numHashes uint16) {
 		// write pub key hash into genesisHashFile
 		genHashfile.WriteString(hashPubKeyStr + "\n")
 	}
+	return nil
 }

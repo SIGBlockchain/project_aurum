@@ -26,7 +26,8 @@ func TestBringOnTheGenesis(t *testing.T) {
 	var datum []contracts.Contract
 	for i := 0; i < 100; i++ {
 		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
+		someKeyPublicKey, _ := publickey.Encode(&someKey.PublicKey)
+		someKeyPKHash := hashing.New(someKeyPublicKey)
 		pkhashes = append(pkhashes, someKeyPKHash)
 		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 10, 0)
 		datum = append(datum, *someAirdropContract)
