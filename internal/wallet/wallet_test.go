@@ -1,55 +1,22 @@
-package client
+package wallet
 
 import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/x509"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"net"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
-	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
-
-	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
-
-	producer "github.com/SIGBlockchain/project_aurum/internal/producer"
 )
-
-// Test will fail in airplane mode, or just remove wireless connection.
-func TestCheckConnection(t *testing.T) {
-	err := CheckConnection()
-	if err != nil {
-		t.Errorf("Internet connection check failed.")
-	}
-}
-
-// Test will simulate user input and ensure that the function will collect the correct string
-func TestGetUserInput(t *testing.T) {
-
-	var testread bytes.Buffer
-	testread.Write([]byte("TEST\n"))
-
-	var user_input string
-	if GetUserInput(&user_input, &testread) != nil {
-		t.Errorf("User Input Check Failed.")
-	}
-
-	if user_input != "TEST" {
-		t.Errorf("User Input Check Failed.")
-	}
-}
 
 func TestSetupWallet(t *testing.T) {
 	if err := SetupWallet(); err != nil {
@@ -98,138 +65,6 @@ func TestSetupWallet(t *testing.T) {
 	}
 	if err := SetupWallet(); err == nil {
 		t.Errorf("supposed to cause error when attempting to call SetupWallet() when wallet already exists")
-	}
-}
-
-func TestCheckBalance(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type walletData struct {
-				PrivateKey string
-				Balance    uint64
-				Nonce      uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wd walletData
-			err = json.Unmarshal(bytes, &wd)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := CheckBalance(); (err != nil) != tt.wantErr {
-				t.Errorf("CheckBalance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := "Your balance: 0 AUR\n"
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
-	}
-}
-
-func TestPrintPublicKeyAndHash(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("Failed to setup wallet: %s", err)
-	}
-	defer func() {
-		err := os.Remove("aurum_wallet.json")
-		if err != nil {
-			t.Errorf("Failed to remove \"aurum_wallet.json\". Error: %s", err)
-		}
-	}()
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			type walletData struct {
-				PrivateKey string
-				Balance    uint64
-				Nonce      uint64
-			}
-			wallet, err := os.Open("aurum_wallet.json")
-			if err != nil {
-				t.Errorf("Failed to open wallet: %s", err)
-			}
-			defer wallet.Close()
-			bytes, _ := ioutil.ReadAll(wallet)
-			var wd walletData
-			err = json.Unmarshal(bytes, &wd)
-			if err != nil {
-				t.Errorf("Failed to unmarshall JSON data: %s", err)
-			}
-			privateKeyString, err := hex.DecodeString(wd.PrivateKey)
-			if err != nil {
-				t.Errorf("Failed to decode private key: %s", err)
-			}
-			pemDecodedKey, _ := pem.Decode(privateKeyString)
-			x509Encoded := pemDecodedKey.Bytes
-			privateKey, err := x509.ParseECPrivateKey(x509Encoded)
-			publicKey := privateKey.PublicKey
-			publicKeyString := hex.EncodeToString(publickey.Encode(&publicKey))
-			publicKeyHash := hashing.New(publickey.Encode(&publicKey))
-			publicKeyHashString := hex.EncodeToString(publicKeyHash)
-			if err != nil {
-				t.Errorf("Failed to parse private key: %s", err)
-			}
-			captureStdout := os.Stdout
-			r, w, err := os.Pipe()
-			if err != nil {
-				t.Errorf("Pipe function failed: %s", err)
-			}
-			os.Stdout = w
-			if err := PrintPublicKeyAndHash(); (err != nil) != tt.wantErr {
-				t.Errorf("PrintPublicKeyAndHash() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			w.Close()
-			out, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Errorf("Failed to read from capture file: %s", err)
-			}
-			os.Stdout = captureStdout
-			expected := fmt.Sprintf("Public Key: %s\nHashed Key: %s\n", publicKeyString, publicKeyHashString)
-			if string(out) != expected {
-				t.Errorf("Print statement incorrect. Wanted: %s, got %s", expected, string(out))
-			}
-		})
 	}
 }
 
@@ -480,91 +315,5 @@ func TestUpdateWallet(t *testing.T) {
 	}
 	if !bytes.Equal(encPrivActual, encPrivExpected) {
 		t.Errorf("private keys do not match: %v != %v", encPrivActual, encPrivExpected)
-	}
-}
-
-func TestRequestWalletInfo(t *testing.T) {
-	if err := SetupWallet(); err != nil {
-		t.Errorf("failed to setup wallet:\n%s", err.Error())
-	}
-	defer func() {
-		if err := os.Remove("aurum_wallet.json"); err != nil {
-			t.Errorf("failed to remove aurum_wallet.json:\n%s", err.Error())
-		}
-	}()
-
-	dbName := constants.AccountsTable
-	dbc, _ := sql.Open("sqlite3", dbName)
-	defer func() {
-		err := dbc.Close()
-		if err != nil {
-			t.Errorf("Failed to close database: %s", err)
-		}
-		err = os.Remove(dbName)
-		if err != nil {
-			t.Errorf("Failed to remove database: %s", err)
-		}
-	}()
-	_, err := dbc.Exec(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
-	if err != nil {
-		t.Errorf("Failed to create table in database: %s", err)
-	}
-
-	walletAddress, err := GetWalletAddress()
-	if err != nil {
-		t.Errorf("failed to retrieve wallet address:\n%s", err.Error())
-	}
-
-	ln, err := net.Listen("tcp", "localhost:10000")
-	if err != nil {
-		t.Errorf("failed to start server:\n%s", err.Error())
-	}
-	byteChan := make(chan []byte)
-	debug := false
-
-	go producer.RunServer(ln, byteChan, debug)
-
-	tests := []struct {
-		name          string
-		expectedBal   uint64
-		expectedNonce uint64
-		wantErr       bool
-	}{
-		{
-			name:          "Wallet address not in table",
-			expectedBal:   0,
-			expectedNonce: 0,
-			wantErr:       true,
-		},
-		{
-			name:          "Wallet address in table",
-			expectedBal:   15,
-			expectedNonce: 0,
-			wantErr:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "Wallet address in table" {
-				err = accountstable.InsertAccountIntoAccountBalanceTable(dbc, walletAddress, tt.expectedBal)
-				if err != nil {
-					t.Errorf("failed to insert account into account balance table")
-				}
-			}
-
-			accountInfo, err := RequestWalletInfo("localhost:10000")
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RequestWalletInfo() error:\nWantErr: %v\nActualErr: %v", tt.wantErr, err.Error())
-			}
-
-			if accountInfo.Balance != tt.expectedBal {
-				t.Errorf("Account balance from producer does not match")
-			}
-			if accountInfo.StateNonce != tt.expectedNonce {
-				t.Errorf("Account state nonce from producer does not match")
-			}
-
-		})
 	}
 }
