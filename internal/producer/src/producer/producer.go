@@ -326,7 +326,7 @@ func ProduceBlocks(byteChan chan []byte, fl Flags, limit bool) {
 					for _, contract := range dataPool {
 						encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
 						if err != nil {
-							error.Error(err)
+							lgr.Fatalf("failed to encode Sender Public Key: %s\n", err)
 						}
 						senderPKH := hashing.New(encodedContractSenderPublicKey)
 						err = accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(dbConn, senderPKH, contract.RecipPubKeyHash, contract.Value)

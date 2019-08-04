@@ -14,6 +14,9 @@ type AurumPublicKey struct {
 
 // Encode returns the PEM-Encoded byte slice from a given public key or a non-nil error if fail
 func Encode(key *ecdsa.PublicKey) ([]byte, error) {
+	if key == nil {
+		return nil, errors.New("Could not return the encoded public key - the key value is nil")
+	}
 	x509EncodedPub, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
 		return nil, err
@@ -23,10 +26,13 @@ func Encode(key *ecdsa.PublicKey) ([]byte, error) {
 
 // Decode returns the public key from a given PEM-Encoded byte slice representation of the public key or a non-nil error if fail
 func Decode(key []byte) (*ecdsa.PublicKey, error) {
+	if key == nil {
+		return nil, errors.New("Could not return the decoded public key - the key value is nil")
+	}
 	blockPub, _ := pem.Decode(key)
 	// pem.Decode will return nil for the first value if no PEM data is found. This would be bad
 	if blockPub == nil {
-		return nil, errors.New("Could not return the public key - the key value is nil")
+		return nil, errors.New("Could not return the public key - failed to PEM decode in preparation x509 encode")
 	}
 
 	x509EncodedPub := blockPub.Bytes
