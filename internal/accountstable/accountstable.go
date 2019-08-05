@@ -195,10 +195,11 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 	totalBalances := make([]accountInfo, 0)
 	minting := false
 	for _, contract := range contrcts {
-		encodedContractSenderPublicKey, err := publickey.Encode(contract.SenderPubKey)
-		if err != nil {
-			return err
-		}
+		encodedContractSenderPublicKey, _ := publickey.Encode(contract.SenderPubKey)
+		// TODO - handle this
+		// if err != nil {
+		// 	return err
+		// }
 		addRecip := true
 		addSender := true
 

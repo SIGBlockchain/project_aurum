@@ -566,8 +566,8 @@ func TestRecoverBlockchainMetadata_TwoBlocks(t *testing.T) {
 	accountstable.ExchangeAndUpdateAccounts(acctsDB, contract2) // update accts table for further contracts
 
 	// Contract 3
-	
-	recipPKHash = hashing.New(encodedsimPVKeys1PublicKey)
+	encodedsimPVKeys3PublicKey, _ := publickey.Encode(&(somePVKeys[1].PublicKey))
+	recipPKHash = hashing.New(encodedsimPVKeys3PublicKey)
 	contract3, _ := contracts.New(1, somePVKeys[2], recipPKHash, 5, 2) // pkh3 to pkh2
 	contract3.Sign(somePVKeys[2])
 	err = validation.ValidateContract(acctsDB, contract3)
