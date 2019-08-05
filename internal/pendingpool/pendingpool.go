@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
-	"github.com/SIGBlockchain/project_aurum/internal/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/validation"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
-	"github.com/SIGBlockchain/project_aurum/internal/validation"
 )
 
 //PendingData contains pending balance and pending nonce
@@ -47,12 +47,12 @@ func (m *PendingMap) Add(c *contracts.Contract, accDB *sql.DB) error {
 
 	senderPD, inMap := m.Sender[senderPKStr]
 	if !inMap { // if the key is not in the map
-		err := validation.ValidateContract(accDB, c)
+		err := validation.ValidateContract(c)
 		if err != nil {
 			return errors.New("Failed to validate contract: " + err.Error())
 		}
 
-		balance, err := accountstable.GetBalance(accDB, senderPKHash)
+		balance, err := accountstable.GetBalance(senderPKHash)
 		if err != nil {
 			return errors.New("Failed to find sender public key hash in accounts_balance")
 		}

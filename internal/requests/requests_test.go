@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/producer/src/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
@@ -92,34 +92,5 @@ func TestNewContractRequest(t *testing.T) {
 	}
 	if !contracts.Equals(*testContract, responseContract) {
 		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, *testContract)
-	}
-}
-
-func TestAddPeerToDiscoveryRequest(t *testing.T) {
-	// Arrange
-	ip := "1.2.3.4"
-	port := "9001"
-	rr := httptest.NewRecorder()
-	req, err := AddPeerToDiscoveryRequest(ip, port)
-	if err != nil {
-		t.Errorf("failed to create add peer request %v", err)
-	}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, r.URL.Query().Get("ip")+":"+r.URL.Query().Get("port"))
-	})
-
-	// Act
-	handler.ServeHTTP(rr, req)
-
-	// Assert
-	if status := rr.Code; http.StatusOK != status {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-		t.Logf("%s", rr.Body.String())
-	}
-	expected := ip + ":" + port
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
