@@ -74,8 +74,7 @@ func TestContractMessageFromInput(t *testing.T) {
 	file.Close()
 
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedRecipientPublicKey, _ := publickey.Encode(&recipient.PublicKey)
-	recipientPKH := hashing.New(encodedRecipientPublicKey)
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
 	testValue := 9000
 
 	type testArg struct {
