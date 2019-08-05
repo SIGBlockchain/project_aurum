@@ -80,10 +80,9 @@ func TestNewContractRequest(t *testing.T) {
 		t.Errorf("failed to hex decode recipient hash: %v", err)
 	}
 	// TODO JSONContract to accounts.Contract Unmarshall?
-	decodedUnhexedReponsePublicKey, _ := publickey.Decode(unhexedResponsePublicKey)
 	var responseContract = contracts.Contract{
 		responseBody.Version,
-		decodedUnhexedReponsePublicKey,
+		publickey.Decode(unhexedResponsePublicKey),
 		responseBody.SignatureLength,
 		unhexedResponseSignature,
 		unhexedResponseRecipientHash,

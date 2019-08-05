@@ -34,11 +34,9 @@ func TestAdd(t *testing.T) {
 	statement.Exec()
 
 	sender, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSenderPublicKey, _ := publickey.Encode(&sender.PublicKey)
-	senderPKH := hashing.New(encodedSenderPublicKey)
+	senderPKH := hashing.New(publickey.Encode(&sender.PublicKey))
 	recipient, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedRecipientPublicKey, _ := publickey.Encode(&recipient.PublicKey)
-	recipientPKH := hashing.New(encodedRecipientPublicKey)
+	recipientPKH := hashing.New(publickey.Encode(&recipient.PublicKey))
 
 	err := accountstable.InsertAccountIntoAccountBalanceTable(dbc, senderPKH, 100)
 	if err != nil {

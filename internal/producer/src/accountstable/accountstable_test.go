@@ -40,7 +40,6 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 		pkhash       []byte
 		value        uint64
 	}
-	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
 	tests := []struct {
 		name    string
 		args    args
@@ -49,7 +48,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 		{
 			args: args{
 				dbc,
-				hashing.New(encodedSomePublicKey),
+				hashing.New(publickey.Encode(&somePrivateKey.PublicKey)),
 				1000,
 			},
 			wantErr: false,
@@ -76,7 +75,7 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 				if err != nil {
 					t.Errorf("failed to decode public key hash")
 				}
-				if bytes.Equal(decodedPkhash, hashing.New(encodedSomePublicKey)) {
+				if bytes.Equal(decodedPkhash, hashing.New(publickey.Encode(&somePrivateKey.PublicKey))) {
 					if balance != 1000 {
 						t.Errorf("Invalid balance: %d", balance)
 					}
@@ -91,11 +90,9 @@ func TestInsertAccountIntoAccountBalanceTable(t *testing.T) {
 
 func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
-	spkh := hashing.New(encodedSenderPublicKey)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
-	rpkh := hashing.New(encodedRecipientPublicKey)
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
+	rpkh := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -182,8 +179,7 @@ func TestExchangeBetweenAccountsUpdateAccountBalanceTable(t *testing.T) {
 
 func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
-	spkh := hashing.New(encodedSomePublicKey)
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -256,8 +252,7 @@ func TestMintAurumUpdateAccountBalanceTable(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
-	spkh := hashing.New(encodedSomePublicKey)
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -312,8 +307,7 @@ func TestGetBalance(t *testing.T) {
 
 func TestGetStateNonce(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
-	spkh := hashing.New(encodedSomePublicKey)
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {
@@ -368,8 +362,7 @@ func TestGetStateNonce(t *testing.T) {
 
 func TestGetAccountInfo(t *testing.T) {
 	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
-	spkh := hashing.New(encodedSomePublicKey)
+	spkh := hashing.New(publickey.Encode(&somePrivateKey.PublicKey))
 	dbName := constants.AccountsTable
 	dbc, _ := sql.Open("sqlite3", dbName)
 	defer func() {

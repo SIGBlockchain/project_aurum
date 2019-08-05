@@ -92,15 +92,9 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			io.WriteString(w, err.Error())
 			return
 		}
-		decodedRequestPublicKey, err := publickey.Decode(unhexedRequestPublicKey)
-		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
-			io.WriteString(w, err.Error())
-			return
-		}
 		var requestedContract = contracts.Contract{
 			requestBody.Version,
-			decodedRequestPublicKey,
+			publickey.Decode(unhexedRequestPublicKey),
 			requestBody.SignatureLength,
 			unhexedRequestSignature,
 			unhexedRequestRecipientHash,

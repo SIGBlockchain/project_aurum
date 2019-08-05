@@ -121,10 +121,9 @@ func TestDeserialize(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	var datum []contracts.Contract
-	someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSomePublicKey, _ := publickey.Encode(&someKey.PublicKey)
 	for i := 0; i < 12; i++ {
-		someKeyPKHash := hashing.New(encodedSomePublicKey)
+		someKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		someKeyPKHash := hashing.New(publickey.Encode(&someKey.PublicKey))
 		someAirdropContract, _ := contracts.New(1, nil, someKeyPKHash, 1000, 0)
 		datum = append(datum, *someAirdropContract)
 	}

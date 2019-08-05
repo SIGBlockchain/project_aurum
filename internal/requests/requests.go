@@ -35,10 +35,9 @@ func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, er
 
 func NewContractRequest(host string, newContract contracts.Contract) (*http.Request, error) {
 	// TODO: accounts.Contract to JSON Call it MarshalContract?
-	encodedNewContractSenderPublicKey, _ := publickey.Encode(newContract.SenderPubKey)
 	var newJSONContract = JSONContract{
 		Version:                newContract.Version,
-		SenderPublicKey:        hex.EncodeToString(encodedNewContractSenderPublicKey),
+		SenderPublicKey:        hex.EncodeToString(publickey.Encode(newContract.SenderPubKey)),
 		SignatureLength:        newContract.SigLen,
 		Signature:              hex.EncodeToString(newContract.Signature),
 		RecipientWalletAddress: hex.EncodeToString(newContract.RecipPubKeyHash),
