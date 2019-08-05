@@ -202,10 +202,7 @@ func GetWalletAddress() ([]byte, error) {
 	}
 
 	// Get the PEM encoded public key
-	pubKeyEncoded, err := publickey.Encode(&privKey.PublicKey)
-	if err != nil {
-		return nil, err
-	}
+	pubKeyEncoded := publickey.Encode(&privKey.PublicKey)
 	return hashing.New(pubKeyEncoded), nil
 }
 

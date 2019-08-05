@@ -30,8 +30,7 @@ var removeFiles = true
 func TestRunServer(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
-	recipientPublicKeyHash := hashing.New(encodedRecipientPublicKey)
+	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, err := contract.Serialize()
@@ -152,8 +151,7 @@ func TestByteChannel(t *testing.T) {
 	}
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
-	recipientPublicKeyHash := hashing.New(encodedRecipientPublicKey)
+	recipientPublicKeyHash := hashing.New(publickey.Encode(&recipientPrivateKey.PublicKey))
 	contract, _ := contracts.New(1, senderPrivateKey, recipientPublicKeyHash, 1000, 1)
 	contract.Sign(senderPrivateKey)
 	serializedContract, _ := contract.Serialize()
@@ -300,8 +298,7 @@ func TestResponseToAccountInfoRequest(t *testing.T) {
 
 func TestData_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
-	spkh := hashing.New(encodedSenderPublicKey)
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
 	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	tests := []struct {
 		name string
@@ -355,8 +352,7 @@ func TestData_Serialize(t *testing.T) {
 
 func TestData_Deserialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
-	spkh := hashing.New(encodedSenderPublicKey)
+	spkh := hashing.New(publickey.Encode(&senderPrivateKey.PublicKey))
 	initialContract, _ := contracts.New(1, nil, spkh, 1000, 0)
 	// someData := &Data{
 	// 	Hdr: DataHeader{
