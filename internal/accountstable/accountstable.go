@@ -202,6 +202,7 @@ func UpdateAccountTable(db *sql.DB, b *block.Block) error {
 			if err != nil {
 				return err
 			}
+
 		}
 		addRecip := true
 		addSender := true
