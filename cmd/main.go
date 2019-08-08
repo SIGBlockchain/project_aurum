@@ -166,8 +166,13 @@ func main() {
 					}
 					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
-						senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
-						if err := accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
+						encodedPubKey, err := publickey.Encode(contract.SenderPubKey)
+						if err != nil {
+							log.Fatalf("Failed to encode sender public key")
+						}
+						senderPublicKeyHash := hashing.New(encodedPubKey)
+						// senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
+						if err = accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
 							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
 					}
