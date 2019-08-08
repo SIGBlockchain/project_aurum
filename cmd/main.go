@@ -172,7 +172,7 @@ func main() {
 						}
 						senderPublicKeyHash := hashing.New(encodedPubKey)
 						// senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
-						if err = accountstable.ExchangeBetweenAccountsUpdateAccountBalanceTable(accountsDatabaseConnection, senderPublicKeyHash, contract.RecipPubKeyHash, contract.Value); err != nil {
+						if err = accountstable.ExchangeAndUpdateAccounts(accountsDatabaseConnection, &contract); err != nil {
 							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
 					}
