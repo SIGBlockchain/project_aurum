@@ -133,10 +133,10 @@ func Deserialize(block []byte) Block {
 }
 
 // Compares two block structs and returns true if all the fields in both blocks are equal, false otherwise
-func Equals(block1 Block, block2 Block) bool {
+func (block1 *Block) Equals(block2 Block) bool {
 
-	blk1value := reflect.ValueOf(block1) // get an instance of the Value struct with block1 values
-	blk2value := reflect.ValueOf(block2) // get an instance of the Value struct with block2 values
+	blk1value := reflect.ValueOf(*block1) // get an instance of the Value struct with block1 values
+	blk2value := reflect.ValueOf(block2)  // get an instance of the Value struct with block2 values
 
 	for i := 0; i < blk1value.NumField(); i++ { // loop through the fields of both blocks
 		finterface1 := blk1value.Field(i).Interface() // get the value of the current field from block1 as an interface{}

@@ -170,9 +170,9 @@ func (c *Contract) Sign(sender *ecdsa.PrivateKey) error {
 }
 
 // compare two contracts and return true only if all fields match
-func Equals(contract1 Contract, contract2 Contract) bool {
+func (contract1 *Contract) Equals(contract2 Contract) bool {
 	// copy both contracts
-	c1val := reflect.ValueOf(contract1)
+	c1val := reflect.ValueOf(*contract1)
 	c2val := reflect.ValueOf(contract2)
 
 	// loops through fields

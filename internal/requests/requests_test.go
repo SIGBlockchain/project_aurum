@@ -90,7 +90,7 @@ func TestNewContractRequest(t *testing.T) {
 		responseBody.Value,
 		responseBody.StateNonce,
 	}
-	if !contracts.Equals(*testContract, responseContract) {
+	if !testContract.Equals(responseContract) {
 		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, *testContract)
 	}
 }

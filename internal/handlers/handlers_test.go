@@ -262,7 +262,7 @@ func TestContractRequestHandler(t *testing.T) {
 			}
 			if status == http.StatusOK && status == tt.status {
 				channelledContract := <-contractChan
-				if !contracts.Equals(*tt.c, channelledContract) {
+				if !tt.c.Equals(channelledContract) {
 					t.Errorf("contracts do not match: got %+v want %+v", *tt.c, channelledContract)
 				}
 				if pMap.Sender[tt.key].PendingBal != tt.wantBal {
