@@ -134,9 +134,13 @@ func main() {
 
 		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
+			newContractEncodedSenderPubKey, err := publickey.Encode(newContract.SenderPubKey)
+			if err != nil {
+				log.Fatalf("Failed to encode new contract sender public key")
+			}
 			pendingContractPool = append(pendingContractPool, newContract)
 			log.Printf("Added new contract to pool:\n(%s) ->|%d aurum|-> (%s) ",
-				hex.EncodeToString(hashing.New(publickey.Encode(newContract.SenderPubKey))),
+				hex.EncodeToString(hashing.New(newContractEncodedSenderPubKey)),
 				newContract.Value, hex.EncodeToString(newContract.RecipPubKeyHash))
 
 		// New block is ready to be produced
@@ -166,12 +170,6 @@ func main() {
 					}
 					// Update accounts table with all contracts in pool
 					for _, contract := range pendingContractPool {
-						encodedPubKey, err := publickey.Encode(contract.SenderPubKey)
-						if err != nil {
-							log.Fatalf("Failed to encode sender public key")
-						}
-						senderPublicKeyHash := hashing.New(encodedPubKey)
-						// senderPublicKeyHash := hashing.New(publickey.Encode(contract.SenderPubKey))
 						if err = accountstable.ExchangeAndUpdateAccounts(accountsDatabaseConnection, &contract); err != nil {
 							log.Printf("Failed to add contract %+v to accounts database : %v", contract, err)
 						}
