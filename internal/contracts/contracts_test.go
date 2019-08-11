@@ -407,7 +407,7 @@ func TestEquals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if result := Equals(tt.c1, tt.c2); result != tt.want {
+			if result := tt.c1.Equals(tt.c2); result != tt.want {
 				t.Errorf("Error: Equals() returned %v for %s\n Wanted: %v", result, tt.name, tt.want)
 			}
 		})
