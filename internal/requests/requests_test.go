@@ -63,7 +63,7 @@ func TestNewContractRequest(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 		t.Logf("%s", rr.Body.String())
 	}
-	var responseBody JSONContract
+	var responseBody contracts.JSONContract
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
 		t.Errorf("failed to unmarshall response body: %v", err)
 	}
