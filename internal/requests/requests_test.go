@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
-	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
 func TestAccountInfoRequest(t *testing.T) {
@@ -63,32 +61,13 @@ func TestNewContractRequest(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 		t.Logf("%s", rr.Body.String())
 	}
-	var responseBody JSONContract
+	var responseBody contracts.JSONContract
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
 		t.Errorf("failed to unmarshall response body: %v", err)
 	}
-	unhexedResponsePublicKey, err := hex.DecodeString(responseBody.SenderPublicKey)
+	responseContract, err := responseBody.Unmarshal()
 	if err != nil {
-		t.Errorf("failed to hex decode public key: %v", err)
-	}
-	unhexedResponseSignature, err := hex.DecodeString(responseBody.Signature)
-	if err != nil {
-		t.Errorf("failed to hex decode signature: %v", err)
-	}
-	unhexedResponseRecipientHash, err := hex.DecodeString(responseBody.RecipientWalletAddress)
-	if err != nil {
-		t.Errorf("failed to hex decode recipient hash: %v", err)
-	}
-	// TODO JSONContract to accounts.Contract Unmarshall?
-	decodedUnhexedReponsePublicKey, _ := publickey.Decode(unhexedResponsePublicKey)
-	var responseContract = contracts.Contract{
-		responseBody.Version,
-		decodedUnhexedReponsePublicKey,
-		responseBody.SignatureLength,
-		unhexedResponseSignature,
-		unhexedResponseRecipientHash,
-		responseBody.Value,
-		responseBody.StateNonce,
+		t.Errorf("failed to convert JSONContract to Contract: %v", err)
 	}
 	if !testContract.Equals(responseContract) {
 		t.Errorf("contracts do not match:\n got %+v want %+v", responseContract, *testContract)

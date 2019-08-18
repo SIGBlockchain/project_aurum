@@ -436,3 +436,110 @@ func TestContractToString(t *testing.T) {
 		t.Error("Contract String is not equal to test String")
 	}
 }
+
+func TestMarshal(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	testContract := Contract{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           1000000000,
+		StateNonce:      1,
+	}
+	var nilContract Contract
+	tests := []struct {
+		name    string
+		c       Contract
+		wantErr bool
+	}{
+		{
+			"contract",
+			testContract,
+			false,
+		},
+		{
+			"nil contract",
+			nilContract,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resultContract, err := tt.c.Marshal()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Error: Marshal() returned %v for errors. Wanted: %v", err, tt.wantErr)
+			}
+			if tt.name == "contract" {
+				if resultContract.Version != tt.c.Version {
+					t.Errorf("Error: Version does not match. Wanted: %v, Got: %v", tt.c.Version, resultContract.Version)
+				}
+				encodedSender, _ := hex.DecodeString(resultContract.SenderPublicKey)
+				if sender, _ := publickey.Encode(tt.c.SenderPubKey); !bytes.Equal(encodedSender, sender) {
+					t.Errorf("Error: Sender pubkey does not match. Wanted: %v, Got: %v", tt.c.SenderPubKey, sender)
+				}
+				if resultContract.SignatureLength != tt.c.SigLen {
+					t.Errorf("Error: Signature length does not match. Wanted: %v, Got: %v", tt.c.SigLen, resultContract.SignatureLength)
+				}
+				if signature, _ := hex.DecodeString(resultContract.Signature); !bytes.Equal(signature, tt.c.Signature) {
+					t.Errorf("Error: Signature does not match. Wanted: %v, Got: %v", tt.c.Signature, signature)
+				}
+				if recip, _ := hex.DecodeString(resultContract.RecipientWalletAddress); !bytes.Equal(recip, tt.c.RecipPubKeyHash) {
+					t.Errorf("Error: Recip pubkey hash does not match. Wanted: %v, Got: %v", tt.c.RecipPubKeyHash, recip)
+				}
+				if resultContract.Value != tt.c.Value {
+					t.Errorf("Error: Value does not match. Wanted: %v, Got: %v", tt.c.Value, resultContract.Value)
+				}
+				if resultContract.StateNonce != tt.c.StateNonce {
+					t.Errorf("Error: State nonce does not match. Wanted: %v, Got: %v", tt.c.StateNonce, resultContract.StateNonce)
+				}
+			}
+		})
+	}
+
+}
+
+func TestUnmarshal(t *testing.T) {
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	testContract := Contract{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           1000000000,
+		StateNonce:      1,
+	}
+	marshalledContract, _ := testContract.Marshal()
+	var nilContract JSONContract
+	tests := []struct {
+		name    string
+		mc      JSONContract
+		wantErr bool
+	}{
+		{
+			"mContract",
+			marshalledContract,
+			false,
+		},
+		{
+			"nil contract",
+			nilContract,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resultContract, err := tt.mc.Unmarshal()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Error: Unmarshal() returned %v for errors. Wanted: %v", err, tt.wantErr)
+			}
+			if tt.name == "mContract" && !resultContract.Equals(testContract) {
+				t.Errorf("Error: result contract does not equal to test contract")
+			}
+		})
+	}
+}
