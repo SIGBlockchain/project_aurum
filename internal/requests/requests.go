@@ -2,25 +2,13 @@ package requests
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
-	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
-
-type JSONContract struct {
-	Version                uint16
-	SenderPublicKey        string
-	SignatureLength        uint8
-	Signature              string
-	RecipientWalletAddress string
-	Value                  uint64
-	StateNonce             uint64
-}
 
 func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, error) {
 	req, err := http.NewRequest(http.MethodGet, host+endpoints.AccountInfo, nil)
@@ -34,16 +22,9 @@ func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, er
 }
 
 func NewContractRequest(host string, newContract contracts.Contract) (*http.Request, error) {
-	// TODO: accounts.Contract to JSON Call it MarshalContract?
-	encodedNewContractSenderPublicKey, _ := publickey.Encode(newContract.SenderPubKey)
-	var newJSONContract = JSONContract{
-		Version:                newContract.Version,
-		SenderPublicKey:        hex.EncodeToString(encodedNewContractSenderPublicKey),
-		SignatureLength:        newContract.SigLen,
-		Signature:              hex.EncodeToString(newContract.Signature),
-		RecipientWalletAddress: hex.EncodeToString(newContract.RecipPubKeyHash),
-		Value:                  newContract.Value,
-		StateNonce:             newContract.StateNonce,
+	newJSONContract, err := newContract.Marshal()
+	if err != nil {
+		return nil, errors.New("Failed to convert contract to JSONContract: " + err.Error())
 	}
 	marshalledContract, err := json.Marshal(newJSONContract)
 	if err != nil {

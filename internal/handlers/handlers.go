@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,8 +10,6 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
-	"github.com/SIGBlockchain/project_aurum/internal/publickey"
-	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
@@ -65,7 +62,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB) func(w http.ResponseWriter, r *htt
 // Handler for incoming contract requests
 func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap, pendingLock *sync.Mutex) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var requestBody requests.JSONContract
+		var requestBody contracts.JSONContract
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(r.Body)
 		if err := json.Unmarshal(buf.Bytes(), &requestBody); err != nil {
@@ -73,39 +70,11 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 			io.WriteString(w, err.Error())
 			return
 		}
-		// TODO: Need a JSON to Contract function
-		unhexedRequestPublicKey, err := hex.DecodeString(requestBody.SenderPublicKey)
+		requestedContract, err := requestBody.Unmarshal()
 		if err != nil {
 			w.WriteHeader(http.StatusNotAcceptable)
 			io.WriteString(w, err.Error())
 			return
-		}
-		unhexedRequestSignature, err := hex.DecodeString(requestBody.Signature)
-		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
-			io.WriteString(w, err.Error())
-			return
-		}
-		unhexedRequestRecipientHash, err := hex.DecodeString(requestBody.RecipientWalletAddress)
-		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
-			io.WriteString(w, err.Error())
-			return
-		}
-		decodedRequestPublicKey, err := publickey.Decode(unhexedRequestPublicKey)
-		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
-			io.WriteString(w, err.Error())
-			return
-		}
-		var requestedContract = contracts.Contract{
-			requestBody.Version,
-			decodedRequestPublicKey,
-			requestBody.SignatureLength,
-			unhexedRequestSignature,
-			unhexedRequestRecipientHash,
-			requestBody.Value,
-			requestBody.StateNonce,
 		}
 		pendingLock.Lock()
 		if err := pMap.Add(&requestedContract, dbConn); err != nil {

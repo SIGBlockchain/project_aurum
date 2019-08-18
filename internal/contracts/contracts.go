@@ -32,6 +32,16 @@ type Contract struct {
 	StateNonce      uint64
 }
 
+type JSONContract struct {
+	Version                uint16
+	SenderPublicKey        string
+	SignatureLength        uint8
+	Signature              string
+	RecipientWalletAddress string
+	Value                  uint64
+	StateNonce             uint64
+}
+
 /*
 version field comes from version parameter
 sender public key comes from sender private key
@@ -213,4 +223,55 @@ func (c Contract) ToString() string {
 	return fmt.Sprintf("Version: %v\nSenderPubKey: %v\nSigLen: %v\nSignature: %v\nRecipPubKeyHash: %v\nValue: %v\nStateNonce: %v\n",
 		c.Version, hex.EncodeToString(encodedSenderPublicKey), c.SigLen, hex.EncodeToString(c.Signature), hex.EncodeToString(c.RecipPubKeyHash),
 		c.Value, c.StateNonce)
+}
+
+// Marshal takes a Contract and returns a JSONContract
+func (c *Contract) Marshal() (JSONContract, error) {
+	encodedSender, err := publickey.Encode(c.SenderPubKey)
+	if err != nil {
+		return JSONContract{}, errors.New("Failed to encode sender pubkey: " + err.Error())
+	}
+
+	var newJSONContract = JSONContract{
+		Version:                c.Version,
+		SenderPublicKey:        hex.EncodeToString(encodedSender),
+		SignatureLength:        c.SigLen,
+		Signature:              hex.EncodeToString(c.Signature),
+		RecipientWalletAddress: hex.EncodeToString(c.RecipPubKeyHash),
+		Value:                  c.Value,
+		StateNonce:             c.StateNonce,
+	}
+
+	return newJSONContract, nil
+}
+
+// Unmarshal takes a JSONContract and returns a Contract
+func (mc *JSONContract) Unmarshal() (Contract, error) {
+	encodedSender, err := hex.DecodeString(mc.SenderPublicKey)
+	if err != nil {
+		return Contract{}, errors.New("Failed to decode sender string: " + err.Error())
+	}
+	senderPB, err := publickey.Decode(encodedSender)
+	if err != nil {
+		return Contract{}, errors.New("Failed to decode sender: " + err.Error())
+	}
+	signature, err := hex.DecodeString(mc.Signature)
+	if err != nil {
+		return Contract{}, errors.New("Failed to decode signature: " + err.Error())
+	}
+	recip, err := hex.DecodeString(mc.RecipientWalletAddress)
+	if err != nil {
+		return Contract{}, errors.New("Failed to decode recipient wallet address: " + err.Error())
+	}
+
+	c := Contract{
+		mc.Version,
+		senderPB,
+		mc.SignatureLength,
+		signature,
+		recip,
+		mc.Value,
+		mc.StateNonce,
+	}
+	return c, nil
 }
