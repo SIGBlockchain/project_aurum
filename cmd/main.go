@@ -112,7 +112,7 @@ func main() {
 
 	pendingMap := pendingpool.NewPendingMap()
 	// Set handlers for endpoints and run server
-	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection))
+	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection, pendingMap, pendingLock))
 	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap, pendingLock))
 	go http.ListenAndServe(hostname, nil)
 	log.Printf("Serving requests on port %s", cfg.Port)
