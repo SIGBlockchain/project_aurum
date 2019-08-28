@@ -2,24 +2,20 @@ package jsonify
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 )
 
-// is the assumption that the file is already open?
-// ok to return an error?
-// convert file to interface
-func toInterface(file *os.File, iFace interface{}) (*interface{}, error) {
-	cfgData, err := ioutil.ReadAll(file)
+// load file into interface
+func loadJSON(file *os.File, inrface interface{}) (*interface{}, error) {
+	fileData, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, errors.New("Failed to read configuration file : " + err.Error())
+		return nil, err
 	}
 
-	cfg := iFace
-	if err := json.Unmarshal(cfgData, &cfg); err != nil {
-		return nil, errors.New("Failed to unmarshall configuration data : " + err.Error())
+	if err := json.Unmarshal(fileData, &inrface); err != nil {
+		return nil, err
 	}
 
-	return &cfg, nil
+	return &inrface, nil
 }
