@@ -49,11 +49,18 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	statement, _ := dbConn.Prepare(sqlstatements.CREATE_ACCOUNT_BALANCES_TABLE)
 	statement.Exec()
 
-	handler := http.HandlerFunc(HandleAccountInfoRequest(dbConn))
+	var pLock = new(sync.Mutex)
+
+	// Check empty table
+	var emptyPMap pendingpool.PendingMap
+
+	handler := http.HandlerFunc(HandleAccountInfoRequest(dbConn, emptyPMap, pLock))
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
+
+	// Insert key into table
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedSenderPublicKey, _ := publickey.Encode(&privateKey.PublicKey)
 	var walletAddress = hashing.New(encodedSenderPublicKey)
@@ -89,6 +96,38 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	if accInfo.StateNonce != 0 {
 		t.Errorf("failed to get correct state nonce: got %d want %d", accInfo.StateNonce, 0)
 	}
+
+	// Pending case
+	privateKey, _ = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPublicKey, _ = publickey.Encode(&privateKey.PublicKey)
+	walletAddress = hashing.New(encodedSenderPublicKey)
+
+	pData := pendingpool.NewPendingData(1234, 5678)
+	pMap := pendingpool.NewPendingMap()
+	pMap.Sender[hex.EncodeToString(walletAddress)] = &pData
+
+	req, err = requests.NewAccountInfoRequest("", hex.EncodeToString(walletAddress))
+	rr = httptest.NewRecorder()
+	handler = http.HandlerFunc(HandleAccountInfoRequest(dbConn, pMap, pLock))
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &accInfo); err != nil {
+		t.Errorf("failed to unmarshall response body: %v", err)
+	}
+
+	if accInfo.WalletAddress != hex.EncodeToString(walletAddress) {
+		t.Errorf("failed to get correct wallet address: got %s want %s", accInfo.WalletAddress, walletAddress)
+	}
+	if accInfo.Balance != 1234 {
+		t.Errorf("failed to get correct balance: got %d want %d", accInfo.Balance, 1234)
+	}
+	if accInfo.StateNonce != 5678 {
+		t.Errorf("failed to get correct state nonce: got %d want %d", accInfo.StateNonce, 5678)
+	}
+
 }
 
 func createContractNReq(version uint16, sender *ecdsa.PrivateKey, recip []byte, bal uint64, nonce uint64) (c *contracts.Contract, r *http.Request, e error) {
