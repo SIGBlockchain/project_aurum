@@ -7,7 +7,7 @@ import (
 )
 
 // load file into interface
-func loadJSON(file *os.File, inrface interface{}) (*interface{}, error) {
+func LoadJSON(file *os.File, inrface interface{}) (*interface{}, error) {
 	fileData, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
