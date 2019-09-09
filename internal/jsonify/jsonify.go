@@ -7,15 +7,15 @@ import (
 )
 
 // load file into interface
-func LoadJSON(file *os.File, iFace interface{}) (*interface{}, error) {
+func LoadJSON(file *os.File, iFace interface{}) error {
 	fileData, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := json.Unmarshal(fileData, &iFace); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &iFace, nil
+	return nil
 }
