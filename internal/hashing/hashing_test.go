@@ -20,18 +20,16 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestGetMerkleRootHashEmptyInput(t *testing.T) {
+func TestGetMerkleRootHashInput(t *testing.T) {
 	input := [][]byte{}
-	result := GetMerkleRootHash(input)
+	expected := GetMerkleRootHash(input)
 
-	if len(input) != len(result) {
+	if len(input) != len(expected) {
 		t.Errorf("Error! GetMerkelRootHash does not return an empty slice on input of empty slice")
 	}
-}
 
-func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction")}
-	expected := New(New(input[0]))
+	input = [][]byte{[]byte("transaction")}
+	expected = New(New(input[0]))
 	actual := GetMerkleRootHash(input)
 
 	if !bytes.Equal(expected, actual) {
@@ -39,41 +37,35 @@ func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
 	}
-}
 
-func TestGetMerkleRootHashDoubleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2")}
+	input = [][]byte{[]byte("transaction1"), []byte("transaction2")}
 	concat := append(New(New(input[0])), New(New(input[1]))...)
-	expected := New(New(concat))
-	actual := GetMerkleRootHash(input)
+	expected = New(New(concat))
+	actual = GetMerkleRootHash(input)
 
 	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on two byte slices")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
 	}
-}
 
-func TestGetMerkleRootHashTripleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")}
+	input = [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")}
 	concat1 := New(New(append(New(New(input[0])), New(New(input[1]))...)))
 	concat2 := New(New(append(New(New(input[2])), New(New(input[2]))...)))
-	expected := New(New(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
+	expected = New(New(append(concat1, concat2...)))
+	actual = GetMerkleRootHash(input)
 
 	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
 		t.Errorf("Expected != Actual")
 		t.Errorf("%v != %v", expected, actual)
 	}
-}
 
-func TestGetMerkleRootHashQuadInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")}
-	concat1 := New(New(append(New(New(input[0])), New(New(input[1]))...)))
-	concat2 := New(New(append(New(New(input[2])), New(New(input[3]))...)))
-	expected := New(New(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
+	input = [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")}
+	concat1 = New(New(append(New(New(input[0])), New(New(input[1]))...)))
+	concat2 = New(New(append(New(New(input[2])), New(New(input[3]))...)))
+	expected = New(New(append(concat1, concat2...)))
+	actual = GetMerkleRootHash(input)
 
 	if !bytes.Equal(expected, actual) {
 		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
