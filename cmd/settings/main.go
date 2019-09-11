@@ -14,7 +14,7 @@ import (
 
 func main() {
 	//open configuration file
-	configFile, err := os.Open("../cmd/config.json")
+	configFile, err := os.Open("../config.json")
 	if err != nil {
 		log.Fatal("Failed to open configuration file : " + err.Error())
 	}
@@ -28,9 +28,9 @@ func main() {
 
 	//specify flags
 	versionU64 := flag.Uint("version", uint(cfg.Version), "enter version number")
-	flag.Uint64Var(&cfg.InitialAurumSupply, "initialaurum", cfg.InitialAurumSupply, "enter a number for initial aurum supply")
+	flag.Uint64Var(&cfg.InitialAurumSupply, "supply", cfg.InitialAurumSupply, "enter a number for initial aurum supply")
 	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
-	flag.StringVar(&cfg.BlockProductionInterval, "blockproditv", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
+	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
 	flag.BoolVar(&cfg.Localhost, "localhost", cfg.Localhost, "syntax: -localhost=/boolean here/")
 
 	//read flags
@@ -55,7 +55,7 @@ func main() {
 		log.Fatalf("Failed to marshal new config: %v", err)
 	}
 
-	if err := ioutil.WriteFile("../cmd/config.json", marshalledJSON, 0644); err != nil {
+	if err := ioutil.WriteFile("../config.json", marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
 }
