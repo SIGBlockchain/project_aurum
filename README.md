@@ -17,7 +17,11 @@ To create a working blockchain and learn about the technology behind it. SIG Blo
 - [Docker](https://www.docker.com/)
 
 ## Features
-Aurum Phase One is a centralized private blockchain that provides users with the ability to exchange tokens with each other. Future support for decentralizing Aurum will be implemented once the network grows to a sustainable level for decentralization.
+Aurum Phase One is a single-node, centralized private blockchain that provides users with the ability to exchange tokens with each other.
+
+Aurum Phase Two is a multi-node private blockchain that provides users with the ability to exchange tokens with each other.
+
+Future support for decentralizing Aurum will be implemented once the network grows to a sustainable level for decentralization.
 
 ## Installation
 `under development`
