@@ -25,47 +25,41 @@ func TestGetMerkleRootHashInput(t *testing.T) {
 		name string
 		input [][]byte
 		expected []byte
-		want bool
 	}{
 		{
 			"Empty Slice",
 			[][]byte{},
 			nil,
-			true,
 		},
 		{
 			"Size One Slice",
 			[][]byte{[]byte("transaction")},
 			New(New([]byte("transaction"))),
-			true,
 		},
 		{
 			"Size Two Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2")},
 			New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))),
-			true,
 
 		},
 		{
 			"Size Three Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")},
 			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction3")))...)))...))),
-			true,
 
 		},
 		{
 			"Size Four Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")},
 			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction4")))...)))...))),
-			true,
 
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if result := bytes.Equal(GetMerkleRootHash(tt.input),tt.expected); result != tt.want {
-				t.Errorf("Failed to return %v (got %v) for hashes that are: %v", tt.want, result, tt.name)
+			if !bytes.Equal(GetMerkleRootHash(tt.input),tt.expected) {
+				t.Errorf("Failed on %v - results are not equal", tt.name)
 			}
 		})
 	}
