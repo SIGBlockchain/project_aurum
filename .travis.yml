@@ -11,3 +11,4 @@ before_install:
 script: 
   - go test -v ./...
   - docker rmi -f project_aurum
+

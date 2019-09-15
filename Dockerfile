@@ -1,5 +1,11 @@
 FROM golang:alpine
 
+RUN go get github.com/SIGBlockchain/project_aurum/... && \
+    cd /$GOPATH/src/github.com/SIGBlockchain/project_aurum/cmd/ && \
+    go build -o main
+
+WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/cmd/
+
 # RUN rm -rf /var/cache/apk/* \
 #     && rm -rf /tmp/* \
 #     && apk update \
