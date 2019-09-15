@@ -1,9 +1,13 @@
 language: go
 
-go:
-- master
+go: master
+
+services: docker
+
+before_install:
+  - docker build -t project_aurum .
 
 # script: go test `go list ./... | grep -v main` -v ./...
 script: 
-- docker build -t project_aurum
-- go test -v ./...
+  - go test -v ./...
+  - docker rmi -f project_aurum
