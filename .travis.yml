@@ -5,9 +5,13 @@ go: master
 services: docker
 
 before_install:
-  - docker build -t project_aurum --build-arg BRANCH=$TRAVIS_BRANCH .
+  - echo $TRAVIS_BRANCH
+  - docker build -t project_aurum:version1.0 --build-arg BRANCH=$TRAVIS_BRANCH .
+  - docker run -p 62000:62000 project_aurum:version1.0
 
 # script: go test `go list ./... | grep -v main` -v ./...
 script: 
   - go test -v ./...
-  - docker rmi -f project_aurum
+
+after_script:
+  - docker rmi -f project_aurum:version1.0
