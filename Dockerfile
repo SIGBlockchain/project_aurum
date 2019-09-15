@@ -16,4 +16,7 @@ EXPOSE 62000
 
 WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/cmd/
 
-# CMD [ "./main", "-d", "-g"] 
+CMD [ "cd", "settings/"]
+CMD [ "go", "run", "main.go", "-port", "62000"]
+CMD [ "cd", ".."]
+CMD [ "./main" ]
