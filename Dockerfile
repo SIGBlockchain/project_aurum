@@ -9,8 +9,8 @@ RUN rm -rf /var/cache/apk/* && \
     cd /$GOPATH/src/github.com/SIGBlockchain/project_aurum/cmd/ && \
     git checkout $BRANCH && \
     git pull && \
-    apk del git gcc musl-dev && \
-    go build -o main
+    go build -o main && \
+    apk del git gcc musl-dev
 
 EXPOSE 62000
 
