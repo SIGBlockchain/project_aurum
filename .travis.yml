@@ -7,7 +7,7 @@ services: docker
 before_install:
   - echo $TRAVIS_BRANCH
   - docker build -t project_aurum:version1.0 --build-arg BRANCH=$TRAVIS_BRANCH .
-  - docker run -p 62000:62000 project_aurum:version1.0
+  - docker run -p -d 62000:62000 project_aurum:version1.0
 
 # script: go test `go list ./... | grep -v main` -v ./...
 script: 
