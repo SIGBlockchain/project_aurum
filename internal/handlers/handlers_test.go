@@ -13,7 +13,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
@@ -162,7 +161,8 @@ func TestContractRequestHandler(t *testing.T) {
 	pMap := pendingpool.NewPendingMap()
 	contractChan := make(chan contracts.Contract)
 	pLock := new(sync.Mutex)
-	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap, pLock))
+	sig := make(chan uint8)
+	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap, pLock, sig))
 
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
@@ -210,7 +210,8 @@ func TestContractRequestHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	go handler.ServeHTTP(rr, req)
+	<-sig
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusBadRequest)
 		t.Logf("%s", rr.Body.String())
@@ -293,14 +294,9 @@ func TestContractRequestHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rr = httptest.NewRecorder()
 			go handler.ServeHTTP(rr, tt.req)
-			time.Sleep(time.Second)
 
-			status := rr.Code
-			if status != tt.status {
-				t.Errorf("handler returned with wrong status code: got %v want %v", status, tt.status)
-			}
-			if status == http.StatusOK && status == tt.status {
-				channelledContract := <-contractChan
+			select {
+			case channelledContract := <-contractChan:
 				if !tt.c.Equals(channelledContract) {
 					t.Errorf("contracts do not match: got %+v want %+v", *tt.c, channelledContract)
 				}
@@ -310,7 +306,14 @@ func TestContractRequestHandler(t *testing.T) {
 				if pMap.Sender[tt.key].PendingNonce != tt.wantNonce {
 					t.Errorf("state nonce do not match")
 				}
+			case <-sig:
 			}
+
+			status := rr.Code
+			if status != tt.status {
+				t.Errorf("handler returned with wrong status code: got %v want %v", status, tt.status)
+			}
+
 			if i < 5 {
 				if l := len(pMap.Sender); l != 1 {
 					t.Errorf("number of key-value pairs in map does not match: got %v want %v", l, 1)

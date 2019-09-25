@@ -74,7 +74,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB, pMap pendingpool.PendingMap, pendi
 }
 
 // Handler for incoming contract requests
-func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap, pendingLock *sync.Mutex) func(w http.ResponseWriter, r *http.Request) {
+func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contract, pMap pendingpool.PendingMap, pendingLock *sync.Mutex, sig chan uint8) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestBody contracts.JSONContract
 		buf := new(bytes.Buffer)
@@ -82,18 +82,21 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 		if err := json.Unmarshal(buf.Bytes(), &requestBody); err != nil {
 			w.WriteHeader(http.StatusNotAcceptable)
 			io.WriteString(w, err.Error())
+			sig <- 0
 			return
 		}
 		requestedContract, err := requestBody.Unmarshal()
 		if err != nil {
 			w.WriteHeader(http.StatusNotAcceptable)
 			io.WriteString(w, err.Error())
+			sig <- 0
 			return
 		}
 		pendingLock.Lock()
 		if err := pMap.Add(&requestedContract, dbConn); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
+			sig <- 0
 		} else {
 			w.WriteHeader(http.StatusOK)
 			contractChannel <- requestedContract

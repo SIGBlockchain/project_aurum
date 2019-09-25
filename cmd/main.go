@@ -111,10 +111,14 @@ func main() {
 	pendingLock := new(sync.Mutex)
 
 	pendingMap := pendingpool.NewPendingMap()
+
+	// Channel for signals from contract handler
+	sig := make(chan uint8)
+
 	// Set handlers for endpoints and run server
 	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection, pendingMap, pendingLock))
 
-	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap, pendingLock))
+	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap, pendingLock, sig))
 	go http.ListenAndServe(hostname, nil)
 	log.Printf("Serving requests on port %s", cfg.Port)
 
@@ -132,7 +136,8 @@ func main() {
 
 	for {
 		select {
-
+		// Signal from contract handler
+		case <-sig:
 		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
 			newContractEncodedSenderPubKey, err := publickey.Encode(newContract.SenderPubKey)
