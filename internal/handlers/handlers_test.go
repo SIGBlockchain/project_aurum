@@ -303,7 +303,8 @@ func TestContractRequestHandler(t *testing.T) {
 			if status != tt.status {
 				t.Errorf("handler returned with wrong status code: got %v want %v", status, tt.status)
 			}
-			if status == http.StatusOK && status == tt.status {
+
+			if status == http.StatusOK {
 				channelledContract := <-contractChan
 				if !tt.c.Equals(channelledContract) {
 					t.Errorf("contracts do not match: got %+v want %+v", *tt.c, channelledContract)
@@ -315,6 +316,7 @@ func TestContractRequestHandler(t *testing.T) {
 					t.Errorf("state nonce do not match")
 				}
 			}
+
 			if i < 5 {
 				if l := len(pMap.Sender); l != 1 {
 					t.Errorf("number of key-value pairs in map does not match: got %v want %v", l, 1)
