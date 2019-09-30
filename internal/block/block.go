@@ -203,3 +203,10 @@ func HashBlockHeader(b BlockHeader) []byte {
 	copy(concatenated[50:82], b.MerkleRootHash)
 	return hashing.New(concatenated)
 }
+
+// Validate takes in expected version, height, previousHash, and timeStamp
+// and compares them with the value receiver's
+func (b Block) Validate(version uint16, height uint64, previousHash []byte, timeStamp int64) bool {
+	// TO-DO
+	return false
+}

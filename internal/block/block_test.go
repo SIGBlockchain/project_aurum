@@ -395,3 +395,113 @@ func TestHashBlockHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestValidate(t *testing.T) {
+	baseBlk := Block{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   hashing.New([]byte{'x'}),
+		MerkleRootHash: hashing.New([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{hashing.New([]byte{'r'})},
+	}
+	baseBlk.DataLen = uint16(len(baseBlk.Data))
+	tests := []struct {
+		name  string
+		block Block
+		want  bool
+	}{
+		{
+			"Valid Block",
+			baseBlk,
+			true,
+		},
+		{
+			"Invalid version",
+			Block{
+				Version:        10000,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid height",
+			Block{
+				Version:        baseBlk.Version,
+				Height:         999999999,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid previous hash",
+			Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   hashing.New([]byte{'a'}),
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid previous hash (nil)",
+			Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   nil,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid timestamp",
+			Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp + 1,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid timestamp (future)",
+			Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp + 1,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := tt.block.Validate(baseBlk.Version, baseBlk.Height, baseBlk.PreviousHash,
+				baseBlk.Timestamp); result != tt.want {
+				t.Errorf("Validate returned the wrong boolean. Want: %v Got: %v", tt.want, result)
+			}
+		})
+	}
+}
