@@ -205,6 +205,6 @@ func HashBlockHeader(b BlockHeader) []byte {
 }
 
 // MerkleRootHashCompare determines if the merkle-root hash is the merkle root of the array of hashes
-func MerkleRootHashCompare(merkRHash []byte, sha256Hashes [][]byte) bool {
+func MerkleRootHashOf(merkRHash []byte, sha256Hashes [][]byte) bool {
 	return false
 }
