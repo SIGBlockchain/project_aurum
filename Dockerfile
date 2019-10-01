@@ -20,10 +20,5 @@ EXPOSE 62000
 
 WORKDIR /$GOPATH/src/github.com/SIGBlockchain/project_aurum/cmd/
 
-# Change port in config.json
-CMD [ "cd", "settings/"]
-CMD [ "go", "run", "main.go", "-port", "62000"]
-
-# Run main
-CMD [ "cd", ".."]
-CMD [ "./main" ]
+# Change port in config.json && Run main
+CMD cd settings/ && go run main.go -port 62000 && cd .. && ./main
