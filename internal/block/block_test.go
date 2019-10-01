@@ -396,7 +396,7 @@ func TestHashBlockHeader(t *testing.T) {
 	}
 }
 
-func TestMerkleRootHashCompare(t *testing.T) {
+func TestMerkleRootHashOf(t *testing.T) {
 	randomHash1 := hashing.New([]byte{'a'})
 	randomHash2 := hashing.New([]byte{'b'})
 	randomHash3 := hashing.New([]byte{'c'})
