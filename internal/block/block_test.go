@@ -395,3 +395,35 @@ func TestHashBlockHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestMerkleRootHashCompare(t *testing.T) {
+	randomHash1 := hashing.New([]byte{'a'})
+	randomHash2 := hashing.New([]byte{'b'})
+	randomHash3 := hashing.New([]byte{'c'})
+	randomHashes := [][]byte{randomHash1, randomHash2, randomHash3}
+	expectedMRHash := hashing.GetMerkleRootHash(randomHashes)
+
+	tests := []struct {
+		name       string
+		testHashes [][]byte
+		want       bool
+	}{
+		{
+			"Valid merkle-root hash",
+			randomHashes,
+			true,
+		},
+		{
+			"Null hashes",
+			nil,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := MerkleRootHashCompare(expectedMRHash, randomHashes); result != tt.want {
+				t.Errorf("MerkleRootHashCompare returned the wrong result. Wanted: %v, Got: %v", tt.want, result)
+			}
+		})
+	}
+}
