@@ -421,7 +421,7 @@ func TestMerkleRootHashOf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if result := MerkleRootHashCompare(expectedMRHash, randomHashes); result != tt.want {
+			if result := MerkleRootHashOf(expectedMRHash, randomHashes); result != tt.want {
 				t.Errorf("MerkleRootHashCompare returned the wrong result. Wanted: %v, Got: %v", tt.want, result)
 			}
 		})
