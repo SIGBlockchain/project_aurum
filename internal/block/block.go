@@ -33,6 +33,17 @@ type Block struct {
 	Data           [][]byte // Data is an abritrary variable, holding the actual contents of this block
 }
 
+// Allows for easy Marshaling into a JSON string
+type JSONBlock struct {
+	Version        uint16
+	Height         uint64
+	Timestamp      int64
+	PreviousHash   string
+	MerkleRootHash string
+	DataLen        uint16
+	Data           []string
+}
+
 func (b *Block) GetHeader() BlockHeader {
 	return BlockHeader{b.Version, b.Height, b.Timestamp, b.PreviousHash, b.MerkleRootHash}
 }
@@ -202,4 +213,9 @@ func HashBlockHeader(b BlockHeader) []byte {
 	copy(concatenated[18:50], b.PreviousHash)
 	copy(concatenated[50:82], b.MerkleRootHash)
 	return hashing.New(concatenated)
+}
+
+func (b *Block) Marshal() (JSONBlock, error) {
+	//TODO
+	return JSONBlock{}, nil
 }
