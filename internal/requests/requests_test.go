@@ -108,6 +108,8 @@ func TestGetBlockByHeightRequest(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"received": "`+r.URL.Query().Get("w")+`"}`)
 	})
 
 	req, err := GetBlockByHeightRequest(endpoints.Height)
@@ -115,8 +117,12 @@ func TestGetBlockByHeightRequest(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wanted %d, got %d", http.StatusOK, status)
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected := `{"received": "block/height"}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
