@@ -102,3 +102,21 @@ func TestAddPeerToDiscoveryRequest(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
+
+func TestGetBlockByHeightRequest(t *testing.T) {
+	endpoint := ""
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req, err := GetBlockByHeightRequest(endpoints.Height)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Wanted %d, got %d", http.StatusOK, status)
+	}
+}
