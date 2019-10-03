@@ -1,7 +1,8 @@
 package endpoints
 
 const (
-	AccountInfo = "/accountinfo"
+	AccountInfo = "/accountinfo" 
 	Contract    = "/contract"
 	AddPeer     = "http://blockchain.acmapp.tech/peer/add"
+	CheckBlock  = "/block"
 )
