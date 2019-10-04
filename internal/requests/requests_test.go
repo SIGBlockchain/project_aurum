@@ -104,7 +104,7 @@ func TestAddPeerToDiscoveryRequest(t *testing.T) {
 }
 
 func TestGetBlockByHeightRequest(t *testing.T) {
-	req, err := GetBlockByHeightRequest("9001")
+	req, err := GetBlockByHeightRequest(9001)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -112,7 +112,7 @@ func TestGetBlockByHeightRequest(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"received": "`+r.URL.Query().Get("height")+`"}`)
+		io.WriteString(w, `{"received": "`+r.URL.Query().Get("h")+`"}`)
 	})
 
 	handler.ServeHTTP(rr, req)
