@@ -104,23 +104,22 @@ func TestAddPeerToDiscoveryRequest(t *testing.T) {
 }
 
 func TestGetBlockByHeightRequest(t *testing.T) {
-	endpoint := ""
+	req, err := GetBlockByHeightRequest("9001")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"received": "`+r.URL.Query().Get("w")+`"}`)
+		io.WriteString(w, `{"received": "`+r.URL.Query().Get("height")+`"}`)
 	})
 
-	req, err := GetBlockByHeightRequest(endpoints.Height)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	expected := `{"received": "block/height"}`
+	expected := `{"received": "9001"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
