@@ -5,8 +5,6 @@ go: master
 services: docker
 
 before_install:
-  - cd scripts/ && chmod +x test_bin.sh && ./test_bin.sh || travis_terminate 1
-  - cd ..
   - echo $TRAVIS_BRANCH
   - docker build -t project_aurum:version1.0 --build-arg BRANCH=$TRAVIS_BRANCH .
   - docker run -d -p 62000:62000 project_aurum:version1.0
