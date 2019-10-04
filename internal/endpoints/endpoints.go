@@ -1,6 +1,6 @@
 package endpoints
 
-const (
+const (s
 	AccountInfo        = "/accountinfo"
 	Contract           = "/contract"
 	AddPeer            = "http://blockchain.acmapp.tech/peer/add"
