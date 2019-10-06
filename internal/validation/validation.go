@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
@@ -132,4 +133,27 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 	*pBalance -= c.Value
 	(*pNonce)++
 	return nil
+}
+
+// Validate takes in expected version, height, previousHash, and timeStamp
+// and compares them with the block's
+func ValidateBlock(b block.Block, version uint16, height uint64, previousHash []byte, timeStamp int64) bool {
+	// Check Version
+	if b.Version != version {
+		return false
+	}
+	// Check Height
+	if b.Height != height {
+		return false
+	}
+	// Check Previous Hash
+	if !(bytes.Equal(b.PreviousHash, previousHash)) {
+		return false
+	}
+	// Check timestamp
+	if b.Timestamp != timeStamp {
+		return false
+	}
+
+	return true
 }

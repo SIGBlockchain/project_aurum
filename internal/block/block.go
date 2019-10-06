@@ -203,32 +203,3 @@ func HashBlockHeader(b BlockHeader) []byte {
 	copy(concatenated[50:82], b.MerkleRootHash)
 	return hashing.New(concatenated)
 }
-
-// Validate takes in expected version, height, previousHash, and timeStamp
-// and compares them with the value receiver's
-func (b Block) Validate(version uint16, height uint64, previousHash []byte, timeStamp int64) bool {
-	// TO-DO
-
-	// Check Version
-	if b.Version != version {
-		return false
-	}
-	// Check Height
-	if b.Height != height {
-		return false
-	}
-	// Check if timestamp is in future
-	if !(bytes.Equal(b.PreviousHash, previousHash)) {
-		return false
-	}
-	// Check timestamp is before parameter
-	if b.Timestamp > timeStamp {
-		return false
-	}
-	// Check if timestamp is in future
-	if b.Timestamp > time.Now().UnixNano() {
-		return false
-	}
-
-	return true
-}
