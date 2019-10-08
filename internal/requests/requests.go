@@ -62,3 +62,14 @@ func GetBlockByHeightRequest(blockHeight uint64) (*http.Request, error) {
 	req.URL.RawQuery = values.Encode()
 	return req, nil
 }
+
+func GetBlockByHashRequest(blockHash string) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodGet, endpoints.BlockQueryByHash, nil)
+	if err != nil {
+		return nil, errors.New("Failed to make new request:\n" + err.Error())
+	}
+	values := req.URL.Query()
+	values.Add("p", blockHash)
+	req.URL.RawQuery = values.Encode()
+	return req, nil
+}
