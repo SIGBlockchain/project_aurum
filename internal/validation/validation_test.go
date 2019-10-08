@@ -326,7 +326,7 @@ func TestValidateBlock(t *testing.T) {
 		Height:         0,
 		PreviousHash:   hashing.New([]byte{'x'}),
 		MerkleRootHash: hashing.New([]byte{'q'}),
-		Timestamp:      time.Now().UnixNano(),
+		Timestamp:      time.Now().UnixNano() - 10,
 		Data:           [][]byte{hashing.New([]byte{'r'})},
 	}
 	baseBlk.DataLen = uint16(len(baseBlk.Data))
@@ -337,7 +337,15 @@ func TestValidateBlock(t *testing.T) {
 	}{
 		{
 			"Valid Block",
-			baseBlk,
+			block.Block{
+				Version:        1,
+				Height:         baseBlk.Height + 1,
+				PreviousHash:   block.HashBlock(baseBlk),
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      time.Now().UnixNano(),
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
 			true,
 		},
 		{
@@ -399,7 +407,7 @@ func TestValidateBlock(t *testing.T) {
 				Height:         baseBlk.Height,
 				PreviousHash:   baseBlk.PreviousHash,
 				MerkleRootHash: baseBlk.MerkleRootHash,
-				Timestamp:      baseBlk.Timestamp - 1,
+				Timestamp:      baseBlk.Timestamp,
 				Data:           baseBlk.Data,
 				DataLen:        baseBlk.DataLen,
 			},
@@ -412,7 +420,7 @@ func TestValidateBlock(t *testing.T) {
 				Height:         baseBlk.Height,
 				PreviousHash:   baseBlk.PreviousHash,
 				MerkleRootHash: baseBlk.MerkleRootHash,
-				Timestamp:      baseBlk.Timestamp + 1,
+				Timestamp:      time.Now().UnixNano() + 100,
 				Data:           baseBlk.Data,
 				DataLen:        baseBlk.DataLen,
 			},
@@ -422,7 +430,7 @@ func TestValidateBlock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if result := ValidateBlock(tt.block, baseBlk.Version, baseBlk.Height, baseBlk.PreviousHash,
+			if result := ValidateBlock(tt.block, baseBlk.Version, baseBlk.Height, block.HashBlock(baseBlk),
 				baseBlk.Timestamp); result != tt.want {
 				t.Errorf("Validate returned the wrong boolean. Want: %v Got: %v", tt.want, result)
 			}

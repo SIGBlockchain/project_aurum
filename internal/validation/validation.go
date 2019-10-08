@@ -7,6 +7,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
@@ -137,13 +138,13 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 
 // Validate takes in expected version, height, previousHash, and timeStamp
 // and compares them with the block's
-func ValidateBlock(b block.Block, version uint16, height uint64, previousHash []byte, timeStamp int64) bool {
+func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHash []byte, prevTimeStamp int64) bool {
 	// Check Version
 	if b.Version != version {
 		return false
 	}
 	// Check Height
-	if b.Height != height {
+	if b.Height != prevHeight+1 {
 		return false
 	}
 	// Check Previous Hash
@@ -151,7 +152,7 @@ func ValidateBlock(b block.Block, version uint16, height uint64, previousHash []
 		return false
 	}
 	// Check timestamp
-	if b.Timestamp != timeStamp {
+	if b.Timestamp <= prevTimeStamp || b.Timestamp > time.Now().UnixNano() {
 		return false
 	}
 
