@@ -216,6 +216,18 @@ func HashBlockHeader(b BlockHeader) []byte {
 }
 
 func (b *Block) Marshal() (JSONBlock, error) {
-	//TODO
-	return JSONBlock{}, nil
+	jsonBlock := JSONBlock{
+		Version:        b.Version,
+		Height:         b.Height,
+		Timestamp:      b.Timestamp,
+		PreviousHash:   hex.EncodeToString(b.PreviousHash),
+		MerkleRootHash: hex.EncodeToString(b.MerkleRootHash),
+		DataLen:        b.DataLen,
+	}
+	jsonBlock.Data = make([]string, len(b.Data))
+	for i, d := range b.Data {
+		jsonBlock.Data[i] = hex.EncodeToString(d)
+	}
+
+	return jsonBlock, nil
 }
