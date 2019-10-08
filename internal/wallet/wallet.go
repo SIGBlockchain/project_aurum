@@ -4,15 +4,19 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/privatekey"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
+	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // SetupWallet initializes a JSON file called "aurum_wallet.json"
@@ -238,6 +242,27 @@ func UpdateWallet(balance, stateNonce uint64) error {
 	}
 	if err := ioutil.WriteFile(wallet, dumpData, 0644); err != nil {
 		return errors.New("failed to write to file: " + err.Error())
+	}
+
+	return nil
+}
+
+func CreateProducerTable() error {
+	file, err := os.Create(constants.ProducerTable)
+	if err != nil {
+		return errors.New("Failed to create producer file")
+	}
+	file.Close()
+
+	db, err := sql.Open("sqlite3", constants.ProducerTable)
+	if err != nil {
+		return errors.New("Failed to open table" + err.Error())
+	}
+	defer db.Close()
+
+	_, err = db.Exec(sqlstatements.CREATE_PRODUCER_TABLE)
+	if err != nil {
+		return errors.New("Failed to create table")
 	}
 
 	return nil
