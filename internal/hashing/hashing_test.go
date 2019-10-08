@@ -116,24 +116,39 @@ func TestMerkleRootHashOf(t *testing.T) {
 	expectedMRHash := GetMerkleRootHash(randomHashes)
 
 	tests := []struct {
-		name       string
-		testHashes [][]byte
-		want       bool
+		name        string
+		testHashes  [][]byte
+		merkleRHash []byte
+		want        bool
 	}{
 		{
 			"Valid merkle-root hash",
 			randomHashes,
+			expectedMRHash,
 			true,
 		},
 		{
-			"Null hashes",
+			"Invalid merkle-root hash",
+			[][]byte{randomHash1, randomHash2},
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil hashes",
+			nil,
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil merkleR hash",
+			randomHashes,
 			nil,
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if result := MerkleRootHashOf(expectedMRHash, randomHashes); result != tt.want {
+			if result := MerkleRootHashOf(tt.merkleRHash, tt.testHashes); result != tt.want {
 				t.Errorf("MerkleRootHashCompare returned the wrong result. Wanted: %v, Got: %v", tt.want, result)
 			}
 		})
