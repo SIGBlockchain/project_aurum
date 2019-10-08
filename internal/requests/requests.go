@@ -69,7 +69,7 @@ func GetBlockByHashRequest(blockHash string) (*http.Request, error) {
 		return nil, errors.New("Failed to make new request:\n" + err.Error())
 	}
 	values := req.URL.Query()
-	values.Add("#", blockHash)
+	values.Add("p", blockHash)
 	req.URL.RawQuery = values.Encode()
 	return req, nil
 }

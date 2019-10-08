@@ -134,7 +134,7 @@ func TestGetBlockByHashRequest(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"received": "`+r.URL.Query().Get("#")+`"}`)
+		io.WriteString(w, `{"received": "`+r.URL.Query().Get("p")+`"}`)
 	})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
