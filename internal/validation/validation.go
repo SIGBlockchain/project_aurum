@@ -156,5 +156,9 @@ func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHas
 		return false
 	}
 
+	if !hashing.MerkleRootHashOf(b.MerkleRootHash, b.Data) {
+		return false
+	}
+
 	return true
 }

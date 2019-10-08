@@ -341,7 +341,7 @@ func TestValidateBlock(t *testing.T) {
 				Version:        1,
 				Height:         baseBlk.Height + 1,
 				PreviousHash:   block.HashBlock(baseBlk),
-				MerkleRootHash: baseBlk.MerkleRootHash,
+				MerkleRootHash: hashing.GetMerkleRootHash(baseBlk.Data),
 				Timestamp:      time.Now().UnixNano(),
 				Data:           baseBlk.Data,
 				DataLen:        baseBlk.DataLen,
