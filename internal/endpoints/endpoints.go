@@ -1,5 +1,6 @@
 package endpoints
 
+//endpoints for constants
 const (
 	AccountInfo        = "/accountinfo"
 	Contract           = "/contract"
@@ -7,4 +8,5 @@ const (
 	IncomingBlock      = "/block"
 	BlockQueryByHeight = "/block/height"
 	BlockQueryByHash   = "/block/hash"
+	HeightQuery        = "/height"
 )
