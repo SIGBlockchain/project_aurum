@@ -58,6 +58,10 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
+	body := rr.Body.String()
+	if body != NOT_FOUND_ERR_MSG {
+		t.Errorf("Wrong body message.\nExpexted %s\nFound %s", NOT_FOUND_ERR_MSG, body)
+	}
 
 	// Insert key into table
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
