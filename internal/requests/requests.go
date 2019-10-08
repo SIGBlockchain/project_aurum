@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
@@ -52,5 +53,12 @@ func AddPeerToDiscoveryRequest(ip string, port string) (*http.Request, error) {
 }
 
 func GetBlockByHeightRequest(blockHeight uint64) (*http.Request, error) {
-	return nil, errors.New("failed to make new request")
+	req, err := http.NewRequest(http.MethodGet, endpoints.BlockQueryByHeight, nil)
+	if err != nil {
+		return nil, errors.New("Failed to make new request:\n" + err.Error())
+	}
+	values := req.URL.Query()
+	values.Add("h", strconv.Itoa(int(blockHeight)))
+	req.URL.RawQuery = values.Encode()
+	return req, nil
 }
