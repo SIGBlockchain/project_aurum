@@ -13,7 +13,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
@@ -58,6 +57,10 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusNotFound)
+	}
+	body := rr.Body.String()
+	if body != NOT_FOUND_ERR_MSG {
+		t.Errorf("Wrong body message.\nExpexted %s\nFound %s", NOT_FOUND_ERR_MSG, body)
 	}
 
 	// Insert key into table
@@ -160,7 +163,7 @@ func TestContractRequestHandler(t *testing.T) {
 	statement.Exec()
 
 	pMap := pendingpool.NewPendingMap()
-	contractChan := make(chan contracts.Contract)
+	contractChan := make(chan contracts.Contract, 2)
 	pLock := new(sync.Mutex)
 	handler := http.HandlerFunc(HandleContractRequest(dbConn, contractChan, pMap, pLock))
 
@@ -289,17 +292,23 @@ func TestContractRequestHandler(t *testing.T) {
 			http.StatusOK,
 		},
 	}
+	var wG sync.WaitGroup
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rr = httptest.NewRecorder()
-			go handler.ServeHTTP(rr, tt.req)
-			time.Sleep(time.Second)
+			wG.Add(1)
+			go func() {
+				handler.ServeHTTP(rr, tt.req)
+				wG.Done()
+			}()
+			wG.Wait()
 
 			status := rr.Code
 			if status != tt.status {
 				t.Errorf("handler returned with wrong status code: got %v want %v", status, tt.status)
 			}
-			if status == http.StatusOK && status == tt.status {
+
+			if status == http.StatusOK {
 				channelledContract := <-contractChan
 				if !tt.c.Equals(channelledContract) {
 					t.Errorf("contracts do not match: got %+v want %+v", *tt.c, channelledContract)
@@ -311,6 +320,7 @@ func TestContractRequestHandler(t *testing.T) {
 					t.Errorf("state nonce do not match")
 				}
 			}
+
 			if i < 5 {
 				if l := len(pMap.Sender); l != 1 {
 					t.Errorf("number of key-value pairs in map does not match: got %v want %v", l, 1)
