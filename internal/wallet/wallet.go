@@ -247,20 +247,20 @@ func UpdateWallet(balance, stateNonce uint64) error {
 	return nil
 }
 
-func CreateWalletTable() error {
-	file, err := os.Create(constants.WalletTable)
+func CreateProducerTable() error {
+	file, err := os.Create(constants.ProducerTable)
 	if err != nil {
-		return errors.New("Failed to create wallet file")
+		return errors.New("Failed to create producer file")
 	}
 	file.Close()
 
-	db, err := sql.Open("sqlite3", constants.WalletTable)
+	db, err := sql.Open("sqlite3", constants.ProducerTable)
 	if err != nil {
 		return errors.New("Failed to open table" + err.Error())
 	}
 	defer db.Close()
 
-	_, err = db.Exec(sqlstatements.CREATE_WALLET_TABLE)
+	_, err = db.Exec(sqlstatements.CREATE_PRODUCER_TABLE)
 	if err != nil {
 		return errors.New("Failed to create table")
 	}
