@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestAccountInfoRequestIntegration (t *testing.T) {
+func TestAccountInfoRequestIntegration(t *testing.T) {
 
 }
 
