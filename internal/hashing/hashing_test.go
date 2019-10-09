@@ -22,8 +22,8 @@ func TestNew(t *testing.T) {
 
 func TestGetMerkleRootHashInput(t *testing.T) {
 	tests := []struct {
-		name string
-		input [][]byte
+		name     string
+		input    [][]byte
 		expected []byte
 	}{
 		{
@@ -40,25 +40,22 @@ func TestGetMerkleRootHashInput(t *testing.T) {
 			"Size Two Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2")},
 			New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))),
-
 		},
 		{
 			"Size Three Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")},
 			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction3")))...)))...))),
-
 		},
 		{
 			"Size Four Slice",
 			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")},
 			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction4")))...)))...))),
-
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !bytes.Equal(GetMerkleRootHash(tt.input),tt.expected) {
+			if !bytes.Equal(GetMerkleRootHash(tt.input), tt.expected) {
 				t.Errorf("Failed on %v - results are not equal", tt.name)
 			}
 		})
@@ -106,6 +103,53 @@ func TestEquals(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if result := tt.h1.Equals(tt.h2); result != tt.want {
 				t.Errorf("Failed to return %v (got %v) for hashes that are: %v", tt.want, result, tt.name)
+			}
+		})
+	}
+}
+
+func TestMerkleRootHashOf(t *testing.T) {
+	randomHash1 := New([]byte{'a'})
+	randomHash2 := New([]byte{'b'})
+	randomHash3 := New([]byte{'c'})
+	randomHashes := [][]byte{randomHash1, randomHash2, randomHash3}
+	expectedMRHash := GetMerkleRootHash(randomHashes)
+
+	tests := []struct {
+		name        string
+		testHashes  [][]byte
+		merkleRHash []byte
+		want        bool
+	}{
+		{
+			"Valid merkle-root hash",
+			randomHashes,
+			expectedMRHash,
+			true,
+		},
+		{
+			"Invalid merkle-root hash",
+			[][]byte{randomHash1, randomHash2},
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil hashes",
+			nil,
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil merkleR hash",
+			randomHashes,
+			nil,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := MerkleRootHashOf(tt.merkleRHash, tt.testHashes); result != tt.want {
+				t.Errorf("MerkleRootHashCompare returned the wrong result. Wanted: %v, Got: %v", tt.want, result)
 			}
 		})
 	}

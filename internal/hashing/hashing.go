@@ -63,3 +63,8 @@ func getMerkleRoot(l *list.List) []byte {
 func (hash SHA256Hash) Equals(bSlice []byte) bool {
 	return bytes.Equal(hash.SecureHash, New(bSlice))
 }
+
+// MerkleRootHashCompare determines if the merkle-root hash is the merkle root of the array of hashes
+func MerkleRootHashOf(merkRHash []byte, sha256Hashes [][]byte) bool {
+	return bytes.Equal(GetMerkleRootHash(sha256Hashes), merkRHash)
+}
