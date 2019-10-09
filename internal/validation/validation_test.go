@@ -426,6 +426,19 @@ func TestValidateBlock(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Invalid Merkle-root Hash",
+			block.Block{
+				Version:        1,
+				Height:         baseBlk.Height + 1,
+				PreviousHash:   block.HashBlock(baseBlk),
+				MerkleRootHash: hashing.New([]byte{'y'}),
+				Timestamp:      time.Now().UnixNano(),
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
 	}
 
 	for _, tt := range tests {
