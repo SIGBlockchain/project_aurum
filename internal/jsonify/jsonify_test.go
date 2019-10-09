@@ -25,5 +25,5 @@ func TestLoadJSON(t *testing.T) {
 	}
 
 	file.Close()
-	os.Remove(tmpfile.Name())
+	os.Remove(tmpfile.Name()) 
 }

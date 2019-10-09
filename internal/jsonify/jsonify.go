@@ -16,6 +16,6 @@ func LoadJSON(file *os.File, iFace interface{}) error {
 	if err := json.Unmarshal(fileData, &iFace); err != nil {
 		return err
 	}
-
+ 
 	return nil
 }
