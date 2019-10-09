@@ -17,5 +17,5 @@ func LoadJSON(file *os.File, iFace interface{}) error {
 		return err
 	}
 
-	return nil
+	return nil 
 }
