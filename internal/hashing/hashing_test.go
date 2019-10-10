@@ -20,65 +20,45 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestGetMerkleRootHashEmptyInput(t *testing.T) {
-	input := [][]byte{}
-	result := GetMerkleRootHash(input)
-
-	if len(input) != len(result) {
-		t.Errorf("Error! GetMerkelRootHash does not return an empty slice on input of empty slice")
+func TestGetMerkleRootHashInput(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    [][]byte
+		expected []byte
+	}{
+		{
+			"Empty Slice",
+			[][]byte{},
+			nil,
+		},
+		{
+			"Size One Slice",
+			[][]byte{[]byte("transaction")},
+			New(New([]byte("transaction"))),
+		},
+		{
+			"Size Two Slice",
+			[][]byte{[]byte("transaction1"), []byte("transaction2")},
+			New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))),
+		},
+		{
+			"Size Three Slice",
+			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")},
+			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction3")))...)))...))),
+		},
+		{
+			"Size Four Slice",
+			[][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")},
+			New(New(append(New(New(append(New(New([]byte("transaction1"))), New(New([]byte("transaction2")))...))), New(New(append(New(New([]byte("transaction3"))), New(New([]byte("transaction4")))...)))...))),
+		},
 	}
-}
 
-func TestGetMerkleRootHashSinlgeInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction")}
-	expected := New(New(input[0]))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on single byte slice")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashDoubleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2")}
-	concat := append(New(New(input[0])), New(New(input[1]))...)
-	expected := New(New(concat))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on two byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashTripleInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3")}
-	concat1 := New(New(append(New(New(input[0])), New(New(input[1]))...)))
-	concat2 := New(New(append(New(New(input[2])), New(New(input[2]))...)))
-	expected := New(New(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
-	}
-}
-
-func TestGetMerkleRootHashQuadInput(t *testing.T) {
-	input := [][]byte{[]byte("transaction1"), []byte("transaction2"), []byte("transaction3"), []byte("transaction4")}
-	concat1 := New(New(append(New(New(input[0])), New(New(input[1]))...)))
-	concat2 := New(New(append(New(New(input[2])), New(New(input[3]))...)))
-	expected := New(New(append(concat1, concat2...)))
-	actual := GetMerkleRootHash(input)
-
-	if !bytes.Equal(expected, actual) {
-		t.Errorf("Error! GetMerkelRootHash does not produce correct result on three byte slices")
-		t.Errorf("Expected != Actual")
-		t.Errorf("%v != %v", expected, actual)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !bytes.Equal(GetMerkleRootHash(tt.input), tt.expected) {
+				t.Errorf("Failed on %v - results are not equal", tt.name)
+			}
+		})
 	}
 }
 
@@ -123,6 +103,53 @@ func TestEquals(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if result := tt.h1.Equals(tt.h2); result != tt.want {
 				t.Errorf("Failed to return %v (got %v) for hashes that are: %v", tt.want, result, tt.name)
+			}
+		})
+	}
+}
+
+func TestMerkleRootHashOf(t *testing.T) {
+	randomHash1 := New([]byte{'a'})
+	randomHash2 := New([]byte{'b'})
+	randomHash3 := New([]byte{'c'})
+	randomHashes := [][]byte{randomHash1, randomHash2, randomHash3}
+	expectedMRHash := GetMerkleRootHash(randomHashes)
+
+	tests := []struct {
+		name        string
+		testHashes  [][]byte
+		merkleRHash []byte
+		want        bool
+	}{
+		{
+			"Valid merkle-root hash",
+			randomHashes,
+			expectedMRHash,
+			true,
+		},
+		{
+			"Invalid merkle-root hash",
+			[][]byte{randomHash1, randomHash2},
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil hashes",
+			nil,
+			expectedMRHash,
+			false,
+		},
+		{
+			"Nil merkleR hash",
+			randomHashes,
+			nil,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := MerkleRootHashOf(tt.merkleRHash, tt.testHashes); result != tt.want {
+				t.Errorf("MerkleRootHashCompare returned the wrong result. Wanted: %v, Got: %v", tt.want, result)
 			}
 		})
 	}

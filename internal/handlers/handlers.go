@@ -13,6 +13,8 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
 
+const NOT_FOUND_ERR_MSG = "No entry found for the reqeusted wallet address. Potentially wait until next block is produced to see if address is registered"
+
 // Handler for incoming account info queries
 func HandleAccountInfoRequest(dbConn *sql.DB, pMap pendingpool.PendingMap, pendingLock *sync.Mutex) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +51,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB, pMap pendingpool.PendingMap, pendi
 			// If there is no row with the corresponding wallet address, return not found
 			if !row.Next() {
 				w.WriteHeader(http.StatusNotFound)
+				io.WriteString(w, NOT_FOUND_ERR_MSG)
 				return
 			}
 

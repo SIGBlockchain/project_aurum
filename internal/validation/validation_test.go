@@ -7,8 +7,10 @@ import (
 	"database/sql"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -314,6 +316,137 @@ func TestValidatePending(t *testing.T) {
 			}
 			updatedBal = tt.pBalance
 			updatedNonce = tt.pNonce
+		})
+	}
+}
+
+func TestValidateBlock(t *testing.T) {
+	baseBlk := block.Block{
+		Version:        1,
+		Height:         0,
+		PreviousHash:   hashing.New([]byte{'x'}),
+		MerkleRootHash: hashing.New([]byte{'q'}),
+		Timestamp:      time.Now().UnixNano() - 10,
+		Data:           [][]byte{hashing.New([]byte{'r'})},
+	}
+	baseBlk.DataLen = uint16(len(baseBlk.Data))
+	tests := []struct {
+		name  string
+		block block.Block
+		want  bool
+	}{
+		{
+			"Valid Block",
+			block.Block{
+				Version:        1,
+				Height:         baseBlk.Height + 1,
+				PreviousHash:   block.HashBlock(baseBlk),
+				MerkleRootHash: hashing.GetMerkleRootHash(baseBlk.Data),
+				Timestamp:      time.Now().UnixNano(),
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			true,
+		},
+		{
+			"Invalid version",
+			block.Block{
+				Version:        10000,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid height",
+			block.Block{
+				Version:        baseBlk.Version,
+				Height:         999999999,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid previous hash",
+			block.Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   hashing.New([]byte{'a'}),
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid previous hash (nil)",
+			block.Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   nil,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid timestamp",
+			block.Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      baseBlk.Timestamp,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid timestamp (future)",
+			block.Block{
+				Version:        baseBlk.Version,
+				Height:         baseBlk.Height,
+				PreviousHash:   baseBlk.PreviousHash,
+				MerkleRootHash: baseBlk.MerkleRootHash,
+				Timestamp:      time.Now().UnixNano() + 100,
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+		{
+			"Invalid Merkle-root Hash",
+			block.Block{
+				Version:        1,
+				Height:         baseBlk.Height + 1,
+				PreviousHash:   block.HashBlock(baseBlk),
+				MerkleRootHash: hashing.New([]byte{'y'}),
+				Timestamp:      time.Now().UnixNano(),
+				Data:           baseBlk.Data,
+				DataLen:        baseBlk.DataLen,
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := ValidateBlock(tt.block, baseBlk.Version, baseBlk.Height, block.HashBlock(baseBlk),
+				baseBlk.Timestamp); result != tt.want {
+				t.Errorf("Validate returned the wrong boolean. Want: %v Got: %v", tt.want, result)
+			}
 		})
 	}
 }
