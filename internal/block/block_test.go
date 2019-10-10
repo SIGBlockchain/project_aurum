@@ -395,3 +395,65 @@ func TestHashBlockHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshal(t *testing.T) {
+	testBlock := Block{
+		Version:        3,
+		Height:         300,
+		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
+	}
+	testBlock.DataLen = uint16(len(testBlock.Data))
+
+	nilblock := Block{}
+
+	tests := []struct {
+		name string
+		b    Block
+	}{
+		{
+			"block",
+			testBlock,
+		},
+		{
+			"nil block",
+			nilblock,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			jsonBlock, err := test.b.Marshal()
+			if err != nil {
+				t.Errorf("Error! Marshal return an error (%v) when it shouldn't\n", err)
+			}
+			if jsonBlock.Version != test.b.Version {
+				t.Errorf("Error! Marshal failed to properly encode version. Expectec: %v, got %v", test.b.Version, jsonBlock.Version)
+			}
+			if jsonBlock.Height != test.b.Height {
+				t.Errorf("Error! Marshal failed to properly encode Height. Expectec: %v, got %v", test.b.Height, jsonBlock.Height)
+			}
+			if jsonBlock.Timestamp != test.b.Timestamp {
+				t.Errorf("Error! Marshal failed to properly encode Timestamp. Expectec: %v, got %v", test.b.Timestamp, jsonBlock.Timestamp)
+			}
+			if jsonBlock.PreviousHash != hex.EncodeToString(test.b.PreviousHash) {
+				t.Errorf("Error! Marshal failed to properly encode PreviousHash. Expectec: %v, got %v", hex.EncodeToString(test.b.PreviousHash), jsonBlock.PreviousHash)
+			}
+			if jsonBlock.MerkleRootHash != hex.EncodeToString(test.b.MerkleRootHash) {
+				t.Errorf("Error! Marshal failed to properly encode MerkleRootHash. Expectec: %v, got %v", hex.EncodeToString(test.b.MerkleRootHash), jsonBlock.PreviousHash)
+			}
+			if jsonBlock.DataLen != test.b.DataLen {
+				t.Errorf("Error! Marshal failed to properly encode DataLen. Expectec: %v, got %v", test.b.DataLen, jsonBlock.DataLen)
+			}
+			if test.b.Data != nil {
+				for i, d := range test.b.Data {
+					if jsonBlock.Data[i] != hex.EncodeToString(d) {
+						t.Errorf("Failed to encode index %d of data. Exepect: %v, got %v", i, d, jsonBlock.Data[i])
+					}
+				}
+			}
+		})
+	}
+}

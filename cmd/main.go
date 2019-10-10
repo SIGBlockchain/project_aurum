@@ -111,6 +111,7 @@ func main() {
 	pendingLock := new(sync.Mutex)
 
 	pendingMap := pendingpool.NewPendingMap()
+
 	// Set handlers for endpoints and run server
 	http.HandleFunc(endpoints.AccountInfo, handlers.HandleAccountInfoRequest(accountsDatabaseConnection, pendingMap, pendingLock))
 
@@ -132,7 +133,6 @@ func main() {
 
 	for {
 		select {
-
 		// New valid contract received is added to pending pool
 		case newContract := <-contractChannel:
 			newContractEncodedSenderPubKey, err := publickey.Encode(newContract.SenderPubKey)
