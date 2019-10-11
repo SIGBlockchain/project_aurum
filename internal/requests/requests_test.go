@@ -7,11 +7,15 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestAccountInfoRequest(t *testing.T) {
@@ -143,5 +147,52 @@ func TestGetBlockByHashRequest(t *testing.T) {
 	expected := `{"received": "nastyHash"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestSendBlockRequest(t *testing.T) {
+	testBlock := block.Block{
+		Version:        5,
+		Height:         3340,
+		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+		MerkleRootHash: []byte("grapewatermelonaurum1emonsabcd"),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
+	}
+	testBlock.DataLen = uint16(len(testBlock.Data))
+	expectedJsonBlock, err := testBlock.Marshal()
+	if err != nil {
+		t.Errorf("Failed to marshal a block: %s", err.Error())
+	}
+
+	req, err := SendBlockRequest(&testBlock)
+	if err != nil {
+		t.Errorf("Failed to create send block request: %s", err.Error())
+	}
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("Expected a POST request. Found a %s", r.Method)
+		}
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("Failed to create send block request: %s", err.Error())
+		}
+
+		actualJsonBlock := block.JSONBlock{}
+		err = json.Unmarshal(body, actualJsonBlock)
+		if err != nil {
+			t.Errorf("Failed to unmarhsall request body: %s", err.Error())
+		}
+		if cmp.Equal(actualJsonBlock, expectedJsonBlock) {
+			t.Errorf("Failed to get correct JSON block in request.\nGot: %v\nExpected: %v", actualJsonBlock, expectedJsonBlock)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 }
