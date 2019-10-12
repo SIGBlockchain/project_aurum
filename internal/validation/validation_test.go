@@ -450,3 +450,7 @@ func TestValidateBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateProducerTimestamp(t *testing.T) {
+
+}

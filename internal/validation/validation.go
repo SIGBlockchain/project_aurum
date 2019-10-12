@@ -136,7 +136,7 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 	return nil
 }
 
-// Validate takes in expected version, height, previousHash, and timeStamp
+// ValidateBlock takes in expected version, height, previousHash, and timeStamp
 // and compares them with the block's
 func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHash []byte, prevTimeStamp int64) bool {
 	// Check Version
@@ -155,10 +155,18 @@ func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHas
 	if b.Timestamp <= prevTimeStamp || b.Timestamp > time.Now().UnixNano() {
 		return false
 	}
-
+	// Check MerkleRoot
 	if !hashing.MerkleRootHashOf(b.MerkleRootHash, b.Data) {
 		return false
 	}
 
 	return true
+}
+
+// ValidateProducerTimestamp checks the parameter timestamp p to see if
+// it is greater than the sum of the interval itv and
+// the table timestamp t (corresponding to the walletAddr).
+// False if p < t + itv
+func ValidateProducerTimestamp(timestamp int64, walletAddr []byte, interval time.Duration) (bool, error) {
+	return false, nil
 }
