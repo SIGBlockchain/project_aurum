@@ -333,3 +333,7 @@ func TestContractRequestHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestGetJSONBlockByHeight(t *testing.T) {
+	// AAA test required
+}

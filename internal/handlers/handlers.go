@@ -105,3 +105,12 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 		return
 	}
 }
+
+// GetJSONBlockByHeight - comment required!
+func GetJSONBlockByHeight(dbConn *sql.DB, pMap pendingpool.PendingMap, pendingLock *sync.Mutex, height uint64) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotAcceptable)
+		io.WriteString(w, "The function has not been implemented!")
+		return
+	}
+}
