@@ -1,8 +1,12 @@
 package jsonify
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"testing"
+	
+	
 )
 
 type book struct {
@@ -11,12 +15,36 @@ type book struct {
 }
 
 func TestLoadJSON(t *testing.T) {
-	file, err := os.Open("test.json")
-	if err != nil {
-		t.Errorf("failed to open file %v", err)
-	}
+	//arrange
 	var testBook book
-	LoadJSON(file, &testBook)
+	tmpfile, err := ioutil.TempFile("", "jsontest")//create tempfile and open it
+	data := book{
+		Author: "steve",
+		Title:  "world",
+	}
+	file, _ := json.MarshalIndent(data, "", " ")    //converts structs into array of bytes form
+	err2 := ioutil.WriteFile(tmpfile.Name(), file, 0644) // writes a array of bytes(the data)
+	if err2 != nil {
+		t.Errorf("failed to write file %v", err)
+	}
+	 
+	
+	defer func() {
+		err := tmpfile.Close()  //closes file
+		if err2 != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+
+		err = os.Remove(tmpfile.Name())  //deletes the file  
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		    
+		}
+	}()
+	
+	//act
+	LoadJSON(tmpfile, &testBook)
+	//assert
 	if testBook.Author != "steve" {
 		t.Errorf("Expected: %v , got: %v", "steve", testBook.Author)
 	}
@@ -24,5 +52,4 @@ func TestLoadJSON(t *testing.T) {
 	if testBook.Title != "world" {
 		t.Errorf("Expected: %v , got: %v", "world", testBook.Title)
 	}
-
 }
