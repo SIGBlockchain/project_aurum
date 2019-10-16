@@ -23,15 +23,14 @@ func TestLoadJSON(t *testing.T) {
 		Title:  "world",
 	}
 	file, _ := json.MarshalIndent(data, "", " ")    //converts structs into array of bytes form
-	err2 := ioutil.WriteFile(tmpfile.Name(), file, 0644) // writes a array of bytes(the data)
-	if err2 != nil {
+	err = ioutil.WriteFile(tmpfile.Name(), file, 0644) // writes a array of bytes(the data)
+	if err != nil {
 		t.Errorf("failed to write file %v", err)
 	}
 	 
-	
 	defer func() {
 		err := tmpfile.Close()  //closes file
-		if err2 != nil {
+		if err != nil {
 			t.Errorf("Failed to remove database: %s", err)
 		}
 
