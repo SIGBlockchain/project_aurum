@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  aurum_producer:
+    build:
+        context: .
+        args:
+          WALLET_ADDRS: "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c 617af9da0ea3053e89ce43e1514640bcd41a3bd69810ca0f0d82e5cf8b4cadb8"
+    ports:
+      - "62000:62000"
+    container_name: "producer"
