@@ -1,13 +1,9 @@
 version: '3'
 
 services:
-  prod:
-    build: producer
-    networks:
-      - aurum_net
+  aurum_producer_release:
+    build: 
+      context: .
     ports:
-     - "13131:13131"
-    container_name: "producer"
-
-networks: 
-  aurum_net:
+     - "62000:62000"
+    container_name: "producer_release"

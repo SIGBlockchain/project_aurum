@@ -1,11 +1,14 @@
 version: '3'
 
 services:
-  aurum_producer:
+  aurum_producer_ci:
     build:
         context: .
         args:
           WALLET_ADDRS: "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c 617af9da0ea3053e89ce43e1514640bcd41a3bd69810ca0f0d82e5cf8b4cadb8"
+          LOCALHOST: "true"
+          INTERVAL: "10s"
     ports:
       - "62000:62000"
-    container_name: "producer"
+    container_name: "producer_ci"
+    tty: true
