@@ -11,4 +11,3 @@ services:
     ports:
       - "62000:62000"
     container_name: "producer_ci"
-    tty: true
