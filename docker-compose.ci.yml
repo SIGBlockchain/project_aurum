@@ -9,5 +9,5 @@ services:
           LOCALHOST: "true"
           INTERVAL: "10s"
     ports:
-      - "62000:62000"
+      - "32000:32000"
     container_name: "producer_ci"

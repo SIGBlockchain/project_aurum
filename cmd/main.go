@@ -102,8 +102,10 @@ func main() {
 	var hostname string
 	if cfg.Localhost {
 		hostname = "localhost:"
+		log.Println("Localhost set to true.")
 	} else {
 		hostname = ":"
+		log.Println("Localhost set to false")
 	}
 	hostname += cfg.Port
 
