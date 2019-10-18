@@ -2,6 +2,7 @@ package jsonify
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 )
@@ -17,5 +18,18 @@ func LoadJSON(file *os.File, iFace interface{}) error {
 		return err
 	}
 
+	return nil
+}
+
+// DumpJSON places interface info into a new file and return that file
+func DumpJSON(file *os.File, iFace interface{}) error {
+	bytes, err := json.Marshal(iFace)
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(bytes)
+	if err != nil {
+		return errors.New("Failed to write to file")
+	}
 	return nil
 }
