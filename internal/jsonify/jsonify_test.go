@@ -1,6 +1,7 @@
 package jsonify
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -51,7 +52,7 @@ func TestLoadJSON(t *testing.T) {
 	}
 }
 
-func TestDumpJSON(t *testing.T) {
+func TestDumpJSON2(t *testing.T) {
 	// arrange
 	iFace := book{
 		Author: "Dump",
@@ -85,5 +86,37 @@ func TestDumpJSON(t *testing.T) {
 	if "JSON" != iFace.Title {
 		t.Errorf("the strings are not equal")
 	}
+}
 
+type MockWriter struct {
+	NWritten int
+	Err      error
+	TestFile []byte
+}
+
+func (writer MockWriter) Write(p []byte) (n int, err error) {
+	copy(writer.TestFile, p)
+	return writer.NWritten, writer.Err
+}
+
+func TestDumpJSON(t *testing.T) {
+	// arrange
+	iface := book{
+		Author: "Dump",
+		Title:  "JSON",
+	}
+	expected, _ := json.Marshal(iface)
+
+	writer := MockWriter{len(expected), nil, make([]byte, len(expected))}
+
+	// act
+	err := DumpJSON(writer, iface)
+
+	// assert
+	if err != nil {
+		t.Errorf("Bad shit is afoot")
+	}
+	if !bytes.Equal(expected, writer.TestFile) {
+		t.Errorf("Got %v, wanted %v", writer.TestFile, expected)
+	}
 }
