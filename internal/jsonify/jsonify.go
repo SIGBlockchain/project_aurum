@@ -22,6 +22,7 @@ func LoadJSON(file *os.File, iFace interface{}) error {
 	return nil
 }
 
+// DumpJSON processes interface information into a file
 func DumpJSON(writer io.Writer, iface interface{}) error {
 	bytes, err := json.Marshal(iface)
 	if err != nil {

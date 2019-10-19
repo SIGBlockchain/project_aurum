@@ -52,42 +52,6 @@ func TestLoadJSON(t *testing.T) {
 	}
 }
 
-func TestDumpJSON2(t *testing.T) {
-	// arrange
-	iFace := book{
-		Author: "Dump",
-		Title:  "JSON",
-	}
-	file, err := os.Create("temp") // created and opened
-	data, _ := json.Marshal(file)  //converts structs into array of bytes form
-	_, err = file.Write(data)      // writes a array of bytes(the data)
-	if err != nil {
-		t.Errorf("failed to write file %v", err)
-	}
-
-	defer func() {
-		err := file.Close() //closes file
-		if err != nil {
-			t.Errorf("Failed to close file: %s", err)
-		}
-
-		err = os.Remove(file.Name()) //deletes the file
-		if err != nil {
-			t.Errorf("Failed to delete file: %s", err)
-
-		}
-	}()
-	//act
-	err = DumpJSON(file, iFace)
-	// assert
-	if "Dump" != iFace.Author {
-		t.Errorf("the strings are not equal")
-	}
-	if "JSON" != iFace.Title {
-		t.Errorf("the strings are not equal")
-	}
-}
-
 type MockWriter struct {
 	NWritten int
 	Err      error
@@ -114,7 +78,7 @@ func TestDumpJSON(t *testing.T) {
 
 	// assert
 	if err != nil {
-		t.Errorf("Bad shit is afoot")
+		t.Errorf("Function returned error")
 	}
 	if !bytes.Equal(expected, writer.TestFile) {
 		t.Errorf("Got %v, wanted %v", writer.TestFile, expected)
