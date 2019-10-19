@@ -8,8 +8,9 @@ before_install:
   # - echo $TRAVIS_BRANCH
   # - docker build -t project_aurum:version1.0 --build-arg WALLET_ADDRS="23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c 617af9da0ea3053e89ce43e1514640bcd41a3bd69810ca0f0d82e5cf8b4cadb8" .
   # - docker run -d -p 32000:32000 project_aurum:version1.0
-
-  - ./scripts/up.ci.sh $TRAVIS_BRANCH # need to fix this to use gopaths
+  - cd scripts/
+  - ./up.ci.sh $TRAVIS_BRANCH # need to fix this to use gopaths
+  - cd ../
   
 script: 
   - go test -v ./...
@@ -18,4 +19,6 @@ after_script:
   # - docker container stop $(docker container ls -aq)
   # - docker container rm $(docker container ls -aq)
   # - docker rmi -f project_aurum:version1.0
-  - ./scripts/down.ci.sh
+  - cd scripts/
+  - ./down.ci.sh
+  - cd ../
