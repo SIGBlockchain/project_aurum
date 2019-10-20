@@ -460,8 +460,9 @@ func TestValidateProducerTimestamp(t *testing.T) {
 	}
 
 	walletAddr := []byte{'a'}
-	tableTimestamp := time.Now().Nanosecond()
-	_, err = db.Exec(sqlstatements.INSERT_VALUES_INTO_PRODUCER, hashing.New(walletAddr), tableTimestamp)
+	tableTimestamp := int64(time.Now().Nanosecond())
+	hashedWalletAddr := hashing.New(walletAddr)
+	_, err = db.Exec(sqlstatements.INSERT_VALUES_INTO_PRODUCER, hashedWalletAddr, int(tableTimestamp))
 	db.Close()
 	if err != nil {
 		t.Error("Failed to execute statement for database")
@@ -476,22 +477,36 @@ func TestValidateProducerTimestamp(t *testing.T) {
 	}{
 		{
 			"Valid producer timestamp",
-			int64(tableTimestamp + 100),
-			hashing.New(walletAddr),
+			tableTimestamp + time.Second.Nanoseconds() + 1,
+			hashedWalletAddr,
 			time.Second,
 			true,
 		},
 		{
+			"Valid producer timestamp (Equal)",
+			tableTimestamp + time.Second.Nanoseconds(),
+			hashedWalletAddr,
+			time.Second,
+			true,
+		},
+		{
+			"Invalid timestamp",
+			tableTimestamp,
+			hashedWalletAddr,
+			time.Second,
+			false,
+		},
+		{
 			"Invalid wallet address",
-			int64(tableTimestamp + 100),
+			tableTimestamp + time.Second.Nanoseconds(),
 			hashing.New([]byte{'b'}),
 			time.Second,
 			false,
 		},
 		{
-			"Invalid timestamp",
-			int64(tableTimestamp),
-			hashing.New(walletAddr),
+			"Nil wallet address",
+			tableTimestamp + time.Second.Nanoseconds(),
+			nil,
 			time.Second,
 			false,
 		},
