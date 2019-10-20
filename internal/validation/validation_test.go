@@ -458,12 +458,15 @@ func TestValidateProducerTimestamp(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to open database for test")
 	}
+	defer func() {
+		db.Close()
+		os.Remove("producer.db")
+	}()
 
 	walletAddr := []byte{'a'}
 	tableTimestamp := int64(time.Now().Nanosecond())
 	hashedWalletAddr := hashing.New(walletAddr)
 	_, err = db.Exec(sqlstatements.INSERT_VALUES_INTO_PRODUCER, hashedWalletAddr, int(tableTimestamp))
-	db.Close()
 	if err != nil {
 		t.Error("Failed to execute statement for database")
 	}
@@ -513,7 +516,7 @@ func TestValidateProducerTimestamp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ValidateProducerTimestamp(tt.timeStamp, tt.walletAddr, tt.interval)
+			result, err := ValidateProducerTimestamp(db, tt.timeStamp, tt.walletAddr, tt.interval)
 			if err != nil {
 				t.Errorf("ValidateProducerTimestamp returned err: %v", err)
 			}

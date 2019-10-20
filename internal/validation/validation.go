@@ -11,7 +11,6 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
-	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
@@ -168,10 +167,7 @@ func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHas
 // it is greater than the sum of the interval itv and
 // the table timestamp t (corresponding to the walletAddr).
 // False if p < t + itv
-func ValidateProducerTimestamp(timestamp int64, walletAddr []byte, interval time.Duration) (bool, error) {
-	// Open Producer table
-	db, _ := sql.Open("sqlite3", constants.ProducerTable)
-
+func ValidateProducerTimestamp(db *sql.DB, timestamp int64, walletAddr []byte, interval time.Duration) (bool, error) {
 	// search for wallet address in table and return timestamp
 	row, err := db.Query("SELECT timestamp FROM producer WHERE public_key_hash = ?", walletAddr)
 	if err != nil {
