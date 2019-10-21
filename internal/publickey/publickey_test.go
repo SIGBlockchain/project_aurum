@@ -5,10 +5,50 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"reflect"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 )
+
+func TestNew(t *testing.T) {
+	private, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+
+	k, ok := private.Public().(*ecdsa.PublicKey)
+	if !ok {
+		t.Errorf("Cannot extract a ecdsa public key from private key given")
+	}
+	bytes, err := Encode(k)
+	if err != nil {
+		t.Errorf("Failed to encode public key inside of private key")
+	}
+	expected := AurumPublicKey{
+		Key:   k,
+		Bytes: bytes,
+		Hex:   hex.EncodeToString(bytes),
+		Hash:  hashing.New(bytes)}
+
+	actual, err := New(private)
+	if err != nil {
+		t.Errorf("Failed to create new Aurum: %s", err.Error())
+	}
+
+	if !reflect.DeepEqual(actual.Bytes, expected.Bytes) {
+		t.Errorf("Acutal Bytes does not equal expected Bytes:\nActual: %v\nExpected: %v", actual.Bytes, expected.Bytes)
+	}
+	if !reflect.DeepEqual(actual.Hash, expected.Hash) {
+		t.Errorf("Acutal Hash does not equal expected Hash:\nActual: %v\nExpected: %v", actual.Hash, expected.Hash)
+	}
+	if actual.Hex != expected.Hex {
+		t.Errorf("Acutal Hex does not equal expected Hex:\nActual: %v\nExpected: %v", actual.Hex, expected.Hex)
+	}
+	if !reflect.DeepEqual(actual.Key, expected.Key) {
+		t.Errorf("Acutal Key does not equal expected Key:\nActual: %v\nExpected: %v", actual.Key, expected.Key)
+	}
+
+}
 
 // test that public keys can be encoded properly
 func TestEncoding(t *testing.T) {
@@ -62,8 +102,9 @@ func TestEquals(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to generate private/public key pair")
 	}
-	aurumPBKey := AurumPublicKey{
-		&privateKey.PublicKey,
+	aurumPBKey, err := New(privateKey)
+	if err != nil {
+		t.Errorf("Failed to create new Aurum public key")
 	}
 
 	privateKey2, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
