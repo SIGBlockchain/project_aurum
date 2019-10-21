@@ -221,6 +221,12 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 
 func addPeertoDiscoveryList(ip, port string) {
 	client := http.Client{}
+	//send initally and then wait every 5 minutes
+	r, err := requests.AddPeerToDiscoveryRequest(ip, port)
+	if err != nil {
+		log.Fatalf("Failed to make Add Peer request: %s", err.Error())
+	}
+	client.Do(r)
 	for range time.Tick(time.Second * 300) { //5 minutes
 		r, err := requests.AddPeerToDiscoveryRequest(ip, port)
 		if err != nil {
