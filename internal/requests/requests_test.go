@@ -184,7 +184,7 @@ func TestSendBlockRequest(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to unmarhsall request body: %s", err.Error())
 		}
-		if cmp.Equal(actualJsonBlock, expectedJsonBlock) {
+		if !cmp.Equal(actualJsonBlock, expectedJsonBlock) {
 			t.Errorf("Failed to get correct JSON block in request.\nGot: %v\nExpected: %v", actualJsonBlock, expectedJsonBlock)
 		}
 
