@@ -124,7 +124,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get IP address: %s", err.Error())
 	}
-	go addPeertoDiscoveryList(ip, cfg.Port)
+	go func() {
+		addPeertoDiscoveryList(ip, cfg.Port)
+		for range time.Tick(time.Second * 300) { //5 minutes
+			addPeertoDiscoveryList(ip, cfg.Port)
+		}
+	}()
 
 	log.Printf("Serving requests on port %s", cfg.Port)
 
@@ -221,18 +226,15 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 
 func addPeertoDiscoveryList(ip, port string) {
 	client := http.Client{}
-	//send initally and then wait every 5 minutes
+
 	r, err := requests.AddPeerToDiscoveryRequest(ip, port)
 	if err != nil {
-		log.Fatalf("Failed to make Add Peer request: %s", err.Error())
+		log.Printf("Failed to make Add Peer request: %s", err.Error())
 	}
-	client.Do(r)
-	for range time.Tick(time.Second * 300) { //5 minutes
-		r, err := requests.AddPeerToDiscoveryRequest(ip, port)
-		if err != nil {
-			log.Fatalf("Failed to make Add Peer request: %s", err.Error())
-		}
-		client.Do(r)
-		log.Printf("Sent request to %s add producer to peer list", r.URL)
+	_, err = client.Do(r)
+	if err != nil {
+		log.Printf("HTTP failed to send request: %s", err.Error())
 	}
+	log.Printf("Sent request to %s add producer to peer list", r.URL)
+
 }
