@@ -12,7 +12,7 @@ import (
 )
 
 func NewAccountInfoRequest(host string, walletAddress string) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodGet, host+endpoints.AccountInfo, nil)
+	req, err := http.NewRequest(http.MethodGet, "http://"+host+endpoints.AccountInfo, nil)
 	if err != nil {
 		return nil, errors.New("Failed to make new request:\n" + err.Error())
 	}
