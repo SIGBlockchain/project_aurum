@@ -180,7 +180,7 @@ func TestSendBlockRequest(t *testing.T) {
 		}
 
 		actualJsonBlock := block.JSONBlock{}
-		err = json.Unmarshal(body, actualJsonBlock)
+		err = json.Unmarshal(body, &actualJsonBlock)
 		if err != nil {
 			t.Errorf("Failed to unmarhsall request body: %s", err.Error())
 		}
