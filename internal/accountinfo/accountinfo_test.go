@@ -6,7 +6,7 @@ import (
 )
 
 func TestAccountInfo_Deserialize(t *testing.T) {
-	ac := New(9001, 50)
+	ac := New("wallet", 9001, 50)
 	serAc, _ := ac.Serialize()
 	type args struct {
 		serializedAccountInfo []byte
