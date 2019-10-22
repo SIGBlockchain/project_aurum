@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/SIGBlockchain/project_aurum/internal/block"
+
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/endpoints"
 )
@@ -71,5 +73,21 @@ func GetBlockByHashRequest(blockHash string) (*http.Request, error) {
 	values := req.URL.Query()
 	values.Add("p", blockHash)
 	req.URL.RawQuery = values.Encode()
+	return req, nil
+}
+
+func SendBlockRequest(block *block.Block) (*http.Request, error) {
+	jsonBlock, err := block.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	marshalledBlock, err := json.Marshal(jsonBlock)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoints.IncomingBlock, bytes.NewBuffer(marshalledBlock))
+	if err != nil {
+		return nil, errors.New("Failed to make new request:\n" + err.Error())
+	}
 	return req, nil
 }
