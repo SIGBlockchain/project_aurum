@@ -8,13 +8,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
+	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -335,5 +340,105 @@ func TestContractRequestHandler(t *testing.T) {
 }
 
 func TestGetJSONBlockByHeight(t *testing.T) {
-	// AAA test required
+	dbConn, err := sql.Open("sqlite3", constants.MetadataTable)
+	if err != nil {
+		t.Errorf("failed to open database connection : %v", err)
+	}
+	defer func() {
+		if err := dbConn.Close(); err != nil {
+			t.Errorf("failed to close database connection : %v", err)
+		}
+		if err := os.Remove(constants.AccountsTable); err != nil {
+			t.Errorf("failed to remove database : %v", err)
+		}
+	}()
+	statement, _ := dbConn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
+	statement.Exec()
+
+	blockchainFile, err := os.OpenFile(constants.BlockchainFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	defer func() {
+		if err := os.Remove(constants.BlockchainFile); err != nil {
+			t.Errorf("failed to remove blockchain fileS : %v", err)
+		}
+	}()
+
+	testBlocks := []block.Block{
+		block.Block{
+			Version:        3,
+			Height:         0,
+			PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+			MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
+			Timestamp:      time.Now().UnixNano(),
+			Data:           [][]byte{{12, 13}, {232, 190, 123}, {123}},
+			DataLen:        3,
+		},
+		block.Block{
+			Version:        4,
+			Height:         1,
+			PreviousHash:   []byte("grapewatermeloncoconut1emonsabcd"),
+			MerkleRootHash: []byte("datastructuresandalgorithms"),
+			Timestamp:      time.Now().UnixNano(),
+			Data:           [][]byte{{152, 73}, {172, 90, 23}, {23}},
+			DataLen:        3,
+		},
+		block.Block{
+			Version:        3,
+			Height:         2,
+			PreviousHash:   []byte("datastructuresandalgorithms"),
+			MerkleRootHash: []byte("memesarecoolandsoaregifslmaololzrofl"),
+			Timestamp:      time.Now().UnixNano(),
+			Data:           [][]byte{{12, 39}, {132, 96, 73}, {23}},
+			DataLen:        3,
+		},
+		block.Block{
+			Version:        3,
+			Height:         3,
+			PreviousHash:   []byte("memesarecoolandsoaregifslmaololzrofl"),
+			MerkleRootHash: []byte("thisisaaurumblockchainblockokusedfortestingpurposes"),
+			Timestamp:      time.Now().UnixNano(),
+			Data:           [][]byte{{11, 3}, {132, 90, 23}, {223}},
+			DataLen:        3,
+		},
+	}
+	for _, block := range testBlocks {
+		err = blockchain.AddBlock(block, blockchainFile, dbConn)
+		if err != nil {
+			log.Fatalf("Failed to add block %v", err)
+		}
+	}
+	pMap := pendingpool.NewPendingMap()
+	pLock := new(sync.Mutex)
+
+	handler := http.HandlerFunc(HandleGetJSONBlockByHeight(dbConn, pMap, pLock))
+
+	for i, b := range testBlocks {
+		req, err := requests.GetBlockByHeightRequest(uint64(i))
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		jsonBlock, err := b.Marshal()
+		if err != nil {
+			t.Errorf("Failed to marhsal block: %s", err.Error())
+		}
+		actualJSONBlock := block.JSONBlock{}
+		json.Unmarshal(rr.Body.Bytes(), actualJSONBlock)
+		if !reflect.DeepEqual(jsonBlock, actualJSONBlock) {
+			t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", jsonBlock, actualJSONBlock)
+		}
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected HTTP Status OK, recieved: %v", rr.Code)
+		}
+	}
+
+	//not test for invalid height
+	req, err := requests.GetBlockByHeightRequest(10)
+	if err != nil {
+		t.Errorf("Error creating request: %s", err.Error())
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Epected http.StatusBadRequest %v, got %v", http.StatusBadRequest, rr.Code)
+	}
 }
