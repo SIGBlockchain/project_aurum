@@ -12,6 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/nettools"
+	"github.com/SIGBlockchain/project_aurum/internal/requests"
+
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
@@ -117,6 +120,17 @@ func main() {
 
 	http.HandleFunc(endpoints.Contract, handlers.HandleContractRequest(accountsDatabaseConnection, contractChannel, pendingMap, pendingLock))
 	go http.ListenAndServe(hostname, nil)
+	ip, err := nettools.GetIP()
+	if err != nil {
+		log.Fatalf("Failed to get IP address: %s", err.Error())
+	}
+	go func() {
+		addPeertoDiscoveryList(ip, cfg.Port)
+		for range time.Tick(time.Second * 300) { //5 minutes
+			addPeertoDiscoveryList(ip, cfg.Port)
+		}
+	}()
+
 	log.Printf("Serving requests on port %s", cfg.Port)
 
 	// Declare channel for triggering block production
@@ -208,4 +222,19 @@ func triggerInterval(intervalChannel chan bool, productionInterval time.Duration
 	// Triggers block production case
 	time.Sleep(productionInterval)
 	intervalChannel <- true
+}
+
+func addPeertoDiscoveryList(ip, port string) {
+	client := http.Client{}
+
+	r, err := requests.AddPeerToDiscoveryRequest(ip, port)
+	if err != nil {
+		log.Printf("Failed to make Add Peer request: %s", err.Error())
+	}
+	_, err = client.Do(r)
+	if err != nil {
+		log.Printf("HTTP failed to send request: %s", err.Error())
+	}
+	log.Printf("Sent request to %s add producer to peer list", r.URL)
+
 }
