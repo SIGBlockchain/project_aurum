@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
@@ -37,8 +38,20 @@ func main() {
 	flag.Parse()
 
 	cfg.Version = uint16(*versionU64)
+
+	// check that interval is valid
+	validInterval, _ := regexp.MatchString("[0-9]", string([]rune(cfg.BlockProductionInterval)[0]))
+	if !validInterval {
+		log.Fatalf("Interval input did not start with digit")
+	}
+
+	validInterval, _ = regexp.MatchString("[a-s]", string([]rune(cfg.BlockProductionInterval)[len(cfg.BlockProductionInterval)-1]))
+	if !validInterval {
+		log.Fatalf("Interval input did not end with letter")
+	}
 	//check block production interval suffix
 	hasSuf := false
+
 	for _, s := range [7]string{"ns", "us", "µs", "ms", "s", "m", "h"} {
 		if strings.HasSuffix(cfg.BlockProductionInterval, s) {
 			hasSuf = true
@@ -46,7 +59,9 @@ func main() {
 		}
 	}
 	if !hasSuf {
-		cfg.BlockProductionInterval += "s"
+		log.Fatalf("Failed to enter a valid interval suffix\nBad input: %v\n"+
+			"Format should be digits and unit with no space e.g. 1h or 20s",
+			cfg.BlockProductionInterval)
 	}
 
 	//write into configuration file
