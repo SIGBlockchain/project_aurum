@@ -1,13 +1,15 @@
 version: '3'
 
 services:
-  prod:
-    build: producer
-    networks:
-      - aurum_net
+  aurum_producer:
+    build:
+      context: .
+      args:
+        PORT: 26000
+        INTERVAL: 12h
+        GENESIS: "df6a56b7ce7e623013cf5c51ccebea508068b0f68116cbfda27013a18a4b0c3d"
+        BRANCH: master
     ports:
-     - "13131:13131"
+      - "80:26000"
     container_name: "producer"
 
-networks: 
-  aurum_net:

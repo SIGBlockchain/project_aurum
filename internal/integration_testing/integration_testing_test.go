@@ -13,7 +13,7 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 	// arrange
 	cli := new(http.Client)
 	walletAddress := "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c"
-	var balance uint64 = 25000000
+	var balance uint64 = (500000000000000 / 2)
 	var stateNonce uint64 = 0
 	req, err := requests.NewAccountInfoRequest("localhost:35000", walletAddress)
 	if err != nil {
