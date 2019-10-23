@@ -156,6 +156,9 @@ func GetStateNonce(dbConnection *sql.DB, pkhash []byte) (uint64, error) {
 
 func GetAccountInfo(dbConnection *sql.DB, pkhash []byte) (*accountinfo.AccountInfo, error) {
 	// retrieve pkhash's balance
+	walletAddress := hex.EncodeToString(pkhash)
+
+	// retrieve pkhash's balance
 	balance, err := GetBalance(dbConnection, pkhash)
 	if err != nil {
 		return nil, errors.New("Failed to retreive balance: " + err.Error())
@@ -167,7 +170,7 @@ func GetAccountInfo(dbConnection *sql.DB, pkhash []byte) (*accountinfo.AccountIn
 		return nil, errors.New("Failed to retreive stateNonce: " + err.Error())
 	}
 
-	return &accountinfo.AccountInfo{Balance: balance, StateNonce: stateNonce}, nil
+	return &accountinfo.AccountInfo{Balance: balance, StateNonce: stateNonce, WalletAddress: walletAddress}, nil
 }
 
 /*calculates and inserts accounts' balance and nonce into the account balance table

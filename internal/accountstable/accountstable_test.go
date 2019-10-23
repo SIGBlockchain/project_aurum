@@ -404,7 +404,7 @@ func TestGetAccountInfo(t *testing.T) {
 	}{
 		{
 			args:    args{spkh},
-			want:    &accountinfo.AccountInfo{1000, 0},
+			want:    &accountinfo.AccountInfo{hex.EncodeToString(spkh), 1000, 0},
 			wantErr: false,
 		},
 		{

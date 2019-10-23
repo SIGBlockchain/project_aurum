@@ -1,12 +1,21 @@
 package accountinfo
 
 import (
+	"encoding/hex"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"reflect"
 	"testing"
+
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
 func TestAccountInfo_Deserialize(t *testing.T) {
-	ac := New("wallet", 9001, 50)
+	somePrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSomePublicKey, _ := publickey.Encode(&somePrivateKey.PublicKey)
+	hexWallet := hex.EncodeToString(encodedSomePublicKey)
+	ac := New(hexWallet, 9001, 50)
 	serAc, _ := ac.Serialize()
 	type args struct {
 		serializedAccountInfo []byte

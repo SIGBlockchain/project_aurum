@@ -21,6 +21,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 	_ "github.com/mattn/go-sqlite3"
@@ -80,12 +81,8 @@ func TestHandleAccountInfoRequest(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned with wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	type AccountInfo struct {
-		WalletAddress string
-		Balance       uint64
-		StateNonce    uint64
-	}
-	var accInfo AccountInfo
+	
+	var accInfo accountinfo.AccountInfo
 	if err := json.Unmarshal(rr.Body.Bytes(), &accInfo); err != nil {
 		t.Errorf("failed to unmarshall response body: %v", err)
 	}

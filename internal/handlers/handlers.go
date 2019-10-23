@@ -11,6 +11,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 )
 
 const NOT_FOUND_ERR_MSG = "No entry found for the reqeusted wallet address. Potentially wait until next block is produced to see if address is registered"
@@ -21,13 +22,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB, pMap pendingpool.PendingMap, pendi
 		w.Header().Set("Content-Type", "application/json")
 		var reqestingWalletAddress = r.URL.Query().Get("w") // assume this is hex-encoded
 
-		// TODO: Remake this struct
-		type AccountInfo struct {
-			WalletAddress string
-			Balance       uint64
-			StateNonce    uint64
-		}
-		var accInfo AccountInfo
+		var accInfo accountinfo.AccountInfo
 		var marshalledStruct []byte
 
 		pendingLock.Lock()
@@ -35,7 +30,7 @@ func HandleAccountInfoRequest(dbConn *sql.DB, pMap pendingpool.PendingMap, pendi
 		pendingLock.Unlock()
 
 		if ok {
-			accInfo = AccountInfo{reqestingWalletAddress, pendingData.PendingBal, pendingData.PendingNonce}
+			accInfo = accountinfo.AccountInfo{reqestingWalletAddress, pendingData.PendingBal, pendingData.PendingNonce}
 		} else {
 
 			// Query the database
