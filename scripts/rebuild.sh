@@ -1,2 +1,3 @@
-cd ../cmd/
-go build -o ../bin/main
+cd ../cmd/main
+go build -o ../../bin/main
+echo "Binary successfully built"

@@ -1,6 +1,7 @@
 package constants
 
 const (
+	DockerVolumeDir   = "../data/"
 	AccountsTable     = "accounts.db"
 	MetadataTable     = "metadata.db"
 	ProducerTable     = "producer.db"

@@ -363,11 +363,11 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	return nil
 }
 
-func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
+func Airdrop(blockchain string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
 	// create blockchain file
-	file, err := os.Create(blockchainz)
+	file, err := os.Create(blockchain)
 	if err != nil {
-		return errors.New("Failed to create blockchain file")
+		return errors.New("Failed to create blockchain file: " + err.Error())
 	}
 	file.Close()
 
@@ -391,7 +391,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	}
 
 	// open ledger file
-	ledgerFile, err := os.OpenFile(blockchainz, os.O_APPEND|os.O_WRONLY, 0644)
+	ledgerFile, err := os.OpenFile(blockchain, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return errors.New("Failed to open ledger file")
 	}
