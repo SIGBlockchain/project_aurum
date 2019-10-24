@@ -351,7 +351,7 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 			"Valid Block",
 			block.Block{
 				Version:        3,
-				Height:         0,
+				Height:         584,
 				PreviousHash:   []byte("guavapineapplemango1234567890abc"),
 				MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 				Timestamp:      time.Now().UnixNano(),
