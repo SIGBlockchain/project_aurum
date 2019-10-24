@@ -21,6 +21,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/mock"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
@@ -337,89 +338,82 @@ func TestContractRequestHandler(t *testing.T) {
 	}
 }
 
-type testReader struct {
-	blocks []block.Block
-}
-
-func (r testReader) FetchBlockByHeight(height uint64) ([]byte, error) {
-	// can we know an upper limit for height here, can it be validated else where or at all?
-	if height < 0 {
-		return nil, errors.New("Invalid height given")
-	}
-	return r.blocks[height].Serialize(), nil
-}
-
 func TestGetJSONBlockByHeight(t *testing.T) {
-	testBlocks := []block.Block{
-		block.Block{
-			Version:        3,
-			Height:         0,
-			PreviousHash:   []byte("guavapineapplemango1234567890abc"),
-			MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
-			Timestamp:      time.Now().UnixNano(),
-			Data:           [][]byte{{12, 13}, {232, 190, 123}, {123}},
-			DataLen:        3,
+	// Arrange
+	tt := []struct {
+		name           string
+		expectedBlock  block.Block
+		height         uint64
+		e              error
+		expectedStatus int
+	}{
+		{
+			"Valid Block",
+			block.Block{
+				Version:        3,
+				Height:         0,
+				PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+				MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
+				Timestamp:      time.Now().UnixNano(),
+				Data:           [][]byte{{12, 13}, {232, 190, 123}, {123}},
+				DataLen:        3,
+			},
+			584,
+			nil,
+			http.StatusOK,
 		},
-		block.Block{
-			Version:        4,
-			Height:         1,
-			PreviousHash:   []byte("grapewatermeloncoconut1emonsabcd"),
-			MerkleRootHash: []byte("datastructuresandalgorithms"),
-			Timestamp:      time.Now().UnixNano(),
-			Data:           [][]byte{{152, 73}, {172, 90, 23}, {23}},
-			DataLen:        3,
-		},
-		block.Block{
-			Version:        3,
-			Height:         2,
-			PreviousHash:   []byte("datastructuresandalgorithms"),
-			MerkleRootHash: []byte("memesarecoolandsoaregifslmaololzrofl"),
-			Timestamp:      time.Now().UnixNano(),
-			Data:           [][]byte{{12, 39}, {132, 96, 73}, {23}},
-			DataLen:        3,
-		},
-		block.Block{
-			Version:        3,
-			Height:         3,
-			PreviousHash:   []byte("memesarecoolandsoaregifslmaololzrofl"),
-			MerkleRootHash: []byte("thisisaaurumblockchainblockokusedfortestingpurposes"),
-			Timestamp:      time.Now().UnixNano(),
-			Data:           [][]byte{{11, 3}, {132, 90, 23}, {223}},
-			DataLen:        3,
+		{
+			"Block not found",
+			block.Block{},
+			1043,
+			errors.New("This block was not found"),
+			http.StatusBadRequest,
 		},
 	}
-	reader := testReader{blocks: testBlocks}
+	// Create the mock object
+	m := mock.MockBlockFetcher{}
 
-	handler := http.HandlerFunc(HandleGetJSONBlockByHeight(reader))
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			// Configure the mock object
+			// When the Mock object called "FetchBlockByHeight" given the test case's height,
+			// Return that test case's serialized block and corresponding expected error
+			m.When("FetchBlockByHeight").Given(test.height).Return(test.expectedBlock.Serialize(), test.e)
 
-	for i, b := range testBlocks {
-		req, err := requests.GetBlockByHeightRequest(uint64(i))
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		jsonBlock, err := b.Marshal()
-		if err != nil {
-			t.Errorf("Failed to marhsal block: %s", err.Error())
-		}
-		actualJSONBlock := block.JSONBlock{}
-		json.Unmarshal(rr.Body.Bytes(), actualJSONBlock)
-		if !reflect.DeepEqual(jsonBlock, actualJSONBlock) {
-			t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", jsonBlock, actualJSONBlock)
-		}
+			// Set up the handler
+			handler := http.HandlerFunc(HandleGetJSONBlockByHeight(m))
 
-		if rr.Code != http.StatusOK {
-			t.Errorf("Expected HTTP Status OK, recieved: %v", rr.Code)
-		}
-	}
+			// Form the request
+			req, err := requests.GetBlockByHeightRequest(test.height)
+			if err != nil {
+				t.Error(err)
+			}
+			// Set up the recorder for the response
+			rr := httptest.NewRecorder()
 
-	// test for invalid height
-	req, err := requests.GetBlockByHeightRequest(10)
-	if err != nil {
-		t.Errorf("Error creating request: %s", err.Error())
-	}
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+			// Serve the request
+			handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("Epected http.StatusBadRequest %v, got %v", http.StatusBadRequest, rr.Code)
+			// Actual block that is recorded in the response
+			actualJSONBlock := block.JSONBlock{}
+			json.Unmarshal(rr.Body.Bytes(), &actualJSONBlock)
+
+			// Expected block from the test case
+			expectedJSONBlock, err := test.expectedBlock.Marshal()
+			if err != nil {
+				t.Errorf("Failed to marshal block: %s", err.Error())
+			}
+
+			// Assert
+			if rr.Code != test.expectedStatus {
+				t.Errorf("Expected HTTP Status OK, recieved: %v", rr.Code)
+			}
+			if rr.Code == http.StatusOK {
+				if !reflect.DeepEqual(expectedJSONBlock, actualJSONBlock) {
+					t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", expectedJSONBlock, actualJSONBlock)
+				}
+			}
+		})
+
 	}
 }
