@@ -3,13 +3,33 @@ package publickey
 import (
 	"crypto/ecdsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
+
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 )
 
 // AurumPublicKey struct holds public key for user
 type AurumPublicKey struct {
-	Key *ecdsa.PublicKey
+	Key   *ecdsa.PublicKey
+	Bytes []byte
+	Hex   string
+	Hash  []byte
+}
+
+func New(key *ecdsa.PrivateKey) (AurumPublicKey, error) {
+	//try type assertion
+	k, ok := key.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return AurumPublicKey{}, errors.New("Cannot extract a ecdsa public key from private key given")
+	}
+	bytes, err := Encode(k)
+	if err != nil {
+		return AurumPublicKey{}, errors.New("Failed to encode public key inside of private key")
+	}
+
+	return AurumPublicKey{Key: k, Bytes: bytes, Hex: hex.EncodeToString(bytes), Hash: hashing.New(bytes)}, nil
 }
 
 // Encode returns the PEM-Encoded byte slice from a given public key or a non-nil error if fail

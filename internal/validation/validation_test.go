@@ -16,6 +16,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
+	"github.com/SIGBlockchain/project_aurum/internal/wallet"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -449,4 +450,80 @@ func TestValidateBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateProducerTimestamp(t *testing.T) {
+	wallet.CreateProducerTable()
+	db, err := sql.Open("sqlite3", constants.ProducerTable)
+	if err != nil {
+		t.Error("Failed to open database for test")
+	}
+	defer func() {
+		db.Close()
+		os.Remove("producer.db")
+	}()
+
+	walletAddr := []byte{'a'}
+	tableTimestamp := int64(time.Now().Nanosecond())
+	hashedWalletAddr := hashing.New(walletAddr)
+	_, err = db.Exec(sqlstatements.INSERT_VALUES_INTO_PRODUCER, hashedWalletAddr, int(tableTimestamp))
+	if err != nil {
+		t.Error("Failed to execute statement for database")
+	}
+
+	tests := []struct {
+		name       string
+		timeStamp  int64
+		walletAddr []byte
+		interval   time.Duration
+		want       bool
+	}{
+		{
+			"Valid producer timestamp",
+			tableTimestamp + time.Second.Nanoseconds() + 1,
+			hashedWalletAddr,
+			time.Second,
+			true,
+		},
+		{
+			"Valid producer timestamp (Equal)",
+			tableTimestamp + time.Second.Nanoseconds(),
+			hashedWalletAddr,
+			time.Second,
+			true,
+		},
+		{
+			"Invalid timestamp",
+			tableTimestamp,
+			hashedWalletAddr,
+			time.Second,
+			false,
+		},
+		{
+			"Invalid wallet address",
+			tableTimestamp + time.Second.Nanoseconds(),
+			hashing.New([]byte{'b'}),
+			time.Second,
+			false,
+		},
+		{
+			"Nil wallet address",
+			tableTimestamp + time.Second.Nanoseconds(),
+			nil,
+			time.Second,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ValidateProducerTimestamp(db, tt.timeStamp, tt.walletAddr, tt.interval)
+			if err != nil {
+				t.Errorf("ValidateProducerTimestamp returned err: %v", err)
+			}
+			if result != tt.want {
+				t.Errorf("ValidateProducerTimestamp returned the wrong boolean. Want: %v Got: %v", tt.want, result)
+			}
+		})
+	}
+
 }

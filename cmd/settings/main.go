@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
 	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
@@ -28,6 +29,7 @@ func main() {
 
 	//specify flags
 	versionU64 := flag.Uint("version", uint(cfg.Version), "enter version number")
+	cfg.Version = uint16(*versionU64) // ideally this and the above line would be combined
 	flag.Uint64Var(&cfg.InitialAurumSupply, "supply", cfg.InitialAurumSupply, "enter a number for initial aurum supply")
 	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
 	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
@@ -36,17 +38,22 @@ func main() {
 	//read flags
 	flag.Parse()
 
-	cfg.Version = uint16(*versionU64)
-	//check block production interval suffix
+	// get units of interval
+	intervalSuffix := strings.TrimLeftFunc(cfg.BlockProductionInterval, func(r rune) bool {
+		return !unicode.IsLetter(r) && unicode.IsDigit(r)
+	})
+	// check units are valid
 	hasSuf := false
 	for _, s := range [7]string{"ns", "us", "µs", "ms", "s", "m", "h"} {
-		if strings.HasSuffix(cfg.BlockProductionInterval, s) {
+		if intervalSuffix == s {
 			hasSuf = true
 			break
 		}
 	}
 	if !hasSuf {
-		cfg.BlockProductionInterval += "s"
+		log.Fatalf("Failed to enter a valid interval suffix\nBad input: %v\n"+
+			"Format should be digits and unit with no space e.g. 1h or 20s",
+			cfg.BlockProductionInterval)
 	}
 
 	//write into configuration file
