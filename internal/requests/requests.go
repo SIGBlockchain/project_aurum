@@ -60,7 +60,7 @@ func GetBlockByHeightRequest(blockHeight uint64) (*http.Request, error) {
 		return nil, errors.New("Failed to make new request:\n" + err.Error())
 	}
 	values := req.URL.Query()
-	values.Add("h", strconv.Itoa(int(blockHeight)))
+	values.Add("h", strconv.FormatUint(blockHeight, 10))
 	req.URL.RawQuery = values.Encode()
 	return req, nil
 }
