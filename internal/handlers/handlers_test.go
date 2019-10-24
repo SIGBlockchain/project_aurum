@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,7 +18,6 @@ import (
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
-	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -339,29 +337,18 @@ func TestContractRequestHandler(t *testing.T) {
 	}
 }
 
-func TestGetJSONBlockByHeight(t *testing.T) {
-	dbConn, err := sql.Open("sqlite3", constants.MetadataTable)
-	if err != nil {
-		t.Errorf("failed to open database connection : %v", err)
+type testReader struct {
+	blocks []block.Block
+}
+
+func (r testReader) GetBlockByHeight(height uint) (block.Block, error) {
+	if height < 0 || height > uint(len(r.blocks)-1) {
+		return block.Block{}, errors.New("Invalid height given")
 	}
-	defer func() {
-		if err := dbConn.Close(); err != nil {
-			t.Errorf("failed to close database connection : %v", err)
-		}
-		if err := os.Remove(constants.AccountsTable); err != nil {
-			t.Errorf("failed to remove database : %v", err)
-		}
-	}()
-	statement, _ := dbConn.Prepare(sqlstatements.CREATE_METADATA_TABLE)
-	statement.Exec()
+	return r.blocks[height], nil
+}
 
-	blockchainFile, err := os.OpenFile(constants.BlockchainFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	defer func() {
-		if err := os.Remove(constants.BlockchainFile); err != nil {
-			t.Errorf("failed to remove blockchain fileS : %v", err)
-		}
-	}()
-
+func TestGetJSONBlockByHeight(t *testing.T) {
 	testBlocks := []block.Block{
 		block.Block{
 			Version:        3,
@@ -400,16 +387,9 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 			DataLen:        3,
 		},
 	}
-	for _, block := range testBlocks {
-		err = blockchain.AddBlock(block, blockchainFile, dbConn)
-		if err != nil {
-			log.Fatalf("Failed to add block %v", err)
-		}
-	}
-	pMap := pendingpool.NewPendingMap()
-	pLock := new(sync.Mutex)
+	reader := testReader{blocks: testBlocks}
 
-	handler := http.HandlerFunc(HandleGetJSONBlockByHeight(dbConn, pMap, pLock))
+	handler := http.HandlerFunc(HandleGetJSONBlockByHeight(reader))
 
 	for i, b := range testBlocks {
 		req, err := requests.GetBlockByHeightRequest(uint64(i))
