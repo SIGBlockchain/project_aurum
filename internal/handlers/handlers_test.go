@@ -341,11 +341,12 @@ type testReader struct {
 	blocks []block.Block
 }
 
-func (r testReader) GetBlockByHeight(height uint) (block.Block, error) {
-	if height < 0 || height > uint(len(r.blocks)-1) {
-		return block.Block{}, errors.New("Invalid height given")
+func (r testReader) FetchBlockByHeight(height uint64) ([]byte, error) {
+	// can we know an upper limit for height here, can it be validated else where or at all?
+	if height < 0 {
+		return nil, errors.New("Invalid height given")
 	}
-	return r.blocks[height], nil
+	return r.blocks[height].Serialize(), nil
 }
 
 func TestGetJSONBlockByHeight(t *testing.T) {
@@ -410,7 +411,7 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 		}
 	}
 
-	//not test for invalid height
+	// test for invalid height
 	req, err := requests.GetBlockByHeightRequest(10)
 	if err != nil {
 		t.Errorf("Error creating request: %s", err.Error())

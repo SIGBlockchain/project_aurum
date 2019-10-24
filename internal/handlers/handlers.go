@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 
-	"github.com/SIGBlockchain/project_aurum/internal/blockchain"
-
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+	"github.com/SIGBlockchain/project_aurum/internal/ifaces"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
@@ -108,11 +108,22 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 	}
 }
 
-// GetJSONBlockByHeight - comment required!
-func HandleGetJSONBlockByHeight(reader blockchain.BlockchainReader) func(w http.ResponseWriter, r *http.Request) {
+// HandleGetJSONBLockByHeight uses a Reader receiver and returns
+func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotAcceptable)
-		io.WriteString(w, "The function has not been implemented!")
-		return
+		height, err := strconv.Atoi(r.URL.Query().Get("h"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, err.Error())
+			return
+		}
+		serializedBlock, err := fetcher.FetchBlockByHeight(uint64(height))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(serializedBlock)
 	}
 }
