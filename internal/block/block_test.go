@@ -414,7 +414,7 @@ func TestMarshal(t *testing.T) {
 		b    Block
 	}{
 		{
-			"block",
+			"Good JSONBlock",
 			testBlock,
 		},
 		{
@@ -458,7 +458,7 @@ func TestMarshal(t *testing.T) {
 	}
 }
 
-func TestUnarshal(t *testing.T) {
+func TestUmarshal(t *testing.T) {
 	testJSONBlock := JSONBlock{
 		Version:        3,
 		Height:         300,
@@ -487,10 +487,7 @@ func TestUnarshal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			block, err := test.b.Unmarshal()
-			if err != nil {
-				t.Errorf("Unmarshal returned an error: %v\n", err)
-			}
+			block := test.b.Unmarshal()
 			if block.Version != test.b.Version {
 				t.Errorf("versions do not match - expected: %v, got %v", test.b.Version, block.Version)
 			}
@@ -500,28 +497,23 @@ func TestUnarshal(t *testing.T) {
 			if block.Timestamp != test.b.Timestamp {
 				t.Errorf("timestamps do not match - expected: %v, got %v", test.b.Timestamp, block.Timestamp)
 			}
-			testPreviousHash, _ := hex.DecodeString(test.b.PreviousHash)
-			if !bytes.Equal(block.PreviousHash, testPreviousHash) {
-				t.Errorf("previousHashes do not match - expected: %v, got %v", testPreviousHash, block.PreviousHash)
+			if !bytes.Equal(block.PreviousHash, []byte(test.b.PreviousHash)) {
+				t.Errorf("previousHashes do not match - expected: %v, got %v", []byte(test.b.PreviousHash), block.PreviousHash)
 			}
-			testMerkleRootHash, _ := hex.DecodeString(test.b.MerkleRootHash)
-			if !bytes.Equal(block.MerkleRootHash, testMerkleRootHash) {
-				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", testMerkleRootHash, block.PreviousHash)
+			if !bytes.Equal(block.MerkleRootHash, []byte(test.b.MerkleRootHash)) {
+				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", []byte(test.b.MerkleRootHash), block.PreviousHash)
 			}
 			if block.DataLen != test.b.DataLen {
 				t.Errorf("datalens do not match - expected: %v, got %v", test.b.DataLen, block.DataLen)
 			}
-			// if test.b.Data != nil {
-			// 	for i, d := range test.b.Data {
-			// 		testJSONBlockData, err := hex.DecodeString(d)
-			// 		if err != nil {
-			// 			t.Errorf("error occured decoding data string: %v", err)
-			// 		}
-			// 		// if !bytes.Equal(block.Data[i], testJSONBlockData) {
-			// 		// 	t.Errorf("failed to decode index %d of data. Exepect: %v, got %v", i, d, block.Data[i])
-			// 		// }
-			// 	}
-			// }
+			if test.b.Data != nil {
+				for i, d := range test.b.Data {
+					testJSONBlockData := []byte(d)
+					if !bytes.Equal(block.Data[i], testJSONBlockData) {
+						t.Errorf("failed to decode index %d of data. Exepect: %v, got %v", i, d, block.Data[i])
+					}
+				}
+			}
 		})
 	}
 }
