@@ -231,3 +231,32 @@ func (b *Block) Marshal() (JSONBlock, error) {
 
 	return jsonBlock, nil
 }
+
+// Unmarshal converts a JSONBlock to a Block
+func (jB *JSONBlock) Unmarshal() (Block, error) {
+	blockData := make([][]byte, jB.DataLen)
+	for i, d := range jB.Data {
+		data, err := hex.DecodeString(d)
+		if err != nil {
+			return Block{}, errors.New("failed to convert data to bytes")
+		}
+		blockData[i] = data // can this be assigned in one line before the error check?
+	}
+	previousHash, err := hex.DecodeString(jB.PreviousHash)
+	if err != nil {
+		return Block{}, errors.New("failed to decode previoushash string")
+	}
+	merkleRootHash, err := hex.DecodeString(jB.MerkleRootHash)
+	if err != nil {
+		return Block{}, errors.New("failed to decode merkleroothash string")
+	}
+	return Block{
+		Version:        jB.Version,
+		Height:         jB.Height,
+		Timestamp:      jB.Timestamp,
+		PreviousHash:   previousHash,
+		MerkleRootHash: merkleRootHash,
+		DataLen:        jB.DataLen,
+		Data:           blockData,
+	}, nil
+}
