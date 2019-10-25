@@ -8,7 +8,6 @@ services:
           PORT: 35000
           INTERVAL: "10s"
           GENESIS: "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c 617af9da0ea3053e89ce43e1514640bcd41a3bd69810ca0f0d82e5cf8b4cadb8"
-          BRANCH: "${TRAVISBRANCH}"
     ports:
       - "35000:35000"
     container_name: "producer"

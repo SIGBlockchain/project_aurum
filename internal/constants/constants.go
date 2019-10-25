@@ -1,6 +1,7 @@
 package constants
 
 const (
+	ProjectRoot       = "/src/github.com/SIGBlockchain/project_aurum/"
 	DockerVolumeDir   = "../data/"
 	AccountsTable     = "accounts.db"
 	MetadataTable     = "metadata.db"

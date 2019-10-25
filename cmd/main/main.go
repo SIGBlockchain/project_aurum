@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"go/build"
 	"log"
 	"net/http"
 	"os"
@@ -39,7 +40,9 @@ func main() {
 	}
 
 	// If no blockchain.dat, perform airdrop
-	if _, err := os.Stat(constants.BlockchainFile); os.IsNotExist(err) {
+	gopath := build.Default.GOPATH
+	dataDir := gopath + constants.ProjectRoot + "data/"
+	if _, err := os.Stat(dataDir + constants.BlockchainFile); os.IsNotExist(err) {
 		log.Println("No blockchain file detected. Executing genesis procedure...")
 		addresses, err := genesis.ReadGenesisHashes()
 		if err != nil {
@@ -50,7 +53,7 @@ func main() {
 			log.Fatalf("Failed to create genesis block: %v", err)
 		}
 		log.Println("Attempting airdrop...")
-		if err := blockchain.Airdrop(constants.DockerVolumeDir+constants.BlockchainFile, constants.DockerVolumeDir+constants.MetadataTable, constants.DockerVolumeDir+constants.AccountsTable, genesisBlock); err != nil {
+		if err := blockchain.Airdrop(dataDir+constants.BlockchainFile, dataDir+constants.MetadataTable, dataDir+constants.AccountsTable, genesisBlock); err != nil {
 			log.Fatalf("Failed to perform airdrop: %v", err)
 		}
 		log.Println("Airdrop complete.")
@@ -59,14 +62,14 @@ func main() {
 	// TODO: If we did have a blockchain.dat but no table(s), we could execute a recovery here
 
 	// Open connection to accounts database
-	accountsDatabaseConnection, err := sql.Open("sqlite3", constants.DockerVolumeDir+constants.AccountsTable)
+	accountsDatabaseConnection, err := sql.Open("sqlite3", dataDir+constants.AccountsTable)
 	if err != nil {
 		log.Fatalf("Failed to open connection : %v", err)
 	}
 	defer accountsDatabaseConnection.Close()
 
 	// Open connection to metadata database
-	metadataDatabaseConnection, err := sql.Open("sqlite3", constants.DockerVolumeDir+constants.MetadataTable)
+	metadataDatabaseConnection, err := sql.Open("sqlite3", dataDir+constants.MetadataTable)
 	if err != nil {
 		log.Fatalf("Failed to open connection : %v", err)
 	}
@@ -83,7 +86,7 @@ func main() {
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	// Extract youngest block header from blockchain
-	ledgerFile, err := os.OpenFile(constants.DockerVolumeDir+constants.BlockchainFile, os.O_RDONLY, 0644)
+	ledgerFile, err := os.OpenFile(dataDir+constants.BlockchainFile, os.O_RDONLY, 0644)
 	if err != nil {
 		log.Fatalf("Failed to open ledger file")
 	}

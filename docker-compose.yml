@@ -8,4 +8,4 @@ services:
       - "26000:26000"
     container_name: "producer"
     volumes:
-      - "/data:/data"
+      - "${PWD}/../data/:/go/src/github.com/SIGBlockchain/project_aurum/data/"
