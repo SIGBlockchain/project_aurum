@@ -4,16 +4,15 @@ go: master
 
 services: docker
 
-before_install:
-  - echo $TRAVIS_BRANCH
-  - docker build -t project_aurum:version1.0 --build-arg BRANCH=$TRAVIS_BRANCH .
-  - docker run -d -p 62000:62000 project_aurum:version1.0
+before_script:
+  - cd scripts/
+  - ./up.ci.sh $TRAVIS_BRANCH # need to fix this to use gopath
+  - cd ../
 
-
-script: 
+script:
   - go test -v ./...
 
 after_script:
-  - docker rmi -f project_aurum:version1.0
-  - docker container stop $(docker container ls -aq)
-  - docker container rm $(docker container ls -aq)
+  - cd scripts/
+  - ./down.ci.sh
+  - cd ../

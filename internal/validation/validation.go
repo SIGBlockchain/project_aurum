@@ -136,7 +136,7 @@ func ValidatePending(c *contracts.Contract, pBalance *uint64, pNonce *uint64) er
 	return nil
 }
 
-// Validate takes in expected version, height, previousHash, and timeStamp
+// ValidateBlock takes in expected version, height, previousHash, and timeStamp
 // and compares them with the block's
 func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHash []byte, prevTimeStamp int64) bool {
 	// Check Version
@@ -155,10 +155,39 @@ func ValidateBlock(b block.Block, version uint16, prevHeight uint64, previousHas
 	if b.Timestamp <= prevTimeStamp || b.Timestamp > time.Now().UnixNano() {
 		return false
 	}
-
+	// Check MerkleRoot
 	if !hashing.MerkleRootHashOf(b.MerkleRootHash, b.Data) {
 		return false
 	}
 
 	return true
+}
+
+// ValidateProducerTimestamp checks the parameter timestamp p to see if
+// it is greater than the sum of the interval itv and
+// the table timestamp t (corresponding to the walletAddr).
+// False if p < t + itv
+func ValidateProducerTimestamp(db *sql.DB, timestamp int64, walletAddr []byte, interval time.Duration) (bool, error) {
+	// search for wallet address in table and return timestamp
+	row, err := db.Query("SELECT timestamp FROM producer WHERE public_key_hash = ?", walletAddr)
+	if err != nil {
+		return false, err
+	}
+	defer row.Close()
+
+	// verify row was found
+	if !row.Next() {
+		return false, nil
+	}
+
+	// Scan for timestamp value in database row
+	var wT time.Duration
+	row.Scan(&wT)
+
+	// check if p < t + itv
+	if time.Duration(timestamp) < (wT + interval) {
+		return false, nil
+	}
+
+	return true, nil
 }
