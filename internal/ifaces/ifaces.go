@@ -9,8 +9,8 @@ type IBlockFetcher interface {
 	FetchBlockByHeight(uint64) ([]byte, error)
 }
 
-// BlockchainScanner allows for implementation of a function that returns
+// BlockchainStreamer allows for implementation of a function that returns
 // collection of block objects
-type BlockchainScanner interface {
-	ScanBlockChain(senderWalletAddress publickey.AurumPublicKey) ([]block.Block, error)
+type IBlockchainStreamer interface {
+	GetBlockFromPublicKey(senderWalletAddress publickey.AurumPublicKey) (block.Block, error)
 }
