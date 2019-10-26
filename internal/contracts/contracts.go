@@ -42,9 +42,9 @@ type JSONContract struct {
 	StateNonce             uint64
 }
 
-// SenderHistory struct contains  the wallet address of the sender and the recipient,
+// ContractSummary struct contains  the wallet address of the sender and the recipient,
 // value, and timestamp of the containing block
-type SenderHistory struct {
+type ContractSummary struct {
 	Timestamp              int64
 	SenderWalletAddress    *ecdsa.PublicKey
 	RecipientWalletAddress *ecdsa.PublicKey
