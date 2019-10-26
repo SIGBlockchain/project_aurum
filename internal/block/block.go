@@ -233,19 +233,30 @@ func (b *Block) Marshal() (JSONBlock, error) {
 }
 
 // Unmarshal converts a JSONBlock to a Block
-func (jB *JSONBlock) Unmarshal() Block {
+func (jB *JSONBlock) Unmarshal() (Block, error) {
 	blockData := make([][]byte, jB.DataLen)
 	for i, d := range jB.Data {
-		blockData[i] = []byte(d)
+		decodeData, err := hex.DecodeString(d)
+		if err != nil {
+			return Block{}, err
+		}
+		blockData[i] = decodeData
 	}
-
+	decodePreviousHash, err := hex.DecodeString(jB.PreviousHash)
+	if err != nil {
+		return Block{}, err
+	}
+	decodeMerkleRootHash, err := hex.DecodeString(jB.PreviousHash)
+	if err != nil {
+		return Block{}, err
+	}
 	return Block{
 		Version:        jB.Version,
 		Height:         jB.Height,
 		Timestamp:      jB.Timestamp,
-		PreviousHash:   []byte(jB.PreviousHash),
-		MerkleRootHash: []byte(jB.MerkleRootHash),
+		PreviousHash:   decodePreviousHash,
+		MerkleRootHash: decodeMerkleRootHash,
 		DataLen:        jB.DataLen,
 		Data:           blockData,
-	}
+	}, nil
 }

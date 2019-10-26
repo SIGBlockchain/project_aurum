@@ -467,6 +467,7 @@ func TestUmarshal(t *testing.T) {
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
+	testBlock.DataLen = uint16(len(testBlock.Data))
 	testJSONBlock, _ := testBlock.Marshal()
 
 	nilblock := JSONBlock{}
@@ -487,7 +488,10 @@ func TestUmarshal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			block := test.b.Unmarshal()
+			block, err := test.b.Unmarshal()
+			if err != nil {
+				t.Errorf("unmarshal returned with error: %v", err)
+			}
 			if block.Version != test.b.Version {
 				t.Errorf("versions do not match - expected: %v, got %v", test.b.Version, block.Version)
 			}
@@ -497,10 +501,12 @@ func TestUmarshal(t *testing.T) {
 			if block.Timestamp != test.b.Timestamp {
 				t.Errorf("timestamps do not match - expected: %v, got %v", test.b.Timestamp, block.Timestamp)
 			}
-			if !bytes.Equal(block.PreviousHash, []byte(test.b.PreviousHash)) {
+			decodePreviousHash, _ := hex.DecodeString(test.b.PreviousHash)
+			if !bytes.Equal(block.PreviousHash, decodePreviousHash) {
 				t.Errorf("previousHashes do not match - expected: %v, got %v", []byte(test.b.PreviousHash), block.PreviousHash)
 			}
-			if !bytes.Equal(block.MerkleRootHash, []byte(test.b.MerkleRootHash)) {
+			decodeMerkleRootHash, _ := hex.DecodeString(test.b.MerkleRootHash)
+			if !bytes.Equal(block.MerkleRootHash, decodeMerkleRootHash) {
 				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", []byte(test.b.MerkleRootHash), block.PreviousHash)
 			}
 			if block.DataLen != test.b.DataLen {
