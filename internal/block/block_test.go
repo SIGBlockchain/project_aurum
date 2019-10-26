@@ -458,7 +458,7 @@ func TestMarshal(t *testing.T) {
 	}
 }
 
-func TestUmarshal(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	testBlock := Block{
 		Version:        3,
 		Height:         300,
