@@ -462,8 +462,8 @@ func TestUmarshal(t *testing.T) {
 	testBlock := Block{
 		Version:        3,
 		Height:         300,
-		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
-		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
+		PreviousHash:   hashing.New([]byte("0x34")),
+		MerkleRootHash: hashing.New([]byte("0x34")),
 		Timestamp:      time.Now().UnixNano(),
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
@@ -503,18 +503,18 @@ func TestUmarshal(t *testing.T) {
 			}
 			decodePreviousHash, _ := hex.DecodeString(test.b.PreviousHash)
 			if !bytes.Equal(block.PreviousHash, decodePreviousHash) {
-				t.Errorf("previousHashes do not match - expected: %v, got %v", []byte(test.b.PreviousHash), block.PreviousHash)
+				t.Errorf("previousHashes do not match - expected: %v, got %v", decodePreviousHash, block.PreviousHash)
 			}
 			decodeMerkleRootHash, _ := hex.DecodeString(test.b.MerkleRootHash)
 			if !bytes.Equal(block.MerkleRootHash, decodeMerkleRootHash) {
-				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", []byte(test.b.MerkleRootHash), block.PreviousHash)
+				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", decodeMerkleRootHash, block.PreviousHash)
 			}
 			if block.DataLen != test.b.DataLen {
 				t.Errorf("datalens do not match - expected: %v, got %v", test.b.DataLen, block.DataLen)
 			}
 			if test.b.Data != nil {
 				for i, d := range test.b.Data {
-					testJSONBlockData := []byte(d)
+					testJSONBlockData, _ := hex.DecodeString(d)
 					if !bytes.Equal(block.Data[i], testJSONBlockData) {
 						t.Errorf("failed to decode index %d of data. Exepect: %v, got %v", i, d, block.Data[i])
 					}
