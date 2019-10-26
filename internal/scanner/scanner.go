@@ -3,6 +3,8 @@ package scanner
 import (
 	"crypto/ecdsa"
 	"errors"
+
+	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
 // ContractHistory struct contains  the wallet address of the sender and the recipient,
@@ -14,8 +16,8 @@ type ContractHistory struct {
 	Value                  uint64
 }
 
-// ScanContractHistory returns a list of ContractHistory objects tht contain a history of contracts that
+// GetContractHistory returns a list of ContractHistory objects tht contain a history of contracts that
 // are associated with the Sender Key and the hash of the Sender Key
-func ScanContractHistory() (ContractHistory, error) {
-	return ContractHistory{}, errors.New("function not implemented")
+func GetContractHistory(senderWalletAddress publickey.AurumPublicKey, blockchain interface{}) ([]ContractHistory, error) {
+	return blockchain.ScanBlockChain(senderWalletAddress), errors.New("function not implemented")
 }
