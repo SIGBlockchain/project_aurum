@@ -459,15 +459,15 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestUmarshal(t *testing.T) {
-	testJSONBlock := JSONBlock{
+	testBlock := Block{
 		Version:        3,
 		Height:         300,
-		PreviousHash:   "guavapineapplemango1234567890abc",
-		MerkleRootHash: "grapewatermeloncoconut1emonsabcd",
+		PreviousHash:   []byte("guavapineapplemango1234567890abc"),
+		MerkleRootHash: []byte("grapewatermeloncoconut1emonsabcd"),
 		Timestamp:      time.Now().UnixNano(),
-		Data:           []string{"pizza", "pie", "puff", "dragon"},
+		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
-	testJSONBlock.DataLen = uint16(len(testJSONBlock.Data))
+	testJSONBlock, _ := testBlock.Marshal()
 
 	nilblock := JSONBlock{}
 
