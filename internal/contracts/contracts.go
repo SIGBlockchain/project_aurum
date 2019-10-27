@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
@@ -275,16 +274,4 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 		mc.StateNonce,
 	}
 	return c, nil
-}
-
-// ExtractContractsFromBlock returns contract slice based on block data
-func ExtractContractsFromBlock(b block.Block) ([]Contract, error) {
-	contract := []Contract{}
-	for i, d := range b.Data {
-		err := contract[i].Deserialize(d)
-		if err != nil {
-			return nil, errors.New("deserialized contract return the error: " + err.Error())
-		}
-	}
-	return contract, nil
 }

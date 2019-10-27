@@ -523,3 +523,78 @@ func TestUnmarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractContractsFromBlock(t *testing.T) {
+	// Arrange
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	testContracts := []contracts.Contract{{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           1000000000,
+		StateNonce:      1,
+	}, {
+
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           23,
+		StateNonce:      1,
+	}, {
+
+		Version:         2,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           48,
+		StateNonce:      1,
+	}, {
+
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           20,
+		StateNonce:      1,
+	}}
+	var nilContract []contracts.Contract
+	tests := []struct {
+		name    string
+		c       []contracts.Contract
+		wantErr bool
+	}{
+		{
+			"contract",
+			testContracts,
+			false,
+		},
+		{
+			"nil contract",
+			nilContract,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testblock, _ := New(1, 1, nil, tt.c)
+			// Act
+			resultContract, err := ExtractContractsFromBlock(testblock)
+			// Assert
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Error: ExtractContractsFromBlock() returned %v for errors. Wanted: %v", err, tt.wantErr)
+			}
+			for i, c := range resultContract {
+				if !c.Equals(testContracts[i]) {
+					t.Errorf("extracted contracts are not equal!")
+				}
+			}
+		})
+	}
+}

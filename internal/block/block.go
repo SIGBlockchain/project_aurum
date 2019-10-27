@@ -260,3 +260,18 @@ func (jB *JSONBlock) Unmarshal() (Block, error) {
 		Data:           blockData,
 	}, nil
 }
+
+// ExtractContractsFromBlock returns contract slice based on block data
+func ExtractContractsFromBlock(b Block) ([]contracts.Contract, error) {
+	contract := []contracts.Contract{}
+	for i, d := range b.Data {
+		if d == nil {
+			return nil, errors.New("data in block is empty")
+		}
+		err := contract[i].Deserialize(d)
+		if err != nil {
+			return nil, errors.New("deserialized contract return the error: " + err.Error())
+		}
+	}
+	return contract, nil
+}
