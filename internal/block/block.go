@@ -264,7 +264,7 @@ func (jB *JSONBlock) Unmarshal() (Block, error) {
 // ExtractContractsFromBlock returns contract slice based on block data
 func ExtractContractsFromBlock(b Block) ([]*contracts.Contract, error) {
 	if b.DataLen == 0 {
-		return nil, nil
+		return nil, errors.New("block contains no contracts")
 	}
 	extractedContracts := make([]*contracts.Contract, b.DataLen)
 	for i, d := range b.Data {
