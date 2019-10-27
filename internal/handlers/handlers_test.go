@@ -417,3 +417,83 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 
 	}
 }
+
+func TestGetBlockFromJSONBlockResponse(t *testing.T) {
+	// Arrange
+	tt := []struct {
+		name           string
+		expectedBlock  block.JSONBlock
+		height         uint64
+		e              error
+		expectedStatus int
+	}{
+		{
+			"Valid Block",
+			block.JSONBlock{
+				Version:        3,
+				Height:         584,
+				PreviousHash:   "0x53",
+				MerkleRootHash: "0x47",
+				Timestamp:      time.Now().UnixNano(),
+				Data:           []string{"0x1748", "0x1395", "0x56"},
+				DataLen:        3,
+			},
+			584,
+			nil,
+			http.StatusOK,
+		},
+		{
+			"Block not found",
+			block.JSONBlock{},
+			1043,
+			errors.New("This block was not found"),
+			http.StatusBadRequest,
+		},
+	}
+	// Create the mock object
+	m := mock.MockBlockFetcher{}
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			// Configure the mock object
+			// When the Mock object called "FetchBlockByHeight" given the test case's height,
+			// Return that test case's serialized block and corresponding expected error
+			returnBlock, _ := test.expectedBlock.Unmarshal()
+			m.When("FetchBlockByHeight").Given(test.height).Return(returnBlock.Serialize(), test.e)
+
+			// Set up the handler
+			handler := http.HandlerFunc(HandleGetJSONBlockByHeight(m))
+
+			// Form the request
+			req, err := requests.GetBlockByHeightRequest(test.height)
+			if err != nil {
+				t.Error(err)
+			}
+			// Set up the recorder for the response
+			rr := httptest.NewRecorder()
+
+			// Serve the request
+			handler.ServeHTTP(rr, req)
+
+			// Actual block that is recorded in the response
+			actualBlock := block.Block{}
+			json.Unmarshal(rr.Body.Bytes(), &actualBlock)
+
+			// Expected block from the test case
+			expectedBlock, err := test.expectedBlock.Unmarshal()
+			if err != nil {
+				t.Errorf("Failed to marshal block: %s", err.Error())
+			}
+
+			// Assert
+			if rr.Code != test.expectedStatus {
+				t.Errorf("Expected HTTP Status OK, recieved: %v", rr.Code)
+			}
+			if rr.Code == http.StatusOK {
+				if !reflect.DeepEqual(expectedBlock, actualBlock) {
+					t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", expectedBlock, actualBlock)
+				}
+			}
+		})
+
+	}
+}

@@ -142,3 +142,12 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 		io.WriteString(w, string(marshalledBlock))
 	}
 }
+
+// GetBlockFromJSONBlockResponse convert block in response body from JSON to a block
+func GetBlockFromJSONBlockResponse() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		io.WriteString(w, "function not implemented")
+		return
+	}
+}
