@@ -571,12 +571,12 @@ func TestExtractContractsFromBlock(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"contract",
+			"Full of contracts",
 			testContracts,
 			false,
 		},
 		{
-			"nil contract",
+			"No contracts",
 			nilContract,
 			true,
 		},
