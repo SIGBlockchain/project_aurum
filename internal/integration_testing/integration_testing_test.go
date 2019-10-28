@@ -34,23 +34,22 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 
 	// assert
 	if err != nil {
-		count := 0
+		retries := 0
 		for {
-			if count == 2 {
+			if retries == 2 {
 				t.Errorf(err.Error())
 				t.FailNow()
 			}
 			resp, err = cli.Do(req)
 			if err != nil {
-				count++
-				time.Sleep(1 * time.Second)
+				retries++
+				time.Sleep(time.Second)
 			} else {
-				goto Success
+				break
 			}
 		}
 
 	}
-Success:
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Wrong status code. Got %v wanted %v", resp.StatusCode, http.StatusOK)
 	}
