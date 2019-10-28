@@ -9,7 +9,7 @@ before_script:
   - ./ci-up.sh
 
 script:
-  - go test -v ../...
+  - go test -v -short ../...
 
 after_script:
   - ./ci-down.sh

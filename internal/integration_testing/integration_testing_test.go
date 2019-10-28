@@ -19,7 +19,7 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 	walletAddress := "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c"
 	var balance uint64 = 500000000000000 / 2
 	var stateNonce uint64 = 0
-	req, err := requests.NewAccountInfoRequest("localhost:48000", walletAddress)
+	req, err := requests.NewAccountInfoRequest("localhost:35000", walletAddress)
 	if err != nil {
 		t.Errorf("Failed to create request: " + err.Error())
 	}
