@@ -3,9 +3,9 @@ version: '3'
 services:
   aurum_producer_ci:
     build:
-        context: .
-        args:
-          PORT: 35000
+      context: .
+      args:
+        PORT: 35000
     ports:
       - "35000:35000"
     container_name: "producer_ci"

@@ -4,8 +4,6 @@ services:
   aurum_producer:
     build:
       context: .
-      args: 
-        PORT: 26000
     ports: 
       - "26000:26000"
     container_name: "producer"
