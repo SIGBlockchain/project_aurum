@@ -5,10 +5,13 @@ go: master
 services: docker
 
 before_script:
-  - ./scripts/ci-up.sh ${PWD}
+  - cd scripts/ && \
+  - ./ci-up.sh ${PWD}
 
 script:
+  - cd ../ && \
   - go test -v ./...
 
 after_script:
-  - ./scripts/ci-down.sh
+  - cd scripts/ && \
+  - ./ci-down.sh

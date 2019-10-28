@@ -156,7 +156,7 @@ func main() {
 			} else {
 
 				// Add block to blockchain
-				blockchainFile, err := os.OpenFile(constants.BlockchainFile, os.O_APPEND|os.O_WRONLY, 0644)
+				blockchainFile, err := os.OpenFile(dataDir+constants.BlockchainFile, os.O_APPEND|os.O_WRONLY, 0644)
 				if err != nil {
 					log.Fatalf("failed to open ledger file: %s\n", err)
 				}

@@ -12,6 +12,3 @@ EXPOSE ${PORT}
 
 ENTRYPOINT ./main
 
-
-
-

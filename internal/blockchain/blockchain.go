@@ -86,7 +86,7 @@ func GetBlockByHeight(height int, file *os.File, db *sql.DB) ([]byte, error) {
 	bl := make([]byte, blockSize)
 	_, err = io.ReadAtLeast(file, bl, blockSize)
 	if err != nil {
-		return nil, errors.New("Unable to read from blocks position to it's end")
+		return nil, errors.New("Unable to read from blocks position to it's end: " + err.Error())
 	}
 
 	return bl, nil
@@ -210,7 +210,7 @@ Calls GetYoungestBlock and returns a Header version of the result
 func GetYoungestBlockHeader(file *os.File, metadata *sql.DB) (block.BlockHeader, error) {
 	latestBlock, err := GetYoungestBlock(file, metadata)
 	if err != nil {
-		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
+		return block.BlockHeader{}, errors.New("Failed to retreive youngest block: " + err.Error())
 	}
 
 	latestBlockHeader := block.BlockHeader{
