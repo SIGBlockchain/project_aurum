@@ -17,13 +17,32 @@ Step 8 - Add Return function (documentation below)
 OPTIONAL - Create Check function (documentation below)
 */
 
+/*
+The following function returns the string name of the input (ie a Function)
+
+runtime.FuncForPC(reflect.ValueOf(someInterface).Pointer()).Name()
+
+Could be useful for the When function
+
+func trace2() {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	fmt.Printf("%s:%d %s\n", frame.File, frame.Line, frame.Function)
+}
+*/
+
 package mock
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 )
 
+// Implements io.Reader
 type MockIoReader struct {
 	Buffer []byte // Desired contents of buffer that will be read in
 	NRead  int    // Desired number of bytes read to be returned
@@ -79,6 +98,38 @@ e.g. io.Reader
 func (mock MockIoReader) Read(b []byte) (int, error) {
 	copy(b, mock.Buffer)
 	return mock.NRead, mock.Error
+}
+
+// Implements ifaces.IBlockFetcher
+// Note: output index match to corresponding input index
+// TODO: Should we use maps instead?
+type MockBlockFetcher struct {
+	SerializedBlocks [][]byte // Range of serialized block outputs
+	Errors           []error  // Range of error outputs
+	Heights          []uint64 // Range of heights
+}
+
+func (mock *MockBlockFetcher) When(s string) *MockBlockFetcher {
+	return mock
+}
+
+func (mock *MockBlockFetcher) Given(i uint64) *MockBlockFetcher {
+	mock.Heights = append(mock.Heights, i)
+	return mock
+}
+
+func (mock *MockBlockFetcher) Return(block []byte, e error) {
+	mock.SerializedBlocks = append(mock.SerializedBlocks, block)
+	mock.Errors = append(mock.Errors, e)
+}
+
+func (mock MockBlockFetcher) FetchBlockByHeight(height uint64) ([]byte, error) {
+	for i, j := range mock.Heights {
+		if j == height {
+			return mock.SerializedBlocks[i], mock.Errors[i]
+		}
+	}
+	return nil, errors.New("MockError: Could not find corresponding returns for " + strconv.FormatUint(height, 10))
 }
 
 // =============================================================

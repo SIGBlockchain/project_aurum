@@ -11,6 +11,9 @@ import (
 )
 
 func TestAccountInfoRequestIntegration(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	// arrange
 	cli := new(http.Client)
 	walletAddress := "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c"
@@ -72,5 +75,8 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 }
 
 func TestContractRequestIntegration(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 
 }

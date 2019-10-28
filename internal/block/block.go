@@ -231,3 +231,51 @@ func (b *Block) Marshal() (JSONBlock, error) {
 
 	return jsonBlock, nil
 }
+
+// Unmarshal converts a JSONBlock to a Block
+func (jB *JSONBlock) Unmarshal() (Block, error) {
+	blockData := make([][]byte, jB.DataLen)
+	for i, d := range jB.Data {
+		decodeData, err := hex.DecodeString(d)
+		if err != nil {
+			return Block{}, err
+		}
+		blockData[i] = decodeData
+	}
+	decodePreviousHash, err := hex.DecodeString(jB.PreviousHash)
+	if err != nil {
+		return Block{}, err
+	}
+	decodeMerkleRootHash, err := hex.DecodeString(jB.PreviousHash)
+	if err != nil {
+		return Block{}, err
+	}
+	return Block{
+		Version:        jB.Version,
+		Height:         jB.Height,
+		Timestamp:      jB.Timestamp,
+		PreviousHash:   decodePreviousHash,
+		MerkleRootHash: decodeMerkleRootHash,
+		DataLen:        jB.DataLen,
+		Data:           blockData,
+	}, nil
+}
+
+// ExtractContractsFromBlock returns contract slice based on block data
+func ExtractContractsFromBlock(b Block) ([]*contracts.Contract, error) {
+	if b.DataLen == 0 {
+		return nil, errors.New("block contains no contracts")
+	}
+	extractedContracts := make([]*contracts.Contract, b.DataLen)
+	for i, d := range b.Data {
+		if d == nil {
+			return nil, errors.New("data in block is empty")
+		}
+		extractedContracts[i] = &contracts.Contract{}
+		err := extractedContracts[i].Deserialize(d)
+		if err != nil {
+			return nil, errors.New("deserialized contract return the error: " + err.Error())
+		}
+	}
+	return extractedContracts, nil
+}
