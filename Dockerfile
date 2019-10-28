@@ -11,4 +11,3 @@ WORKDIR ${ROOT}/bin
 EXPOSE ${PORT}
 
 ENTRYPOINT ./main
-
