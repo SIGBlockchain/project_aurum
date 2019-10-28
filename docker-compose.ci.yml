@@ -7,5 +7,5 @@ services:
       args:
         PORT: 35000
     ports:
-      - "35000:35000"
+      - "48000:35000"
     container_name: "producer_ci"
