@@ -1,6 +1,6 @@
 FROM golang:latest
 
-ARG PORT=26000
+ARG PORT
 
 ENV ROOT=/go/src/github.com/SIGBlockchain/project_aurum
 

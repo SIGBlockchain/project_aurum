@@ -6,7 +6,7 @@ services: docker
 
 before_script:
   - cd scripts/
-  - ./ci-up.sh ${PWD}
+  - ./ci-up.sh
 
 script:
   - go test -v ../...
