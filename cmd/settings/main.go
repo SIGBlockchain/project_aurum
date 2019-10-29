@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"go/build"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,12 +11,15 @@ import (
 	"unicode"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
 )
 
 func main() {
 	//open configuration file
-	configFile, err := os.Open("../config.json")
+	gopath := build.Default.GOPATH
+	binDir := gopath + constants.ProjectRoot + "bin/"
+	configFile, err := os.Open(binDir + constants.ConfigurationFile)
 	if err != nil {
 		log.Fatal("Failed to open configuration file : " + err.Error())
 	}
@@ -62,7 +66,7 @@ func main() {
 		log.Fatalf("Failed to marshal new config: %v", err)
 	}
 
-	if err := ioutil.WriteFile("../config.json", marshalledJSON, 0644); err != nil {
+	if err := ioutil.WriteFile(binDir+constants.ConfigurationFile, marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
 }

@@ -86,7 +86,7 @@ func GetBlockByHeight(height int, file *os.File, db *sql.DB) ([]byte, error) {
 	bl := make([]byte, blockSize)
 	_, err = io.ReadAtLeast(file, bl, blockSize)
 	if err != nil {
-		return nil, errors.New("Unable to read from blocks position to it's end")
+		return nil, errors.New("Unable to read from blocks position to it's end: " + err.Error())
 	}
 
 	return bl, nil
@@ -210,7 +210,7 @@ Calls GetYoungestBlock and returns a Header version of the result
 func GetYoungestBlockHeader(file *os.File, metadata *sql.DB) (block.BlockHeader, error) {
 	latestBlock, err := GetYoungestBlock(file, metadata)
 	if err != nil {
-		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
+		return block.BlockHeader{}, errors.New("Failed to retreive youngest block: " + err.Error())
 	}
 
 	latestBlockHeader := block.BlockHeader{
@@ -363,11 +363,11 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	return nil
 }
 
-func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
+func Airdrop(blockchain string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
 	// create blockchain file
-	file, err := os.Create(blockchainz)
+	file, err := os.Create(blockchain)
 	if err != nil {
-		return errors.New("Failed to create blockchain file")
+		return errors.New("Failed to create blockchain file: " + err.Error())
 	}
 	file.Close()
 
@@ -391,7 +391,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	}
 
 	// open ledger file
-	ledgerFile, err := os.OpenFile(blockchainz, os.O_APPEND|os.O_WRONLY, 0644)
+	ledgerFile, err := os.OpenFile(blockchain, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return errors.New("Failed to open ledger file")
 	}
