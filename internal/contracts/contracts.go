@@ -278,41 +278,20 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 	fmt.print(c)
 }
 
-func (c *Contract) ContainsPublicKey(pk publickey.AurumPublicKey) (bool, error) {
-	if c == nil {
-		return false, errors.New("not nill")
-	}
-	
-	// encode contract's sender pub key to bytes
-	bKey, err := publickey.Encode(c.SenderPubKey)
-	if err != nil{
-		return bytes.Equal(bKey, pk.Bytes), errors.New("failed to encode sender public key")
-	}
-	// return the comparison of the above encoding with Bytes field of pk
-    return  bytes.Equal(bKey, pk.Bytes), nil
-	
-}
 
-func(c *Contract) GenerateRandomContract() (Contract){
+
+funcGenerateRandomContract() Contract{
 	b := rand.Read(make([]byte, 32))
 	
 	genSenderPubKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	
 	genrecipPubKeyHash := rand.Read(make([]byte, 32))
-	
 	genVersion := binary.LittleEndian.Uint16(b[:])
-	
 	genSigLen := binary.LittleEndian.Uint8(b[:]);
-	
-	
 	genSignature := rand.Read(make([]byte, genSigLen));
-	
 	genValue := binary.LittleEndian.Uint64(b[:])
-	
 	genStateNonce := binary.LittleEndian.Uint64(b[:])
 	
-
-	c := &Contract{
+	return &Contract{
 		Version:  genVersion,
 		SenderPubKey: genSenderPubKey,
 		SigLen:  genSigLen,
@@ -321,7 +300,6 @@ func(c *Contract) GenerateRandomContract() (Contract){
 		Value:  genValue,
 		StateNonce:  genStateNonce,
 		
-	}
-	return c, nil
+	}, nil
 
 }
