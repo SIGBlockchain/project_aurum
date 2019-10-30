@@ -10,3 +10,15 @@ type IBlockFetcher interface {
 type IBlockchainStreamer interface {
 	Stream([]block.Block) (int, error)
 }
+
+type ILedgerManager interface {
+	AddBlock(b block.Block) error
+	GetBlockByHeight(height int) ([]byte, error)
+	GetBlockByPosition(position int) ([]byte, error)
+	GetBlockByHash(hash []byte) ([]byte, error)
+	GetYoungestBlock() (block.Block, error)
+	GetYoungestBlockHeader() (block.BlockHeader, error)
+	Airdrop(genesisBlock block.Block) error
+	Lock()
+	Unlock()
+}
