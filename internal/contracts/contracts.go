@@ -280,10 +280,10 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 
 
-func GenerateRandomContract() Contract{
+func GenerateRandomContract() *Contract{
 	b := rand.Read(make([]byte, 32))
 	
-	genSenderPubKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	genSenderPrivKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	genrecipPubKeyHash := rand.Read(make([]byte, 32))
 	genVersion := binary.LittleEndian.Uint16(b[:])
 	genSigLen := binary.LittleEndian.Uint8(b[:]);
@@ -291,15 +291,6 @@ func GenerateRandomContract() Contract{
 	genValue := binary.LittleEndian.Uint64(b[:])
 	genStateNonce := binary.LittleEndian.Uint64(b[:])
 	
-	return Contract{
-		Version:  genVersion,
-		SenderPubKey: genSenderPubKey,
-		SigLen:  genSigLen,
-		Signature:  genSignature,
-		RecipPubKeyHash:  genrecipPubKeyHash,
-		Value:  genValue,
-		StateNonce:  genStateNonce,
-		
-	},
+	return New(genVersion, genSenderPrivKey, genrecipPubKeyHash, genValue, genStateNonce)
 
 }
