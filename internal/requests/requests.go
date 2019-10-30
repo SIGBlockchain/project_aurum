@@ -54,6 +54,14 @@ func AddPeerToDiscoveryRequest(ip string, port string) (*http.Request, error) {
 	return req, nil
 }
 
+func GetPeerListRequest() (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodGet, endpoints.PeerList, nil)
+	if err != nil {
+		return nil, errors.New("Failed to make new request:\n" + err.Error())
+	}
+	return req, nil
+}
+
 func GetBlockByHeightRequest(blockHeight uint64) (*http.Request, error) {
 	req, err := http.NewRequest(http.MethodGet, endpoints.BlockQueryByHeight, nil)
 	if err != nil {

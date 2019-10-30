@@ -107,6 +107,29 @@ func TestAddPeerToDiscoveryRequest(t *testing.T) {
 	}
 }
 
+func TestGetPeerListRequest(t *testing.T) {
+	req, err := GetPeerListRequest()
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
 func TestGetBlockByHeightRequest(t *testing.T) {
 	req, err := GetBlockByHeightRequest(9001)
 	if err != nil {
