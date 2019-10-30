@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -18,6 +19,47 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
+
+type LedgerManager struct {
+	file    *os.File
+	databse *sql.DB
+	mutex   sync.RWMutex
+}
+
+func (m *LedgerManager) Lock() {
+	m.mutex.Lock()
+}
+
+func (m *LedgerManager) Unlock() {
+	m.mutex.Unlock()
+}
+
+func (m *LedgerManager) AddBlock(b block.Block) error {
+	m.Lock()
+	err := AddBlock(b, m.file, m.databse)
+	m.Unlock()
+	return err
+}
+
+func (m *LedgerManager) GetBlockByHeight(height int) ([]byte, error) {
+	return GetBlockByHeight(height, m.file, m.databse)
+}
+
+func (m *LedgerManager) GetBlockByPosition(position int) ([]byte, error) {
+	return GetBlockByPosition(position, m.file, m.databse)
+}
+
+func (m *LedgerManager) GetBlockByHash(hash []byte) ([]byte, error) {
+	return GetBlockByHash(hash, m.file, m.databse)
+}
+
+func (m *LedgerManager) GetYoungestBlock() (block.Block, error) {
+	return GetYoungestBlock(m.file, m.databse)
+}
+
+func (m *LedgerManager) GetYoungestBlockHeader() (block.BlockHeader, error) {
+	return GetYoungestBlockHeader(m.file, m.databse)
+}
 
 // Adds a block to a given file, also adds metadata file about that block into a database
 //

@@ -18,7 +18,6 @@ type ILedgerManager interface {
 	GetBlockByHash(hash []byte) ([]byte, error)
 	GetYoungestBlock() (block.Block, error)
 	GetYoungestBlockHeader() (block.BlockHeader, error)
-	Airdrop(genesisBlock block.Block) error
 	Lock()
 	Unlock()
 }
