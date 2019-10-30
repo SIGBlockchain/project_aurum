@@ -9,7 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
+	"math/rand"
+ 
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
@@ -55,7 +56,7 @@ func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint6
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")
-	}
+	}               
 
 	c := Contract{
 		Version:         version,
@@ -274,4 +275,53 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 		mc.StateNonce,
 	}
 	return c, nil
+	fmt.print(c)
+}
+
+func (c *Contract) ContainsPublicKey(pk publickey.AurumPublicKey) (bool, error) {
+	if c == nil {
+		return false, errors.New("not nill")
+	}
+	
+	// encode contract's sender pub key to bytes
+	bKey, err := publickey.Encode(c.SenderPubKey)
+	if err != nil{
+		return bytes.Equal(bKey, pk.Bytes), errors.New("failed to encode sender public key")
+	}
+	// return the comparison of the above encoding with Bytes field of pk
+    return  bytes.Equal(bKey, pk.Bytes), nil
+	
+}
+
+func(c *Contract) GenerateRandomContract() (Contract){
+	b := rand.Read(make([]byte, 32))
+	
+	genSenderPubKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	
+	genrecipPubKeyHash := rand.Read(make([]byte, 32))
+	
+	genVersion := binary.LittleEndian.Uint16(b[:])
+	
+	genSigLen := binary.LittleEndian.Uint8(b[:]);
+	
+	
+	genSignature := rand.Read(make([]byte, genSigLen));
+	
+	genValue := binary.LittleEndian.Uint64(b[:])
+	
+	genStateNonce := binary.LittleEndian.Uint64(b[:])
+	
+
+	c := &Contract{
+		Version:  genVersion,
+		SenderPubKey: genSenderPubKey,
+		SigLen:  genSigLen,
+		Signature:  genSignature,
+		RecipPubKeyHash:  genrecipPubKeyHash,
+		Value:  genValue,
+		StateNonce:  genStateNonce,
+		
+	}
+	return c, nil
+
 }
