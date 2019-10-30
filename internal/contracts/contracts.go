@@ -275,12 +275,12 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 		mc.StateNonce,
 	}
 	return c, nil
-	fmt.print(c)
+	
 }
 
 
 
-funcGenerateRandomContract() Contract{
+func GenerateRandomContract() Contract{
 	b := rand.Read(make([]byte, 32))
 	
 	genSenderPubKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -291,7 +291,7 @@ funcGenerateRandomContract() Contract{
 	genValue := binary.LittleEndian.Uint64(b[:])
 	genStateNonce := binary.LittleEndian.Uint64(b[:])
 	
-	return &Contract{
+	return Contract{
 		Version:  genVersion,
 		SenderPubKey: genSenderPubKey,
 		SigLen:  genSigLen,
@@ -300,6 +300,6 @@ funcGenerateRandomContract() Contract{
 		Value:  genValue,
 		StateNonce:  genStateNonce,
 		
-	}, nil
+	},
 
 }
