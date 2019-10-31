@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/elliptic"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
-	"math/rand"
+	
  
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
@@ -280,17 +281,15 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 
 
-func GenerateRandomContract() *Contract{
-	b := rand.Read(make([]byte, 32))
-	
-	genSenderPrivKey := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	genrecipPubKeyHash := rand.Read(make([]byte, 32))
+func GenerateRandomContract() (*Contract,error){
+	b := make([]byte, 32)
+	rand.Read(b)
+	genSenderPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	genRecipPubKeyHash :=  b
 	genVersion := binary.LittleEndian.Uint16(b[:])
-	genSigLen := binary.LittleEndian.Uint8(b[:]);
-	genSignature := rand.Read(make([]byte, genSigLen));
 	genValue := binary.LittleEndian.Uint64(b[:])
 	genStateNonce := binary.LittleEndian.Uint64(b[:])
 	
-	return New(genVersion, genSenderPrivKey, genrecipPubKeyHash, genValue, genStateNonce)
+	return New(genVersion, genSenderPrivKey, genRecipPubKeyHash, genValue, genStateNonce)
 
 }
