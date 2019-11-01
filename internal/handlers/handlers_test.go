@@ -399,10 +399,7 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 			json.Unmarshal(rr.Body.Bytes(), &actualJSONBlock)
 
 			// Expected block from the test case
-			expectedJSONBlock, err := test.expectedBlock.Marshal()
-			if err != nil {
-				t.Errorf("Failed to marshal block: %s", err.Error())
-			}
+			expectedJSONBlock := test.expectedBlock.Marshal()
 
 			// Assert
 			if rr.Code != test.expectedStatus {
