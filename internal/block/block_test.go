@@ -425,10 +425,7 @@ func TestMarshal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			jsonBlock, err := test.b.Marshal()
-			if err != nil {
-				t.Errorf("Error! Marshal return an error (%v) when it shouldn't\n", err)
-			}
+			jsonBlock := test.b.Marshal()
 			if jsonBlock.Version != test.b.Version {
 				t.Errorf("Error! Marshal failed to properly encode version. Expectec: %v, got %v", test.b.Version, jsonBlock.Version)
 			}
@@ -468,7 +465,7 @@ func TestUnmarshal(t *testing.T) {
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
 	testBlock.DataLen = uint16(len(testBlock.Data))
-	testJSONBlock, _ := testBlock.Marshal()
+	testJSONBlock := testBlock.Marshal()
 
 	nilblock := JSONBlock{}
 
