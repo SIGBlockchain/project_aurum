@@ -160,10 +160,7 @@ func TestSendBlockRequest(t *testing.T) {
 		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
 	}
 	testBlock.DataLen = uint16(len(testBlock.Data))
-	expectedJsonBlock, err := testBlock.Marshal()
-	if err != nil {
-		t.Errorf("Failed to marshal a block: %s", err.Error())
-	}
+	expectedJsonBlock := testBlock.Marshal()
 
 	req, err := SendBlockRequest(&testBlock)
 	if err != nil {
