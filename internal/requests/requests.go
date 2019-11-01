@@ -77,10 +77,8 @@ func GetBlockByHashRequest(blockHash string) (*http.Request, error) {
 }
 
 func SendBlockRequest(block *block.Block) (*http.Request, error) {
-	jsonBlock, err := block.Marshal()
-	if err != nil {
-		return nil, err
-	}
+	jsonBlock := block.Marshal()
+
 	marshalledBlock, err := json.Marshal(jsonBlock)
 	if err != nil {
 		return nil, err
