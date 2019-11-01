@@ -61,7 +61,7 @@ func main() {
 			cfg.BlockProductionInterval)
 	}
 
-	if len(cfg.MintAddr) != 64 {
+	if len(cfg.MintAddr) != 64 || len(cfg.MintAddr) != 0 {
 		log.Fatalf("Failed to enter a valid 64 character hex string for mint address.\n"+
 			"Bad input: %v (len: %v)\n"+"The mint address must have 64 characters", cfg.MintAddr, len(cfg.MintAddr))
 	}
