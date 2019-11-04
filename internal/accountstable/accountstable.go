@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"sync"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
@@ -13,6 +14,86 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
+
+// structs
+
+// ATConnection struct used for
+type ATConnection struct {
+	lock   sync.RWMutex
+	dbconn *sql.DB
+}
+
+// Lock locks at for writing. If the lock is already locked for reading or writing,
+// Lock blocks until the lock is available.
+func (at *ATConnection) Lock() {
+	at.lock.Lock()
+}
+
+// Unlock unlocks at for writing. It is a run-time error if at is not locked for
+// writing on entry to Unlock.
+func (at *ATConnection) Unlock() {
+	at.lock.Unlock()
+}
+
+// InsertAccountIntoAccountBalanceTable is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) InsertAccountIntoAccountBalanceTable(pkhash []byte, value uint64) error {
+	return InsertAccountIntoAccountBalanceTable(at.dbconn, pkhash, value)
+}
+
+// ExchangeAndUpdateAccounts is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) ExchangeAndUpdateAccounts(c *contracts.Contract) error {
+	return ExchangeAndUpdateAccounts(at.dbconn, c)
+}
+
+// MintAurumUpdateAccountBalanceTable is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) MintAurumUpdateAccountBalanceTable(pkhash []byte, value uint64) error {
+	return MintAurumUpdateAccountBalanceTable(at.dbconn, pkhash, value)
+}
+
+// GetBalance is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) GetBalance(pkhash []byte) (uint64, error) {
+	at.Lock()
+	bal, err := GetBalance(at.dbconn, pkhash)
+	at.Unlock()
+	if err != nil {
+		return 0, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// GetStateNonce is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) GetStateNonce(pkhash []byte) (uint64, error) {
+	at.Lock()
+	bal, err := GetStateNonce(at.dbconn, pkhash)
+	at.Unlock()
+	if err != nil {
+		return 0, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// GetAccountInfo is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error) {
+	at.Lock()
+	bal, err := GetAccountInfo(at.dbconn, pkhash)
+	at.Unlock()
+	if err != nil {
+		return nil, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// UpdateAccountTable is called from receiver in order to enforce interface
+// TODO this comment should be more descriptive and specific
+func (at *ATConnection) UpdateAccountTable(b *block.Block) error {
+	return UpdateAccountTable(at.dbconn, b)
+}
 
 /*
 Insert into account balance table
