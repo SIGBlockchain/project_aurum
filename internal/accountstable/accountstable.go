@@ -17,82 +17,75 @@ import (
 
 // structs
 
-// ATConnection struct used for
-type ATConnection struct {
+// Connection struct used receiver call on a sql.DB with mutex support
+type Connection struct {
 	lock   sync.RWMutex
 	dbconn *sql.DB
 }
 
-// Lock locks at for writing. If the lock is already locked for reading or writing,
+// Lock locks at for writing. If the lock is already locked for writing,
 // Lock blocks until the lock is available.
-func (at *ATConnection) Lock() {
-	at.lock.Lock()
+func (c *Connection) Lock() {
+	c.lock.Lock()
 }
 
 // Unlock unlocks at for writing. It is a run-time error if at is not locked for
 // writing on entry to Unlock.
-func (at *ATConnection) Unlock() {
-	at.lock.Unlock()
+func (c *Connection) Unlock() {
+	c.lock.Unlock()
 }
 
-// InsertAccountIntoAccountBalanceTable is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) InsertAccountIntoAccountBalanceTable(pkhash []byte, value uint64) error {
-	return InsertAccountIntoAccountBalanceTable(at.dbconn, pkhash, value)
+// InsertAccountIntoAccountBalanceTable calls Connection.InsertAccountIntoAccountBalanaceTable using struct connection
+func (c *Connection) InsertAccountIntoAccountBalanceTable(pkhash []byte, value uint64) error {
+	return InsertAccountIntoAccountBalanceTable(c.dbconn, pkhash, value)
 }
 
-// ExchangeAndUpdateAccounts is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) ExchangeAndUpdateAccounts(c *contracts.Contract) error {
-	return ExchangeAndUpdateAccounts(at.dbconn, c)
+// ExchangeAndUpdateAccounts calls Connection.ExchangeAndUpdateAccounts using struct connection
+func (c *Connection) ExchangeAndUpdateAccounts(contract *contracts.Contract) error {
+	return ExchangeAndUpdateAccounts(c.dbconn, contract)
 }
 
-// MintAurumUpdateAccountBalanceTable is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) MintAurumUpdateAccountBalanceTable(pkhash []byte, value uint64) error {
-	return MintAurumUpdateAccountBalanceTable(at.dbconn, pkhash, value)
+// MintAurumUpdateAccountBalanceTable calls Connection.MintAurumUpdateAccountBalanceTable using struct connection
+func (c *Connection) MintAurumUpdateAccountBalanceTable(pkhash []byte, value uint64) error {
+	return MintAurumUpdateAccountBalanceTable(c.dbconn, pkhash, value)
 }
 
-// GetBalance is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) GetBalance(pkhash []byte) (uint64, error) {
-	at.Lock()
-	bal, err := GetBalance(at.dbconn, pkhash)
-	at.Unlock()
+// GetBalance locks access and calls Connection.GetBalance using struct connection
+func (c *Connection) GetBalance(pkhash []byte) (uint64, error) {
+	c.Lock()
+	bal, err := GetBalance(c.dbconn, pkhash)
+	c.Unlock()
 	if err != nil {
 		return 0, errors.New("cannot access balance: " + err.Error())
 	}
 	return bal, nil
 }
 
-// GetStateNonce is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) GetStateNonce(pkhash []byte) (uint64, error) {
-	at.Lock()
-	bal, err := GetStateNonce(at.dbconn, pkhash)
-	at.Unlock()
+// GetStateNonce calls Connection.GetStateNonce using struct connection
+func (c *Connection) GetStateNonce(pkhash []byte) (uint64, error) {
+	c.Lock()
+	bal, err := GetStateNonce(c.dbconn, pkhash)
+	c.Unlock()
 	if err != nil {
 		return 0, errors.New("cannot access balance: " + err.Error())
 	}
 	return bal, nil
 }
 
-// GetAccountInfo is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error) {
-	at.Lock()
-	bal, err := GetAccountInfo(at.dbconn, pkhash)
-	at.Unlock()
+// GetAccountInfo calls Connection.GetAccountInfo using struct connection
+func (c *Connection) GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error) {
+	c.Lock()
+	bal, err := GetAccountInfo(c.dbconn, pkhash)
+	c.Unlock()
 	if err != nil {
 		return nil, errors.New("cannot access balance: " + err.Error())
 	}
 	return bal, nil
 }
 
-// UpdateAccountTable is called from receiver in order to enforce interface
-// TODO this comment should be more descriptive and specific
-func (at *ATConnection) UpdateAccountTable(b *block.Block) error {
-	return UpdateAccountTable(at.dbconn, b)
+// UpdateAccountTable calls Connection.UpdateAccountTable using struct connection
+func (c *Connection) UpdateAccountTable(b *block.Block) error {
+	return UpdateAccountTable(c.dbconn, b)
 }
 
 /*
