@@ -23,13 +23,13 @@ type Connection struct {
 	dbconn *sql.DB
 }
 
-// Lock locks at for writing. If the lock is already locked for writing,
+// Lock locks Connection for writing. If the lock is already locked for writing,
 // Lock blocks until the lock is available.
 func (c *Connection) Lock() {
 	c.lock.Lock()
 }
 
-// Unlock unlocks at for writing. It is a run-time error if at is not locked for
+// Unlock unlocks Connection for writing. It is a run-time error if at is not locked for
 // writing on entry to Unlock.
 func (c *Connection) Unlock() {
 	c.lock.Unlock()
