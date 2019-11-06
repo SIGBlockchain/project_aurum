@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/elliptic"
+	
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -281,15 +281,29 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 
 
-func GenerateRandomContract() (*Contract,error){
+func GenerateRandomContract() (*Contract, error){
 	b := make([]byte, 32)
-	rand.Read(b)
-	genSenderPrivKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	genRecipPubKeyHash :=  b
-	genVersion := binary.LittleEndian.Uint16(b[:])
-	genValue := binary.LittleEndian.Uint64(b[:])
-	genStateNonce := binary.LittleEndian.Uint64(b[:])
+	_, err :=rand.Read(b)
 	
-	return New(genVersion, genSenderPrivKey, genRecipPubKeyHash, genValue, genStateNonce)
-
+	genRecipPubKeyHash :=  b
+	genVersion := binary.LittleEndian.Uint16(b[0:])
+	genValue := binary.LittleEndian.Uint64(b[1:])
+	genStateNonce := binary.LittleEndian.Uint64(b[2:])
+	//checks if rand.Read return nil. if err equals nil
+	if err != nil {
+		fmt.Println("error:", err) 
+		return nil, err
+	}
+	
+	c:= &Contract{
+		RecipPubKeyHash: genRecipPubKeyHash,
+		Version: genVersion,
+		Value: genValue,
+		StateNonce: genStateNonce,
+	}
+	return c, nil
+	
 }
+	
+
+
