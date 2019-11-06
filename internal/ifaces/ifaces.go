@@ -1,6 +1,10 @@
 package ifaces
 
-import "github.com/SIGBlockchain/project_aurum/internal/block"
+import (
+	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
+	"github.com/SIGBlockchain/project_aurum/internal/block"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
+)
 
 type IBlockFetcher interface {
 	FetchBlockByHeight(uint64) ([]byte, error)
@@ -18,6 +22,19 @@ type ILedgerManager interface {
 	GetBlockByHash(hash []byte) ([]byte, error)
 	GetYoungestBlock() (block.Block, error)
 	GetYoungestBlockHeader() (block.BlockHeader, error)
+	Lock()
+	Unlock()
+}
+
+// IAccountsTableConnection is used for mocking sql.DB functions
+type IAccountsTableConnection interface {
+	InsertAccountIntoAccountBalanceTable(pkhash []byte, value uint64) error
+	ExchangeAndUpdateAccounts(c *contracts.Contract) error
+	MintAurumUpdateAccountBalanceTable(pkhash []byte, value uint64) error
+	GetBalance(pkhash []byte) (uint64, error)
+	GetStateNonce(pkhash []byte) (uint64, error)
+	GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error)
+	UpdateAccountTable(b *block.Block) error
 	Lock()
 	Unlock()
 }
