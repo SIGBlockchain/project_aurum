@@ -289,7 +289,7 @@ func GenerateRandomContract() (*Contract, error){
 	genVersion := binary.LittleEndian.Uint16(b[0:])
 	genValue := binary.LittleEndian.Uint64(b[1:])
 	genStateNonce := binary.LittleEndian.Uint64(b[2:])
-	//checks if rand.Read return nil. if err equals nil return contract
+	
 	
 	
 	c:= &Contract{
