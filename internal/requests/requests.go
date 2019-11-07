@@ -60,7 +60,7 @@ func GetBlockByHeightRequest(blockHeight uint64) (*http.Request, error) {
 		return nil, errors.New("Failed to make new request:\n" + err.Error())
 	}
 	values := req.URL.Query()
-	values.Add("h", strconv.Itoa(int(blockHeight)))
+	values.Add("h", strconv.FormatUint(blockHeight, 10))
 	req.URL.RawQuery = values.Encode()
 	return req, nil
 }
@@ -77,10 +77,8 @@ func GetBlockByHashRequest(blockHash string) (*http.Request, error) {
 }
 
 func SendBlockRequest(block *block.Block) (*http.Request, error) {
-	jsonBlock, err := block.Marshal()
-	if err != nil {
-		return nil, err
-	}
+	jsonBlock := block.Marshal()
+
 	marshalledBlock, err := json.Marshal(jsonBlock)
 	if err != nil {
 		return nil, err

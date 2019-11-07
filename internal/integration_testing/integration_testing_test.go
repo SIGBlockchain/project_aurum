@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/requests"
 )
@@ -16,7 +17,7 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 	// arrange
 	cli := new(http.Client)
 	walletAddress := "23aafe84f813bd5093599691ea5731425effe1b8c3f7c1e3c049012558160b8c"
-	var balance uint64 = 25000000
+	var balance uint64 = 500000000000000 / 2
 	var stateNonce uint64 = 0
 	req, err := requests.NewAccountInfoRequest("localhost:35000", walletAddress)
 	if err != nil {
@@ -29,13 +30,28 @@ func TestAccountInfoRequestIntegration(t *testing.T) {
 	}{
 		"", 0, 0,
 	}
+	var resp *http.Response
 
 	// act
-	resp, err := cli.Do(req)
+	resp, err = cli.Do(req)
 
 	// assert
 	if err != nil {
-		t.Errorf(err.Error())
+		retries := 0
+		for {
+			if retries == 2 {
+				t.Errorf(err.Error())
+				t.FailNow()
+			}
+			resp, err = cli.Do(req)
+			if err != nil {
+				retries++
+				time.Sleep(time.Second)
+			} else {
+				break
+			}
+		}
+
 	}
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Wrong status code. Got %v wanted %v", resp.StatusCode, http.StatusOK)

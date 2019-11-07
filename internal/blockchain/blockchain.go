@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -18,6 +19,47 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
+
+type LedgerManager struct {
+	file     *os.File
+	database *sql.DB
+	mutex    sync.RWMutex
+}
+
+func (m *LedgerManager) Lock() {
+	m.mutex.Lock()
+}
+
+func (m *LedgerManager) Unlock() {
+	m.mutex.Unlock()
+}
+
+func (m *LedgerManager) AddBlock(b block.Block) error {
+	m.Lock()
+	err := AddBlock(b, m.file, m.database)
+	m.Unlock()
+	return err
+}
+
+func (m *LedgerManager) GetBlockByHeight(height int) ([]byte, error) {
+	return GetBlockByHeight(height, m.file, m.database)
+}
+
+func (m *LedgerManager) GetBlockByPosition(position int) ([]byte, error) {
+	return GetBlockByPosition(position, m.file, m.database)
+}
+
+func (m *LedgerManager) GetBlockByHash(hash []byte) ([]byte, error) {
+	return GetBlockByHash(hash, m.file, m.database)
+}
+
+func (m *LedgerManager) GetYoungestBlock() (block.Block, error) {
+	return GetYoungestBlock(m.file, m.database)
+}
+
+func (m *LedgerManager) GetYoungestBlockHeader() (block.BlockHeader, error) {
+	return GetYoungestBlockHeader(m.file, m.database)
+}
 
 // Adds a block to a given file, also adds metadata file about that block into a database
 //
@@ -86,7 +128,7 @@ func GetBlockByHeight(height int, file *os.File, db *sql.DB) ([]byte, error) {
 	bl := make([]byte, blockSize)
 	_, err = io.ReadAtLeast(file, bl, blockSize)
 	if err != nil {
-		return nil, errors.New("Unable to read from blocks position to it's end")
+		return nil, errors.New("Unable to read from blocks position to it's end: " + err.Error())
 	}
 
 	return bl, nil
@@ -210,7 +252,7 @@ Calls GetYoungestBlock and returns a Header version of the result
 func GetYoungestBlockHeader(file *os.File, metadata *sql.DB) (block.BlockHeader, error) {
 	latestBlock, err := GetYoungestBlock(file, metadata)
 	if err != nil {
-		return block.BlockHeader{}, errors.New("Failed to retreive youngest block")
+		return block.BlockHeader{}, errors.New("Failed to retreive youngest block: " + err.Error())
 	}
 
 	latestBlockHeader := block.BlockHeader{
@@ -363,11 +405,11 @@ func insertMetadata(db *sql.DB, b *block.Block, bLen uint32, pos int64) error {
 	return nil
 }
 
-func Airdrop(blockchainz string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
+func Airdrop(blockchain string, metadata string, accountBalanceTable string, genesisBlock block.Block) error {
 	// create blockchain file
-	file, err := os.Create(blockchainz)
+	file, err := os.Create(blockchain)
 	if err != nil {
-		return errors.New("Failed to create blockchain file")
+		return errors.New("Failed to create blockchain file: " + err.Error())
 	}
 	file.Close()
 
@@ -391,7 +433,7 @@ func Airdrop(blockchainz string, metadata string, accountBalanceTable string, ge
 	}
 
 	// open ledger file
-	ledgerFile, err := os.OpenFile(blockchainz, os.O_APPEND|os.O_WRONLY, 0644)
+	ledgerFile, err := os.OpenFile(blockchain, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return errors.New("Failed to open ledger file")
 	}

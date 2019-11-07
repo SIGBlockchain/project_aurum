@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoadConfigurationFile(t *testing.T) {
-	cfg := Config{1, 20, "5000", "40s", false}
+	cfg := Config{1, 20, "5000", "40s", false, ""}
 	marshalledCfg, err := json.Marshal(cfg)
 	if err != nil {
 		t.Errorf("failed to marshall configuration struct: %v", err)

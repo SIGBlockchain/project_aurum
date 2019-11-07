@@ -414,7 +414,7 @@ func TestMarshal(t *testing.T) {
 		b    Block
 	}{
 		{
-			"block",
+			"Good JSONBlock",
 			testBlock,
 		},
 		{
@@ -425,10 +425,7 @@ func TestMarshal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			jsonBlock, err := test.b.Marshal()
-			if err != nil {
-				t.Errorf("Error! Marshal return an error (%v) when it shouldn't\n", err)
-			}
+			jsonBlock := test.b.Marshal()
 			if jsonBlock.Version != test.b.Version {
 				t.Errorf("Error! Marshal failed to properly encode version. Expectec: %v, got %v", test.b.Version, jsonBlock.Version)
 			}
@@ -452,6 +449,147 @@ func TestMarshal(t *testing.T) {
 					if jsonBlock.Data[i] != hex.EncodeToString(d) {
 						t.Errorf("Failed to encode index %d of data. Exepect: %v, got %v", i, d, jsonBlock.Data[i])
 					}
+				}
+			}
+		})
+	}
+}
+
+func TestUnmarshal(t *testing.T) {
+	testBlock := Block{
+		Version:        3,
+		Height:         300,
+		PreviousHash:   hashing.New([]byte("0x34")),
+		MerkleRootHash: hashing.New([]byte("0x34")),
+		Timestamp:      time.Now().UnixNano(),
+		Data:           [][]byte{{12, 3}, {132, 90, 23}, {23}},
+	}
+	testBlock.DataLen = uint16(len(testBlock.Data))
+	testJSONBlock := testBlock.Marshal()
+
+	nilblock := JSONBlock{}
+
+	tests := []struct {
+		name string
+		b    JSONBlock
+	}{
+		{
+			"block",
+			testJSONBlock,
+		},
+		{
+			"nil block",
+			nilblock,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			block, err := test.b.Unmarshal()
+			if err != nil {
+				t.Errorf("unmarshal returned with error: %v", err)
+			}
+			if block.Version != test.b.Version {
+				t.Errorf("versions do not match - expected: %v, got %v", test.b.Version, block.Version)
+			}
+			if block.Height != test.b.Height {
+				t.Errorf("heights do not match - expected: %v, got %v", test.b.Height, block.Height)
+			}
+			if block.Timestamp != test.b.Timestamp {
+				t.Errorf("timestamps do not match - expected: %v, got %v", test.b.Timestamp, block.Timestamp)
+			}
+			decodePreviousHash, _ := hex.DecodeString(test.b.PreviousHash)
+			if !bytes.Equal(block.PreviousHash, decodePreviousHash) {
+				t.Errorf("previousHashes do not match - expected: %v, got %v", decodePreviousHash, block.PreviousHash)
+			}
+			decodeMerkleRootHash, _ := hex.DecodeString(test.b.MerkleRootHash)
+			if !bytes.Equal(block.MerkleRootHash, decodeMerkleRootHash) {
+				t.Errorf("merkleRootHashes do not match - expected: %v, got %v", decodeMerkleRootHash, block.PreviousHash)
+			}
+			if block.DataLen != test.b.DataLen {
+				t.Errorf("datalens do not match - expected: %v, got %v", test.b.DataLen, block.DataLen)
+			}
+			if test.b.Data != nil {
+				for i, d := range test.b.Data {
+					testJSONBlockData, _ := hex.DecodeString(d)
+					if !bytes.Equal(block.Data[i], testJSONBlockData) {
+						t.Errorf("failed to decode index %d of data. Exepect: %v, got %v", i, d, block.Data[i])
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestExtractContractsFromBlock(t *testing.T) {
+	// Arrange
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	testContracts := []contracts.Contract{{
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           1000000000,
+		StateNonce:      1,
+	}, {
+
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           23,
+		StateNonce:      1,
+	}, {
+
+		Version:         2,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           48,
+		StateNonce:      1,
+	}, {
+
+		Version:         1,
+		SenderPubKey:    &senderPrivateKey.PublicKey,
+		SigLen:          0,
+		Signature:       nil,
+		RecipPubKeyHash: hashing.New(encodedSenderPublicKey),
+		Value:           20,
+		StateNonce:      1,
+	}}
+	var nilContract []contracts.Contract
+	tests := []struct {
+		name    string
+		c       []contracts.Contract
+		wantErr bool
+	}{
+		{
+			"Full of contracts",
+			testContracts,
+			false,
+		},
+		{
+			"No contracts",
+			nilContract,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testblock, _ := New(1, 1, nil, tt.c)
+			// Act
+			resultContract, err := ExtractContractsFromBlock(testblock)
+			// Assert
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Error: ExtractContractsFromBlock() returned %v for errors. Wanted: %v", err, tt.wantErr)
+			}
+			for i, c := range resultContract {
+				if !c.Equals(testContracts[i]) {
+					t.Errorf("extracted contracts are not equal!")
 				}
 			}
 		})

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"go/build"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,12 +11,15 @@ import (
 	"unicode"
 
 	"github.com/SIGBlockchain/project_aurum/internal/config"
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
 )
 
 func main() {
 	//open configuration file
-	configFile, err := os.Open("../config.json")
+	gopath := build.Default.GOPATH
+	binDir := gopath + constants.ProjectRoot + "bin/"
+	configFile, err := os.Open(binDir + constants.ConfigurationFile)
 	if err != nil {
 		log.Fatal("Failed to open configuration file : " + err.Error())
 	}
@@ -34,6 +38,7 @@ func main() {
 	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
 	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
 	flag.BoolVar(&cfg.Localhost, "localhost", cfg.Localhost, "syntax: -localhost=/boolean here/")
+	flag.StringVar(&cfg.MintAddr, "mint", cfg.MintAddr, "enter a mint address (64 characters hex string)")
 
 	//read flags
 	flag.Parse()
@@ -56,13 +61,18 @@ func main() {
 			cfg.BlockProductionInterval)
 	}
 
+	if len(cfg.MintAddr) != 64 && len(cfg.MintAddr) != 0 {
+		log.Fatalf("Failed to enter a valid 64 character hex string for mint address.\n"+
+			"Bad input: %v (len: %v)\n"+"The mint address must have 64 characters", cfg.MintAddr, len(cfg.MintAddr))
+	}
+
 	//write into configuration file
 	marshalledJSON, err := json.Marshal(cfg)
 	if err != nil {
 		log.Fatalf("Failed to marshal new config: %v", err)
 	}
 
-	if err := ioutil.WriteFile("../config.json", marshalledJSON, 0644); err != nil {
+	if err := ioutil.WriteFile(binDir+constants.ConfigurationFile, marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
 }

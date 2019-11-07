@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/SIGBlockchain/project_aurum/internal/block"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/ifaces"
 	"github.com/SIGBlockchain/project_aurum/internal/pendingpool"
@@ -111,7 +112,8 @@ func HandleContractRequest(dbConn *sql.DB, contractChannel chan contracts.Contra
 // HandleGetJSONBLockByHeight uses a Reader receiver and returns
 func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		height, err := strconv.Atoi(r.URL.Query().Get("h"))
+		w.Header().Set("Content-Type", "application/json")
+		height, err := strconv.ParseUint(r.URL.Query().Get("h"), 10, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
@@ -123,7 +125,15 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 			io.WriteString(w, err.Error())
 			return
 		}
+		b := block.Deserialize(serializedBlock)
+		jsonBlock := b.Marshal()
+		marshalledBlock, err := json.Marshal(jsonBlock)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, err.Error())
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write(serializedBlock)
+		io.WriteString(w, string(marshalledBlock))
 	}
 }
