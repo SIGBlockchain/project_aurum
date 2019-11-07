@@ -283,23 +283,21 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 func GenerateRandomContract() (*Contract, error){
 	b := make([]byte, 32)
-	_, err :=rand.Read(b)
+	_, nil :=rand.Read(b)
 	
 	genRecipPubKeyHash :=  b
 	genVersion := binary.LittleEndian.Uint16(b[0:])
 	genValue := binary.LittleEndian.Uint64(b[1:])
 	genStateNonce := binary.LittleEndian.Uint64(b[2:])
-	//checks if rand.Read return nil. if err equals nil
-	if err != nil {
-		fmt.Println("error:", err) 
-		return nil, err
-	}
+	//checks if rand.Read return nil. if err equals nil return contract
+	
 	
 	c:= &Contract{
 		RecipPubKeyHash: genRecipPubKeyHash,
 		Version: genVersion,
 		Value: genValue,
 		StateNonce: genStateNonce,
+	
 	}
 	return c, nil
 	
