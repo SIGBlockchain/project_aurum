@@ -3,8 +3,7 @@ package contracts
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"math/rand"
-	
+	mrand "math/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -285,11 +284,11 @@ func GenerateRandomContract() (*Contract){
 	min := 1
 	maxVer := 65535
 	b := make([]byte, 32)
-	rand.Read(b)
+	mrand.Read(b)
 	genRecipPubKeyHash := b 
-	genVersion := rand.Intn(maxVer - min) + min
-	genValue := rand.Uint64()+uint64(min)
-	genStateNonce := rand.Uint64()+uint64(min)
+	genVersion := mrand.Intn(maxVer - min) + min
+	genValue := mrand.Uint64()+uint64(min)
+	genStateNonce := mrand.Uint64()+uint64(min)
 	
 	
 	
