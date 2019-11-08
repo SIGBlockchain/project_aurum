@@ -3,6 +3,7 @@ package contracts
 import (
 	"bytes"
 	"crypto/ecdsa"
+	crand "crypto/rand"
 	mrand "math/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -175,7 +176,7 @@ func (c *Contract) Sign(sender *ecdsa.PrivateKey) error {
 		return errors.New("Failed to serialize contract")
 	}
 	hashedContract := hashing.New(serializedTestContract)
-	c.Signature, _ = sender.Sign(rand.Reader, hashedContract, nil)
+	c.Signature, _ = sender.Sign(crand.Reader, hashedContract, nil)
 	c.SigLen = uint8(len(c.Signature))
 	return nil
 }
