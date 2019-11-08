@@ -281,9 +281,9 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 
 
-func GenerateRandomContract() (*Contract, error){
+func GenerateRandomContract() (*Contract){
 	b := make([]byte, 32)
-	_, nil :=rand.Read(b)
+	rand.Read(b)
 	
 	genRecipPubKeyHash :=  b
 	genVersion := binary.LittleEndian.Uint16(b[0:])
@@ -299,7 +299,7 @@ func GenerateRandomContract() (*Contract, error){
 		StateNonce: genStateNonce,
 	
 	}
-	return c, nil
+	return c
 	
 }
 	
