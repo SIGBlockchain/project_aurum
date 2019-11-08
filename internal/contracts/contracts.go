@@ -3,7 +3,7 @@ package contracts
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/rand"
+	"math/rand"
 	
 	"encoding/binary"
 	"encoding/hex"
@@ -282,19 +282,20 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 
 
 func GenerateRandomContract() (*Contract){
+	min := 1
+	maxVer := 65535
 	b := make([]byte, 32)
 	rand.Read(b)
-	
-	genRecipPubKeyHash :=  b
-	genVersion := binary.LittleEndian.Uint16(b[0:])
-	genValue := binary.LittleEndian.Uint64(b[1:])
-	genStateNonce := binary.LittleEndian.Uint64(b[2:])
+	genRecipPubKeyHash := b 
+	genVersion := rand.Intn(maxVer - min) + min
+	genValue := rand.Uint64()+uint64(min)
+	genStateNonce := rand.Uint64()+uint64(min)
 	
 	
 	
 	c:= &Contract{
 		RecipPubKeyHash: genRecipPubKeyHash,
-		Version: genVersion,
+		Version: uint16(genVersion),
 		Value: genValue,
 		StateNonce: genStateNonce,
 	
