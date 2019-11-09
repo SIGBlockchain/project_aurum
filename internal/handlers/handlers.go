@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -136,4 +137,9 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(marshalledBlock))
 	}
+}
+
+// GetBlockFromBody will convert the body of a reponse handler and return a Block
+func GetBlockFromResponse(r *http.Response) (block.Block, error) {
+	return block.Block{}, errors.New("Function not implemented")
 }
