@@ -141,5 +141,10 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 
 // GetBlockFromBody will convert the body of a reponse handler and return a Block
 func GetBlockFromResponse(r *http.Response) (block.Block, error) {
-	return block.Block{}, errors.New("Function not implemented")
+	if r.Body == nil {
+		return block.Block{}, errors.New("Body is equal to nil")
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+	return block.Deserialize(buf.Bytes()), nil
 }
