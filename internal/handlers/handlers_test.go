@@ -429,8 +429,8 @@ func TestGetBlockFromResponse(t *testing.T) {
 			block.Block{
 				Version:        3,
 				Height:         584,
-				PreviousHash:   hashing.New([]byte{13, 15, 222, 55, 6}),
-				MerkleRootHash: hashing.New([]byte{0, 255, 23, 65, 10}),
+				PreviousHash:   hashing.New([]byte("0x34")),
+				MerkleRootHash: hashing.New([]byte("0x34")),
 				Timestamp:      time.Now().UnixNano(),
 				Data:           [][]byte{{12, 13}, {232, 190, 123}, {123}},
 				DataLen:        3,
@@ -443,7 +443,7 @@ func TestGetBlockFromResponse(t *testing.T) {
 			"Block not found",
 			block.Block{},
 			1043,
-			errors.New("This block was not found"),
+			errors.New("StatusBadRequest"),
 			http.StatusBadRequest,
 		},
 	}
@@ -472,7 +472,7 @@ func TestGetBlockFromResponse(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			// Actual block that is recorded in the response
-			actualBlock := GetBlockFromResponse(rr.Result())
+			actualBlock, err := GetBlockFromResponse(rr.Result())
 
 			// Assert
 			if !reflect.DeepEqual(test.expectedBlock, actualBlock) {

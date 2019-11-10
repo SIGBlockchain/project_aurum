@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -142,7 +143,10 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 // GetBlockFromResponse will convert the body of a reponse handler and return a Block
 // Note - per the documentation on the response struct, the body is never nil
 // TODO how do we test the response is valid if the body is never nil?
-func GetBlockFromResponse(r *http.Response) block.Block {
+func GetBlockFromResponse(r *http.Response) (block.Block, error) {
+	if r.StatusCode == http.StatusBadRequest {
+		return block.Block{}, errors.New("StatusBadRequest")
+	}
 	var requestBody block.JSONBlock
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r.Body)
@@ -150,5 +154,5 @@ func GetBlockFromResponse(r *http.Response) block.Block {
 
 	fmt.Printf("%v", requestBody)
 	bodyBlock, _ := requestBody.Unmarshal()
-	return bodyBlock
+	return bodyBlock, nil
 }
