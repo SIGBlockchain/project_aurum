@@ -466,10 +466,7 @@ func TestGetBlockFromResponse(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			// Actual block that is recorded in the response
-			actualBlock, err := GetBlockFromResponse(rr.Result())
-			if err != nil {
-				t.Error(err)
-			}
+			actualBlock := GetBlockFromResponse(rr.Result())
 
 			// Assert
 			if !reflect.DeepEqual(test.expectedBlock, actualBlock) {
