@@ -84,23 +84,3 @@ func TestDumpJSON(t *testing.T) {
 		t.Errorf("Got %v, wanted %v", writer.TestFile, expected)
 	}
 }
-type nilInterface interface { 
-	M() 
-}  
-
-func TestLoadJSON(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "jsontest") 
-	var testNilInterface nilInterface 
-	file, err := os.Open("tmpfile") 
-	if err != nil { 
-		t.Errorf("failed to open file %v", err) 
-	} 
- 
-	LoadJSON(file, &testNilInterface) 
-	if testNilInterface == nil { 
-		t.Errorf("empty interface") 
-	} 
- 
-	file.Close() 
-	os.Remove(tmpfile.Name())  
-} 
