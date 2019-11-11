@@ -291,17 +291,13 @@ func GenerateRandomContract() (*Contract){
 	genValue := mrand.Uint64()+uint64(min)
 	genStateNonce := mrand.Uint64()+uint64(min)
 	
-	
-	
 	c:= &Contract{
 		RecipPubKeyHash: genRecipPubKeyHash,
 		Version: uint16(genVersion),
 		Value: genValue,
 		StateNonce: genStateNonce,
-	
 	}
 	return c
-	
 }
 	
 
