@@ -215,7 +215,7 @@ func HashBlockHeader(b BlockHeader) []byte {
 	return hashing.New(concatenated)
 }
 
-func (b *Block) Marshal() (JSONBlock, error) {
+func (b *Block) Marshal() JSONBlock {
 	jsonBlock := JSONBlock{
 		Version:        b.Version,
 		Height:         b.Height,
@@ -229,7 +229,7 @@ func (b *Block) Marshal() (JSONBlock, error) {
 		jsonBlock.Data[i] = hex.EncodeToString(d)
 	}
 
-	return jsonBlock, nil
+	return jsonBlock
 }
 
 // Unmarshal converts a JSONBlock to a Block

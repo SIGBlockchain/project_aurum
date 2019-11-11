@@ -18,18 +18,23 @@ type AurumPublicKey struct {
 	Hash  []byte
 }
 
+// NewFromPublic returns an AurumPublicKey given a ecdsa.PublicKey
+func NewFromPublic(key *ecdsa.PublicKey) (AurumPublicKey, error) {
+	bytes, err := Encode(key)
+	if err != nil {
+		return AurumPublicKey{}, errors.New("Failed to encode public key inside of private key")
+	}
+	return AurumPublicKey{Key: key, Bytes: bytes, Hex: hex.EncodeToString(bytes), Hash: hashing.New(bytes)}, nil
+}
+
+// New returns an AurumPublicKey given a ecdsa.PrivateKey
 func New(key *ecdsa.PrivateKey) (AurumPublicKey, error) {
 	//try type assertion
 	k, ok := key.Public().(*ecdsa.PublicKey)
 	if !ok {
 		return AurumPublicKey{}, errors.New("Cannot extract a ecdsa public key from private key given")
 	}
-	bytes, err := Encode(k)
-	if err != nil {
-		return AurumPublicKey{}, errors.New("Failed to encode public key inside of private key")
-	}
-
-	return AurumPublicKey{Key: k, Bytes: bytes, Hex: hex.EncodeToString(bytes), Hash: hashing.New(bytes)}, nil
+	return NewFromPublic(k)
 }
 
 // Encode returns the PEM-Encoded byte slice from a given public key or a non-nil error if fail

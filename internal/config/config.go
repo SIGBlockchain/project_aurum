@@ -15,6 +15,7 @@ type Config struct {
 	Port                    string
 	BlockProductionInterval string
 	Localhost               bool
+	MintAddr                string
 }
 
 func LoadConfiguration() (*Config, error) {

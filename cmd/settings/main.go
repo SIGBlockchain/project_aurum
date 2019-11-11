@@ -38,6 +38,7 @@ func main() {
 	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
 	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
 	flag.BoolVar(&cfg.Localhost, "localhost", cfg.Localhost, "syntax: -localhost=/boolean here/")
+	flag.StringVar(&cfg.MintAddr, "mint", cfg.MintAddr, "enter a mint address (64 characters hex string)")
 
 	//read flags
 	flag.Parse()
@@ -58,6 +59,11 @@ func main() {
 		log.Fatalf("Failed to enter a valid interval suffix\nBad input: %v\n"+
 			"Format should be digits and unit with no space e.g. 1h or 20s",
 			cfg.BlockProductionInterval)
+	}
+
+	if len(cfg.MintAddr) != 64 && len(cfg.MintAddr) != 0 {
+		log.Fatalf("Failed to enter a valid 64 character hex string for mint address.\n"+
+			"Bad input: %v (len: %v)\n"+"The mint address must have 64 characters", cfg.MintAddr, len(cfg.MintAddr))
 	}
 
 	//write into configuration file

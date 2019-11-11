@@ -126,12 +126,7 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 			return
 		}
 		b := block.Deserialize(serializedBlock)
-		jsonBlock, err := b.Marshal()
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			io.WriteString(w, err.Error())
-			return
-		}
+		jsonBlock := b.Marshal()
 		marshalledBlock, err := json.Marshal(jsonBlock)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
