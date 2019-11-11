@@ -275,7 +275,7 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 		mc.Value,
 		mc.StateNonce,
 	}
-	return c, nil
+	return c, nil 
 	
 }
 
