@@ -414,3 +414,71 @@ func TestGetJSONBlockByHeight(t *testing.T) {
 
 	}
 }
+
+func TestGetBlockFromResponse(t *testing.T) {
+	// Arrange
+	tt := []struct {
+		name           string
+		expectedBlock  block.Block
+		height         uint64
+		e              error
+		expectedStatus int
+	}{
+		{
+			"Valid Block",
+			block.Block{
+				Version:        3,
+				Height:         584,
+				PreviousHash:   hashing.New([]byte("0x34")),
+				MerkleRootHash: hashing.New([]byte("0x34")),
+				Timestamp:      time.Now().UnixNano(),
+				Data:           [][]byte{{12, 13}, {232, 190, 123}, {123}},
+				DataLen:        3,
+			},
+			584,
+			nil,
+			http.StatusOK,
+		},
+		{
+			"Block not found",
+			block.Block{},
+			1043,
+			errors.New("StatusBadRequest"),
+			http.StatusBadRequest,
+		},
+	}
+	// Create the mock object
+	m := mock.MockBlockFetcher{}
+
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			// Configure the mock object
+			// When the Mock object called "FetchBlockByHeight" given the test case's height,
+			// Return that test case's serialized block and corresponding expected error
+			m.When("FetchBlockByHeight").Given(test.height).Return(test.expectedBlock.Serialize(), test.e)
+
+			// Set up the handler
+			handler := http.HandlerFunc(HandleGetJSONBlockByHeight(m))
+
+			// Form the request
+			req, err := requests.GetBlockByHeightRequest(test.height)
+			if err != nil {
+				t.Error(err)
+			}
+			// Set up the recorder for the response
+			rr := httptest.NewRecorder()
+
+			// Serve the request
+			handler.ServeHTTP(rr, req)
+
+			// Actual block that is recorded in the response
+			actualBlock, err := GetBlockFromResponse(rr.Result())
+
+			// Assert
+			if !test.expectedBlock.Equals(actualBlock) {
+				t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", test.expectedBlock, actualBlock)
+			}
+		})
+
+	}
+}
