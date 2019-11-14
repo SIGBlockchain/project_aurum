@@ -475,7 +475,7 @@ func TestGetBlockFromResponse(t *testing.T) {
 			actualBlock, err := GetBlockFromResponse(rr.Result())
 
 			// Assert
-			if !reflect.DeepEqual(test.expectedBlock, actualBlock) {
+			if !test.expectedBlock.Equals(actualBlock) {
 				t.Errorf("Body of response not what expected.\nExpected: %v\nActual: %v", test.expectedBlock, actualBlock)
 			}
 		})

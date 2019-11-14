@@ -140,9 +140,8 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 	}
 }
 
-// GetBlockFromResponse will convert the body of a reponse handler and return a Block
+// GetBlockFromResponse will convert the body of a reponse and return a Block
 // Note - per the documentation on the response struct, the body is never nil
-// TODO how do we test the response is valid if the body is never nil?
 func GetBlockFromResponse(r *http.Response) (block.Block, error) {
 	if r.StatusCode == http.StatusBadRequest {
 		return block.Block{}, errors.New("StatusBadRequest")
@@ -153,6 +152,9 @@ func GetBlockFromResponse(r *http.Response) (block.Block, error) {
 	json.Unmarshal(buf.Bytes(), &requestBody)
 
 	fmt.Printf("%v", requestBody)
-	bodyBlock, _ := requestBody.Unmarshal()
+	bodyBlock, err := requestBody.Unmarshal()
+	if err != nil {
+		return block.Block{}, errors.New("Failed to Unmarshal")
+	}
 	return bodyBlock, nil
 }
