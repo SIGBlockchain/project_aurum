@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"go/build"
 	"io/ioutil"
@@ -15,20 +16,20 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
 )
 
-func main() {
-	//open configuration file
-	gopath := build.Default.GOPATH
-	binDir := gopath + constants.ProjectRoot + "bin/"
-	configFile, err := os.Open(binDir + constants.ConfigurationFile)
-	if err != nil {
-		log.Fatal("Failed to open configuration file : " + err.Error())
-	}
-	defer configFile.Close()
+func getBinDir() string {
+	return build.Default.GOPATH + constants.ProjectRoot + "bin/"
+}
 
+func getConfigFile() (*os.File, error) {
+	return os.Open(getBinDir() + constants.ConfigurationFile)
+}
+
+func setConfigFlags(configFile *os.File) (config.Config, error) {
 	cfg := config.Config{}
-	err = jsonify.LoadJSON(configFile, &cfg)
+	err := jsonify.LoadJSON(configFile, &cfg)
 	if err != nil {
-		log.Fatal("Failed to unmarshall configuration data : " + err.Error())
+		log.Fatal("Failed to unmarshall configuration data: " + err.Error())
+		return cfg, errors.New("Failed to unmarshall configuration data : " + err.Error())
 	}
 
 	//specify flags
@@ -65,14 +66,26 @@ func main() {
 		log.Fatalf("Failed to enter a valid 64 character hex string for mint address.\n"+
 			"Bad input: %v (len: %v)\n"+"The mint address must have 64 characters", cfg.MintAddr, len(cfg.MintAddr))
 	}
+	return cfg, nil
+}
 
+func main() {
+	configFile, err := getConfigFile()
+	if err != nil {
+		log.Fatal("Failed to open configuration file: " + err.Error())
+	}
+	defer configFile.Close()
+
+	cfg, err := setConfigFlags(configFile)
+	if err != nil {
+		log.Fatal("Failed to set configuration: " + err.Error())
+	}
 	//write into configuration file
 	marshalledJSON, err := json.Marshal(cfg)
 	if err != nil {
 		log.Fatalf("Failed to marshal new config: %v", err)
 	}
-
-	if err := ioutil.WriteFile(binDir+constants.ConfigurationFile, marshalledJSON, 0644); err != nil {
+	if err := ioutil.WriteFile(getBinDir(), marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
 }
