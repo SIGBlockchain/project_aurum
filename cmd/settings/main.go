@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// write bytes to file
-	if err := ioutil.WriteFile(config.GetBinDir(), marshalledJSON, 0644); err != nil {
+	if err := ioutil.WriteFile(config.GetBinDir()+constants.ConfigurationFile, marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
 }
