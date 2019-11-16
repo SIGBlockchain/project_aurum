@@ -6,15 +6,68 @@ import (
 	"database/sql"
 	"encoding/asn1"
 	"errors"
+	"flag"
+	"log"
 	"math/big"
+	"os"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
+	"github.com/SIGBlockchain/project_aurum/internal/config"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
+	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
+
+// SetConfigFlags loads a configuration file into a Config struct, modifies the struct according to flags,
+// and returns the updated struct
+func SetConfigFlags(configFile *os.File) (config.Config, error) {
+	cfg := config.Config{}
+	err := jsonify.LoadJSON(configFile, &cfg)
+	if err != nil {
+		return cfg, errors.New("Failed to unmarshall configuration data : " + err.Error())
+	}
+
+	//specify flags
+	versionU64 := flag.Uint("version", uint(cfg.Version), "enter version number")
+	cfg.Version = uint16(*versionU64) // ideally this and the above line would be combined
+	flag.Uint64Var(&cfg.InitialAurumSupply, "supply", cfg.InitialAurumSupply, "enter a number for initial aurum supply")
+	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
+	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
+	flag.BoolVar(&cfg.Localhost, "localhost", cfg.Localhost, "syntax: -localhost=/boolean here/")
+	flag.StringVar(&cfg.MintAddr, "mint", cfg.MintAddr, "enter a mint address (64 characters hex string)")
+
+	//read flags
+	flag.Parse()
+
+	// get units of interval
+	intervalSuffix := strings.TrimLeftFunc(cfg.BlockProductionInterval, func(r rune) bool {
+		return !unicode.IsLetter(r) && unicode.IsDigit(r)
+	})
+	// check units are valid
+	hasSuf := false
+	for _, s := range [7]string{"ns", "us", "µs", "ms", "s", "m", "h"} {
+		if intervalSuffix == s {
+			hasSuf = true
+			break
+		}
+	}
+	if !hasSuf {
+		log.Fatalf("Failed to enter a valid interval suffix\nBad input: %v\n"+
+			"Format should be digits and unit with no space e.g. 1h or 20s",
+			cfg.BlockProductionInterval)
+	}
+
+	if len(cfg.MintAddr) != 64 && len(cfg.MintAddr) != 0 {
+		log.Fatalf("Failed to enter a valid 64 character hex string for mint address.\n"+
+			"Bad input: %v (len: %v)\n"+"The mint address must have 64 characters", cfg.MintAddr, len(cfg.MintAddr))
+	}
+	return cfg, nil
+}
 
 func ValidateContract(dbConnection *sql.DB, c *contracts.Contract) error {
 	// check for zero value transaction

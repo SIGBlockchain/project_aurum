@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"go/build"
 	"io/ioutil"
 	"os"
 
@@ -18,10 +19,25 @@ type Config struct {
 	MintAddr                string
 }
 
-func LoadConfiguration() (*Config, error) {
-	configFile, err := os.Open(constants.ConfigurationFile)
+// getBinDir returns a string of the project root bin directory
+// TODO should this be placed in config or another package that is more appropraite
+func GetBinDir() string {
+	return build.Default.GOPATH + constants.ProjectRoot + "bin/"
+}
+
+// getConfigFile opens a config file based on a filepath and returns an error if error occurs
+func GetConfigFile(path string) (*os.File, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.New("Failed to load configuration file : " + err.Error())
+	}
+	return file, nil
+}
+
+func LoadConfiguration() (*Config, error) {
+	configFile, err := getConfigFile(constants.ConfigurationFile)
+	if err != nil {
+		return nil, err
 	}
 	defer configFile.Close()
 
