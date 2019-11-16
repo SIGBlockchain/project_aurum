@@ -16,19 +16,24 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/jsonify"
 )
 
+// getBinDir returns a string of the project root bin directory
+// TODO should this be placed in config or another package that is more appropraite
 func getBinDir() string {
 	return build.Default.GOPATH + constants.ProjectRoot + "bin/"
 }
 
-func getConfigFile() (*os.File, error) {
-	return os.Open(getBinDir() + constants.ConfigurationFile)
+// getConfigFile opens a config file based on a filepath
+// TODO even though this is one line it might increase readability - too much overhead?
+func getConfigFile(path string) (*os.File, error) {
+	return os.Open(path)
 }
 
+// setConfigFlags loads a configuration file into a Config struct, modifies the struct according to flags,
+// and returns the updated struct
 func setConfigFlags(configFile *os.File) (config.Config, error) {
 	cfg := config.Config{}
 	err := jsonify.LoadJSON(configFile, &cfg)
 	if err != nil {
-		log.Fatal("Failed to unmarshall configuration data: " + err.Error())
 		return cfg, errors.New("Failed to unmarshall configuration data : " + err.Error())
 	}
 
@@ -69,22 +74,29 @@ func setConfigFlags(configFile *os.File) (config.Config, error) {
 	return cfg, nil
 }
 
+// main does runs four tasks: open a config file, set configuration flags, setup configuration as json,
+// and write configurations into open file
 func main() {
-	configFile, err := getConfigFile()
+	// open config file
+	configFile, err := getConfigFile(getBinDir() + constants.ConfigurationFile)
 	if err != nil {
 		log.Fatal("Failed to open configuration file: " + err.Error())
 	}
 	defer configFile.Close()
 
+	// update config interface based on flags
 	cfg, err := setConfigFlags(configFile)
 	if err != nil {
 		log.Fatal("Failed to set configuration: " + err.Error())
 	}
-	//write into configuration file
+
+	// convert cfg to bytes
 	marshalledJSON, err := json.Marshal(cfg)
 	if err != nil {
 		log.Fatalf("Failed to marshal new config: %v", err)
 	}
+
+	// write bytes to file
 	if err := ioutil.WriteFile(getBinDir(), marshalledJSON, 0644); err != nil {
 		log.Fatalf("failed to write to file: %v", err)
 	}
