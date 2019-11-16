@@ -19,13 +19,13 @@ type Config struct {
 	MintAddr                string
 }
 
-// getBinDir returns a string of the project root bin directory
+// GetBinDir returns a string of the project root bin directory
 // TODO should this be placed in config or another package that is more appropraite
 func GetBinDir() string {
 	return build.Default.GOPATH + constants.ProjectRoot + "bin/"
 }
 
-// getConfigFile opens a config file based on a filepath and returns an error if error occurs
+// GetConfigFile opens a config file based on a filepath and returns an error if error occurs
 func GetConfigFile(path string) (*os.File, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -34,8 +34,10 @@ func GetConfigFile(path string) (*os.File, error) {
 	return file, nil
 }
 
+// LoadConfiguration fills a Config struct with configuration info from a file and returns
+// the struct
 func LoadConfiguration() (*Config, error) {
-	configFile, err := getConfigFile(constants.ConfigurationFile)
+	configFile, err := GetConfigFile(constants.ConfigurationFile)
 	if err != nil {
 		return nil, err
 	}

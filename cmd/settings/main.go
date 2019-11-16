@@ -21,7 +21,7 @@ func main() {
 	defer configFile.Close()
 
 	// update config interface based on flags
-	cfg, err := validation.SetConfigFlags(configFile)
+	cfg, err := validation.SetConfigFromFlags(configFile)
 	if err != nil {
 		log.Fatal("Failed to set configuration: " + err.Error())
 	}

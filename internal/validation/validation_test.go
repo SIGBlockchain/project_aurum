@@ -527,3 +527,7 @@ func TestValidateProducerTimestamp(t *testing.T) {
 	}
 
 }
+
+func TestSetConfigFromFlags(t *testing.T) {
+
+}
