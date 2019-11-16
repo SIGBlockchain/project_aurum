@@ -20,12 +20,13 @@ type Config struct {
 }
 
 // GetBinDir returns a string of the project root bin directory
-// TODO should this be placed in config or another package that is more appropraite
+// TODO does this need a test?
 func GetBinDir() string {
 	return build.Default.GOPATH + constants.ProjectRoot + "bin/"
 }
 
 // GetConfigFile opens a config file based on a filepath and returns an error if error occurs
+// TODO does this need a test?
 func GetConfigFile(path string) (*os.File, error) {
 	file, err := os.Open(path)
 	if err != nil {

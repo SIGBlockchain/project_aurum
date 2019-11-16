@@ -23,7 +23,7 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
 
-// SetConfigFlags loads a configuration file into a Config struct, modifies the struct according to flags,
+// SetConfigFromFlags loads a configuration file into a Config struct, modifies the struct according to flags,
 // and returns the updated struct
 func SetConfigFromFlags(configFile *os.File) (config.Config, error) {
 	cfg := config.Config{}
