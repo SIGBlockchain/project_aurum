@@ -284,9 +284,10 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 func GenerateRandomContract() (*Contract){
 	min := 1
 	maxVer := 65535
-	b := make([]byte, 32)
-	mrand.Read(b)
-	genRecipPubKeyHash := b 
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, mrand.Uint64())
+
+	genRecipPubKeyHash := hashing.New(b)
 	genVersion := mrand.Intn(maxVer - min) + min
 	genValue := mrand.Uint64()+uint64(min)
 	genStateNonce := mrand.Uint64()+uint64(min)
