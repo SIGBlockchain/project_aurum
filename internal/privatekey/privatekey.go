@@ -13,7 +13,29 @@ import (
 )
 
 type AurumPrivateKey struct {
-	Key *ecdsa.PrivateKey
+	Key   *ecdsa.PrivateKey
+	Bytes []byte
+	Hex   string
+}
+
+func New() (AurumPrivateKey, error) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return AurumPrivateKey{}, err
+	}
+	pBytes, err := Encode(p)
+	if err != nil {
+		return AurumPrivateKey{}, err
+	}
+
+	pHex := hex.EncodeToString(pBytes)
+
+	newInst := AurumPrivateKey{
+		p,
+		pBytes,
+		pHex,
+	}
+	return newInst, nil
 }
 
 // Returns the PEM-Encoded byte slice from a given private key
