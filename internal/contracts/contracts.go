@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
+	"crypto/elliptic"
 	
  
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -284,9 +286,16 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 func GenerateRandomContract() (*Contract){
 	min := 1
 	maxVer := 65535
+	
+	
+	s1 := mrand.NewSource(time.Now().UnixNano())
+    r1 := mrand.New(s1)
+	
 	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, mrand.Uint64())
-
+	randNum:= r1.Uint64()
+	binary.LittleEndian.PutUint64(b, randNum)
+	public,_ := ecdsa.GenerateKey(elliptic.P256(), crand.Reader)
+	genSenderPubKey:= public.PublicKey
 	genRecipPubKeyHash := hashing.New(b)
 	genVersion := mrand.Intn(maxVer - min) + min
 	genValue := mrand.Uint64()+uint64(min)
@@ -294,6 +303,7 @@ func GenerateRandomContract() (*Contract){
 	
 	c:= &Contract{
 		RecipPubKeyHash: genRecipPubKeyHash,
+		SenderPubKey:&genSenderPubKey,
 		Version: uint16(genVersion),
 		Value: genValue,
 		StateNonce: genStateNonce,
