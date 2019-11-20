@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 )
@@ -189,7 +190,7 @@ func (b Block) ToString() string {
 
 // Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlock(b Block) []byte {
-	const blength = 82 // calculate the total length of the slice
+	const blength = constants.BlockHeaderLength // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
 	// convert the known variables to byte slices in little endian and add to slice
@@ -203,7 +204,7 @@ func HashBlock(b Block) []byte {
 
 // Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlockHeader(b BlockHeader) []byte {
-	const blength = 82 // calculate the total length of the slice
+	const blength = constants.BlockHeaderLength // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
 	// convert the known variables to byte slices in little endian and add to slice
