@@ -1,15 +1,38 @@
 package privatekey
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 )
+
+func TestNew(t *testing.T) {
+	// Act
+	privKeyStruct, err := New()
+	if err != nil {
+		t.Errorf("New() returned err: %v", err)
+	}
+
+	pEncoded, _ := Encode(privKeyStruct.Key)
+	pHexEncoded := hex.EncodeToString(pEncoded)
+
+	// Assert
+	if !bytes.Equal(privKeyStruct.Bytes, pEncoded) {
+		t.Errorf("The Bytes field is not the encoded private key. Got: %v, Want: %v", privKeyStruct.Bytes, pEncoded)
+	}
+
+	if privKeyStruct.Hex != pHexEncoded {
+		t.Errorf("Encoded private key is not properly hex encoded. Got: %v, Want: %v", privKeyStruct.Hex, pHexEncoded)
+	}
+
+}
 
 func TestDecode(t *testing.T) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -56,8 +79,11 @@ func TestEquals(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to generate private/public key pair")
 	}
+	pEncoded, _ := Encode(privateKey)
 	aurumPVKey := AurumPrivateKey{
 		privateKey,
+		pEncoded,
+		hex.EncodeToString(pEncoded),
 	}
 
 	privateKey2, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
