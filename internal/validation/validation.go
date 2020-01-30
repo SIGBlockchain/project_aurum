@@ -34,7 +34,6 @@ func SetConfigFromFlags(configFile *os.File) (config.Config, error) {
 
 	//specify flags
 	versionU64 := flag.Uint("version", uint(cfg.Version), "enter version number")
-	cfg.Version = uint16(*versionU64) // ideally this and the above line would be combined
 	flag.Uint64Var(&cfg.InitialAurumSupply, "supply", cfg.InitialAurumSupply, "enter a number for initial aurum supply")
 	flag.StringVar(&cfg.Port, "port", cfg.Port, "enter port number")
 	flag.StringVar(&cfg.BlockProductionInterval, "interval", cfg.BlockProductionInterval, "enter a time for block production interval\n(assuming seconds if units are not provided)")
@@ -43,6 +42,7 @@ func SetConfigFromFlags(configFile *os.File) (config.Config, error) {
 
 	//read flags
 	flag.Parse()
+	cfg.Version = uint16(*versionU64)
 
 	// get units of interval
 	intervalSuffix := strings.TrimLeftFunc(cfg.BlockProductionInterval, func(r rune) bool {
