@@ -10,4 +10,5 @@ const (
 	GenesisAddresses  = "genesis_hashes.txt"
 	ConfigurationFile = "config.json"
 	GenesisHashFile   = "genesis_hashes.txt"
+	BlockHeaderLength = 82
 )
