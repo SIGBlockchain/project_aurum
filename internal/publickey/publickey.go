@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
+	"github.com/btcsuite/btcutil/base58"
 )
 
 // AurumPublicKey struct holds public key for user
@@ -42,11 +43,13 @@ func Encode(key *ecdsa.PublicKey) ([]byte, error) {
 	if key == nil {
 		return nil, errors.New("Could not return the encoded public key - the key value is nil")
 	}
-	x509EncodedPub, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return nil, err
-	}
-	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub}), nil
+	b := append(key.X.Bytes(), key.Y.Bytes()...)
+	
+	b58EncodedPub := base58.Encode(b)
+
+	k := "0x01" + b58EncodedPub
+	b58PrefixEncoded := []byte(k)
+	return b58PrefixEncoded, nil
 }
 
 // Decode returns the public key from a given PEM-Encoded byte slice representation of the public key or a non-nil error if fail
