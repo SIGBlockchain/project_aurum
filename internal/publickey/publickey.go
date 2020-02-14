@@ -44,11 +44,10 @@ func Encode(key *ecdsa.PublicKey) ([]byte, error) {
 		return nil, errors.New("Could not return the encoded public key - the key value is nil")
 	}
 	b := append(key.X.Bytes(), key.Y.Bytes()...)
-	
-	b58EncodedPub := base58.Encode(b)
-
-	k := "0x01" + b58EncodedPub
-	b58PrefixEncoded := []byte(k)
+	k := "1" + string(b)
+	c:= []byte(k)
+	b58EncodedPub := base58.Encode(c)
+    b58PrefixEncoded := []byte(b58EncodedPub)
 	return b58PrefixEncoded, nil
 }
 
