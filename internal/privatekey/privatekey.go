@@ -13,7 +13,29 @@ import (
 )
 
 type AurumPrivateKey struct {
-	Key *ecdsa.PrivateKey
+	Key   *ecdsa.PrivateKey
+	Bytes []byte
+	Hex   string
+}
+
+func New() (AurumPrivateKey, error) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return AurumPrivateKey{}, err
+	}
+	pBytes, err := Encode(p)
+	if err != nil {
+		return AurumPrivateKey{}, err
+	}
+
+	pHex := hex.EncodeToString(pBytes)
+
+	newInst := AurumPrivateKey{
+		p,
+		pBytes,
+		pHex,
+	}
+	return newInst, nil
 }
 
 // Returns the PEM-Encoded byte slice from a given private key
@@ -77,7 +99,10 @@ func GenerateNRandomKeys(filename string, n uint32) error {
 			return err
 		}
 		// Encodes the private key
-		x509Encoded, _ := x509.MarshalECPrivateKey(p)
+		x509Encoded, err := x509.MarshalECPrivateKey(p)
+		if err != nil {
+			return err
+		}
 		pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 		// Converts the encoded byte string into a string so it can be used in the json struct
 		encodedStr := hex.EncodeToString(pemEncoded)

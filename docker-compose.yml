@@ -1,13 +1,11 @@
 version: '3'
 
 services:
-  prod:
-    build: producer
-    networks:
-      - aurum_net
-    ports:
-     - "13131:13131"
+  aurum_producer:
+    build:
+      context: .
+    ports: 
+      - "26000:26000"
     container_name: "producer"
-
-networks: 
-  aurum_net:
+    volumes:
+      - "${PWD}/../data/:/go/src/github.com/SIGBlockchain/project_aurum/data/"

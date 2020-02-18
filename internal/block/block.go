@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 )
@@ -189,7 +190,7 @@ func (b Block) ToString() string {
 
 // Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlock(b Block) []byte {
-	const blength = 82 // calculate the total length of the slice
+	const blength = constants.BlockHeaderLength // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
 	// convert the known variables to byte slices in little endian and add to slice
@@ -203,7 +204,7 @@ func HashBlock(b Block) []byte {
 
 // Concatenate all the fields of the block header and return its SHA256 hash
 func HashBlockHeader(b BlockHeader) []byte {
-	const blength = 82 // calculate the total length of the slice
+	const blength = constants.BlockHeaderLength // calculate the total length of the slice
 	concatenated := make([]byte, blength)
 
 	// convert the known variables to byte slices in little endian and add to slice
@@ -215,7 +216,7 @@ func HashBlockHeader(b BlockHeader) []byte {
 	return hashing.New(concatenated)
 }
 
-func (b *Block) Marshal() (JSONBlock, error) {
+func (b *Block) Marshal() JSONBlock {
 	jsonBlock := JSONBlock{
 		Version:        b.Version,
 		Height:         b.Height,
@@ -229,7 +230,7 @@ func (b *Block) Marshal() (JSONBlock, error) {
 		jsonBlock.Data[i] = hex.EncodeToString(d)
 	}
 
-	return jsonBlock, nil
+	return jsonBlock
 }
 
 // Unmarshal converts a JSONBlock to a Block
@@ -259,4 +260,23 @@ func (jB *JSONBlock) Unmarshal() (Block, error) {
 		DataLen:        jB.DataLen,
 		Data:           blockData,
 	}, nil
+}
+
+// ExtractContractsFromBlock returns contract slice based on block data
+func ExtractContractsFromBlock(b Block) ([]*contracts.Contract, error) {
+	if b.DataLen == 0 {
+		return nil, errors.New("block contains no contracts")
+	}
+	extractedContracts := make([]*contracts.Contract, b.DataLen)
+	for i, d := range b.Data {
+		if d == nil {
+			return nil, errors.New("data in block is empty")
+		}
+		extractedContracts[i] = &contracts.Contract{}
+		err := extractedContracts[i].Deserialize(d)
+		if err != nil {
+			return nil, errors.New("deserialized contract return the error: " + err.Error())
+		}
+	}
+	return extractedContracts, nil
 }

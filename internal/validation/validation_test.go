@@ -5,12 +5,16 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"encoding/json"
+	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountstable"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
+	"github.com/SIGBlockchain/project_aurum/internal/config"
 	"github.com/SIGBlockchain/project_aurum/internal/constants"
 	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -524,6 +528,51 @@ func TestValidateProducerTimestamp(t *testing.T) {
 				t.Errorf("ValidateProducerTimestamp returned the wrong boolean. Want: %v Got: %v", tt.want, result)
 			}
 		})
+	}
+
+}
+
+// TODO - since we don't care about the file, shouldn't this be mocked?
+func TestSetConfigFromFlags(t *testing.T) {
+	// create a test file and open it
+	tmpfile, err := ioutil.TempFile("", "mockconfig") //create tempfile and open it
+	if err != nil {
+		t.Errorf("failed to open temp file")
+	}
+
+	// defer close and remove
+	defer func() {
+		err := tmpfile.Close() //closes file
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+		}
+
+		err = os.Remove(tmpfile.Name()) //deletes the file
+		if err != nil {
+			t.Errorf("Failed to remove database: %s", err)
+
+		}
+	}()
+
+	// create config to be loaded into file
+	expectedCfg := config.Config{1, 20, "5000", "40s", false, ""}
+
+	// convert to bytes
+	marshalledCfg, err := json.Marshal(expectedCfg)
+	if err != nil {
+		t.Errorf("failed to marshall configuration struct: %v", err)
+	}
+
+	// write to temp file
+	err = ioutil.WriteFile(tmpfile.Name(), marshalledCfg, 0644)
+	if err != nil {
+		t.Errorf("failed to write file %v", err)
+	}
+
+	actualCfg, err := SetConfigFromFlags(tmpfile)
+
+	if !reflect.DeepEqual(actualCfg, expectedCfg) {
+		t.Errorf("the Config structs are not equal: Wanted %v, Got %v", actualCfg, expectedCfg)
 	}
 
 }

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -126,12 +128,7 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 			return
 		}
 		b := block.Deserialize(serializedBlock)
-		jsonBlock, err := b.Marshal()
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			io.WriteString(w, err.Error())
-			return
-		}
+		jsonBlock := b.Marshal()
 		marshalledBlock, err := json.Marshal(jsonBlock)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -141,4 +138,23 @@ func HandleGetJSONBlockByHeight(fetcher ifaces.IBlockFetcher) func(w http.Respon
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(marshalledBlock))
 	}
+}
+
+// GetBlockFromResponse will convert the body of a reponse and return a Block
+// Note - per the documentation on the response struct, the body is never nil
+func GetBlockFromResponse(r *http.Response) (block.Block, error) {
+	if r.StatusCode == http.StatusBadRequest {
+		return block.Block{}, errors.New("StatusBadRequest")
+	}
+	var requestBody block.JSONBlock
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+	json.Unmarshal(buf.Bytes(), &requestBody)
+
+	fmt.Printf("%v", requestBody)
+	bodyBlock, err := requestBody.Unmarshal()
+	if err != nil {
+		return block.Block{}, errors.New("Failed to Unmarshal")
+	}
+	return bodyBlock, nil
 }

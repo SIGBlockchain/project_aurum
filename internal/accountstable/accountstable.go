@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"sync"
 
 	"github.com/SIGBlockchain/project_aurum/internal/accountinfo"
 	"github.com/SIGBlockchain/project_aurum/internal/block"
@@ -13,6 +14,79 @@ import (
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
 )
+
+// structs
+
+// Connection struct used receiver call on a sql.DB with mutex support
+type Connection struct {
+	lock   sync.RWMutex
+	dbconn *sql.DB
+}
+
+// Lock locks Connection for writing. If the lock is already locked for writing,
+// Lock blocks until the lock is available.
+func (c *Connection) Lock() {
+	c.lock.Lock()
+}
+
+// Unlock unlocks Connection for writing. It is a run-time error if at is not locked for
+// writing on entry to Unlock.
+func (c *Connection) Unlock() {
+	c.lock.Unlock()
+}
+
+// InsertAccountIntoAccountBalanceTable calls Connection.InsertAccountIntoAccountBalanaceTable using struct connection
+func (c *Connection) InsertAccountIntoAccountBalanceTable(pkhash []byte, value uint64) error {
+	return InsertAccountIntoAccountBalanceTable(c.dbconn, pkhash, value)
+}
+
+// ExchangeAndUpdateAccounts calls Connection.ExchangeAndUpdateAccounts using struct connection
+func (c *Connection) ExchangeAndUpdateAccounts(contract *contracts.Contract) error {
+	return ExchangeAndUpdateAccounts(c.dbconn, contract)
+}
+
+// MintAurumUpdateAccountBalanceTable calls Connection.MintAurumUpdateAccountBalanceTable using struct connection
+func (c *Connection) MintAurumUpdateAccountBalanceTable(pkhash []byte, value uint64) error {
+	return MintAurumUpdateAccountBalanceTable(c.dbconn, pkhash, value)
+}
+
+// GetBalance locks access and calls Connection.GetBalance using struct connection
+func (c *Connection) GetBalance(pkhash []byte) (uint64, error) {
+	c.Lock()
+	bal, err := GetBalance(c.dbconn, pkhash)
+	c.Unlock()
+	if err != nil {
+		return 0, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// GetStateNonce calls Connection.GetStateNonce using struct connection
+func (c *Connection) GetStateNonce(pkhash []byte) (uint64, error) {
+	c.Lock()
+	bal, err := GetStateNonce(c.dbconn, pkhash)
+	c.Unlock()
+	if err != nil {
+		return 0, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// GetAccountInfo calls Connection.GetAccountInfo using struct connection
+func (c *Connection) GetAccountInfo(pkhash []byte) (*accountinfo.AccountInfo, error) {
+	c.Lock()
+	bal, err := GetAccountInfo(c.dbconn, pkhash)
+	c.Unlock()
+	if err != nil {
+		return nil, errors.New("cannot access balance: " + err.Error())
+	}
+	return bal, nil
+}
+
+// UpdateAccountTable calls Connection.UpdateAccountTable using struct connection
+func (c *Connection) UpdateAccountTable(b *block.Block) error {
+	return UpdateAccountTable(c.dbconn, b)
+}
 
 /*
 Insert into account balance table
