@@ -52,6 +52,32 @@ func TestInsertContractIntoContractsTable(t *testing.T) {
 
 }
 
+func TestInsertContractsIntoContractsTable(t *testing.T) {
+	// Arrange
+	dbConn := setUp("testContracts.db")
+	defer tearDown(dbConn, "testContracts.db")
+
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedRecipientKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	var testContracts [](*contracts.Contract)
+
+	contract1, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 1, 1)
+	testContracts = append(testContracts, contract1)
+
+	contract2, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 10, 2)
+	testContracts = append(testContracts, contract2)
+
+	// Act
+	err := InsertContractsIntoContractsTable(testContracts)
+
+	// Assert
+	if err != nil {
+		t.Errorf("Failed to insert contracts into contracts table: %s", err)
+	}
+
+}
+
 func TestGetContractsFromContractsTable(t *testing.T) {
 	// Arrange
 	dbConn := setUp("testContracts.db")
