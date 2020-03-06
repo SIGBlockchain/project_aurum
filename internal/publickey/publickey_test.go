@@ -64,7 +64,7 @@ func TestEncoding(t *testing.T) {
 	if bytes.Compare(encodedPublic[1:33], public.X.Bytes()) != 0 {
 		t.Errorf("Encoding of X from public key is mssing")
 	}
-	if bytes.Compare(encodedPublic[33:64], public.Y.Bytes()) != 0 {
+	if bytes.Compare(encodedPublic[33:65], public.Y.Bytes()) != 0 {
 		t.Errorf("Encoding of Y from public key is mssing")
 	}
 	if len(encodedPublic) != 65 {
@@ -89,6 +89,7 @@ func TestDecoding(t *testing.T) {
 	}
 
 	// test that decodings match
+	
 	if !reflect.DeepEqual(public, decoded) {
 		t.Errorf("Keys do not match after decode\n. %v != %v\n", public, decoded)
 	}
