@@ -86,18 +86,16 @@ func TestGetContractsFromContractsTable(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedRecipientKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+
 	var testContracts [](*contracts.Contract)
-
 	contract1, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 1, 1)
-	err := InsertContractIntoContractsTable(contract1)
-	testContracts = append(testContracts, contract1)
-
 	contract2, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 10, 2)
-	err2 := InsertContractIntoContractsTable(contract2)
-	testContracts = append(testContracts, contract2)
+	testContracts = append(testContracts, contract1, contract2)
 
-	if err != nil || err2 != nil {
-		t.Errorf("Failed to insert contract into contracts table: %s", err)
+	err := InsertContractsIntoContractsTable(testContracts)
+
+	if err != nil {
+		t.Errorf("Failed to insert contracts into contracts table: %s", err)
 	}
 
 	// Act
@@ -112,7 +110,7 @@ func TestGetContractsFromContractsTable(t *testing.T) {
 	}
 
 	for n := 0; n < len(contracts); n++ {
-		result := (*contracts[n]).Equals(*testContracts[n])
+		result := contracts[n].Equals(*testContracts[n])
 		if !result {
 			t.Errorf("Failed to get the expected contracts from contracts table")
 		}
