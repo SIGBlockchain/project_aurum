@@ -5,7 +5,10 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"database/sql"
+	"fmt"
+	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"os"
+	"reflect"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -38,12 +41,36 @@ func TestInsertContractIntoContractsTable(t *testing.T) {
 	defer tearDown(dbConn, "testContracts.db")
 
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedSenderPubKey,_ := publickey.Encode(&senderPrivateKey.PublicKey)
+	senderPKH				:= hashing.New(encodedSenderPubKey)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	encodedRecipientKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
 	contract, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 1, 1)
 
 	// Act
-	err := InsertContractIntoContractsTable(contract)
+	err := InsertContractIntoContractsTable(dbConn,contract)
+
+	var senderPubKey string
+	var recipientPubKey string
+	var nonce uint64
+	rows, err := dbConn.Query(sqlstatements.GET_CONTRACT_BY_PUBLIC_KEY_HASH,senderPKH,senderPKH)
+	if err != nil {
+		t.Errorf("Failed to acquire rows from table")
+	}
+	for rows.Next() {
+		err = rows.Scan(&senderPubKey, &recipientPubKey, &nonce)
+		if err != nil {
+			t.Errorf("failed to scan rows: %s", err)
+		}
+		fmt.Println(senderPubKey)
+		fmt.Println(recipientPubKey)
+		fmt.Println(nonce)
+
+		// finish checking the row********************
+		if !reflect.DeepEqual(senderPubKey,senderPKH) {
+			t.Errorf("SenderPublicKey = %v, want %v", senderPubKey, senderPKH)
+		}
+	}
 
 	// Assert
 	if err != nil {
@@ -69,7 +96,7 @@ func TestInsertContractsIntoContractsTable(t *testing.T) {
 	testContracts = append(testContracts, contract2)
 
 	// Act
-	err := InsertContractsIntoContractsTable(testContracts)
+	err := InsertContractsIntoContractsTable(dbConn,testContracts)
 
 	// Assert
 	if err != nil {
@@ -89,11 +116,11 @@ func TestGetContractsFromContractsTable(t *testing.T) {
 	var testContracts [](*contracts.Contract)
 
 	contract1, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 1, 1)
-	err := InsertContractIntoContractsTable(contract1)
+	err := InsertContractIntoContractsTable(dbConn,contract1)
 	testContracts = append(testContracts, contract1)
 
 	contract2, _ := contracts.New(1, senderPrivateKey, encodedRecipientKey, 10, 2)
-	err2 := InsertContractIntoContractsTable(contract2)
+	err2 := InsertContractIntoContractsTable(dbConn,contract2)
 	testContracts = append(testContracts, contract2)
 
 	if err != nil || err2 != nil {
