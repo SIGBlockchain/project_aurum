@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -100,73 +101,129 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestContract_Serialize(t *testing.T) {
-	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func TestMiningContractSerialize(t *testing.T) {
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	encodedPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
-	nullSenderContract, _ := New(1, nil, hashing.New(encodedPublicKey), 1000, 0)
-	encodedRecipientKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
-	unsignedContract, _ := New(1, senderPrivateKey, hashing.New(encodedRecipientKey), 1000, 0)
-	signedContract, _ := New(1, senderPrivateKey, hashing.New(encodedRecipientKey), 1000, 0)
-	signedContract.Sign(senderPrivateKey)
-	tests := []struct {
-		name string
-		c    *Contract
-	}{
-		{
-			name: "Minting contract",
-			c:    nullSenderContract,
-		},
-		{
-			name: "Unsigned contract",
-			c:    unsignedContract,
-		},
-		{
-			name: "Signed contract",
-			c:    signedContract,
-		},
+	encodedPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	recipientPubKeyHash := hashing.New(encodedPublicKey)
+
+	expectedVersion := uint16(1)
+	expectedValue := uint64(10004)
+	expectedStateNonce := uint64(43)
+
+	nullSenderContract, _ := New(expectedVersion, nil, recipientPubKeyHash, expectedValue, expectedStateNonce)
+	serializedContract, _ := nullSenderContract.Serialize()
+
+	actualVersion := binary.LittleEndian.Uint16(serializedContract[0:2])
+	sigLen := uint8(serializedContract[3])
+	actualRecipPubKeyHash := serializedContract[4:36]
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Versions do not match. Expected: %d, actual: %d\n", expectedVersion, actualVersion)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, _ := tt.c.Serialize()
-			sigLen := got[180]
-			testSendPublicKey := tt.c.SenderPubKey
-			testEncodeSenderPubKey, _ := publickey.Encode(testSendPublicKey)
-			switch tt.name {
-			case "Minting contract":
-				if !bytes.Equal(got[2:180], make([]byte, 178)) {
-					t.Errorf("Non null sender public key for minting contract")
-				}
-				if sigLen != 0 {
-					t.Errorf("Non-zero signature length in minting contract: %v", sigLen)
-				}
-				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
-					t.Errorf("Invalid recipient public key hash in minting contract")
-				}
-				break
-			case "Unsigned contract":
-				if sigLen != 0 {
-					t.Errorf("Non-zero signature length in unsigned contract: %v", sigLen)
-				}
-				if !bytes.Equal(got[2:180], testEncodeSenderPubKey) {
-					t.Errorf("Invalid encoded public key for unsigned contract")
-				}
-				if !bytes.Equal(got[181:213], tt.c.RecipPubKeyHash) {
-					t.Errorf("Invalid recipient public key hash in unsigned contract")
-				}
-			case "Signed Contract":
-				if sigLen == 0 {
-					t.Errorf("Zero length signature in signed contract: %v", sigLen)
-				}
-				if !bytes.Equal(got[2:180], testEncodeSenderPubKey) {
-					t.Errorf("Invalid encoded public key for signed contract")
-				}
-				if !bytes.Equal(got[(181+int(sigLen)):(181+int(sigLen)+32)], tt.c.RecipPubKeyHash) {
-					t.Errorf("Invalid recipient public key hash in signed contract")
-				}
-			}
-		})
+	if serializedContract[2] != byte(0x0) {
+		t.Errorf("Encoded sender public key is not 0")
 	}
+	if sigLen != 0 {
+		t.Errorf("Mining contract should be unsigned. Got signature length of %d, when it should be 0", sigLen)
+	}
+	if !bytes.Equal(recipientPubKeyHash, actualRecipPubKeyHash) {
+		t.Errorf("Recipient Public Key hashes do not match.\nExpected: %v\nActual:%v\n", recipientPubKeyHash, actualRecipPubKeyHash)
+	}
+}
+
+func TestUnsignedContractSerialize(t *testing.T) {
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	recipientPubKeyHash := hashing.New(encodedRecipientPublicKey)
+
+	expectedVersion := uint16(3)
+	expectedValue := uint64(12004)
+	expectedStateNonce := uint64(873)
+	contract, _ := New(expectedVersion, senderPrivateKey, recipientPubKeyHash, expectedValue, expectedStateNonce)
+	serializedContract, _ := contract.Serialize()
+
+	actualVersion := binary.LittleEndian.Uint16(serializedContract[0:2])
+
+	firstByte := serializedContract[2]
+	pubKeyLength := publickey.Info[firstByte].Length
+	actualPubKey := serializedContract[2 : 2+pubKeyLength]
+	actualSigLen := serializedContract[2+pubKeyLength]
+	actualRecipientHash := serializedContract[3+pubKeyLength : 35+pubKeyLength]
+	actualValue := binary.LittleEndian.Uint64(serializedContract[35+pubKeyLength : 43+pubKeyLength])
+	actualNonce := binary.LittleEndian.Uint64(serializedContract[43+pubKeyLength : 51+pubKeyLength])
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Versions do not match. Expected: %d, actual: %d\n", expectedVersion, actualVersion)
+	}
+	if serializedContract[2] == byte(0x0) {
+		t.Errorf("Encoded sender public key is 0\n")
+	}
+	if !bytes.Equal(actualPubKey, encodedSenderPublicKey) {
+		t.Errorf("Sender public key not properly encoded\nexpected: %v\nactual %v\n", encodedSenderPublicKey, actualPubKey)
+	}
+	if actualSigLen != 0 {
+		t.Errorf("Signature length is not 0. Expected: 0, actual: %d", actualSigLen)
+	}
+	if !bytes.Equal(actualRecipientHash, recipientPubKeyHash) {
+		t.Errorf("Recipeint public key hash not matching.\nExpected: %v\nActual: %v\n", recipientPubKeyHash, actualRecipientHash)
+	}
+	if actualValue != expectedValue {
+		t.Errorf("Values do not match\nExpected: %v\nActual: %v\n", expectedValue, actualValue)
+	}
+	if actualNonce != expectedStateNonce {
+		t.Errorf("State nonces do not match\nExpected: %v\nActual: %v\n", expectedStateNonce, actualNonce)
+	}
+
+}
+
+func TestSignedContractSerialize(t *testing.T) {
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	recipientPubKeyHash := hashing.New(encodedRecipientPublicKey)
+
+	expectedVersion := uint16(3)
+	expectedValue := uint64(12004)
+	expectedStateNonce := uint64(873)
+	contract, _ := New(expectedVersion, senderPrivateKey, recipientPubKeyHash, expectedValue, expectedStateNonce)
+	contract.Sign(senderPrivateKey)
+	serializedContract, _ := contract.Serialize()
+
+	actualVersion := binary.LittleEndian.Uint16(serializedContract[0:2])
+
+	firstByte := serializedContract[2]
+	pubKeyLength := publickey.Info[firstByte].Length
+	actualPubKey := serializedContract[2 : 2+pubKeyLength]
+	actualSigLen := uint(serializedContract[2+pubKeyLength])
+	actualRecipientHash := serializedContract[3+pubKeyLength+actualSigLen : 35+pubKeyLength+actualSigLen]
+	actualValue := binary.LittleEndian.Uint64(serializedContract[35+pubKeyLength+actualSigLen : 43+pubKeyLength+actualSigLen])
+	actualNonce := binary.LittleEndian.Uint64(serializedContract[43+pubKeyLength+actualSigLen : 51+pubKeyLength+actualSigLen])
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Versions do not match. Expected: %d, actual: %d\n", expectedVersion, actualVersion)
+	}
+	if serializedContract[2] == byte(0x0) {
+		t.Errorf("Encoded sender public key is 0\n")
+	}
+	if !bytes.Equal(actualPubKey, encodedSenderPublicKey) {
+		t.Errorf("Sender public key not properly encoded\nexpected: %v\nactual %v\n", encodedSenderPublicKey, actualPubKey)
+	}
+	if actualSigLen == 0 {
+		t.Errorf("Signature length is 0")
+	}
+	if !bytes.Equal(actualRecipientHash, recipientPubKeyHash) {
+		t.Errorf("Recipeint public key hash not matching.\nExpected: %v\nActual: %v\n", recipientPubKeyHash, actualRecipientHash)
+	}
+	if actualValue != expectedValue {
+		t.Errorf("Values do not match\nExpected: %v\nActual: %v\n", expectedValue, actualValue)
+	}
+	if actualNonce != expectedStateNonce {
+		t.Errorf("State nonces do not match\nExpected: %v\nActual: %v\n", expectedStateNonce, actualNonce)
+	}
+
 }
 
 func TestContract_Deserialize(t *testing.T) {

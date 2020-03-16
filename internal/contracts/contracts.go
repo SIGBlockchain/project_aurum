@@ -42,15 +42,7 @@ type JSONContract struct {
 	StateNonce             uint64
 }
 
-/*
-version field comes from version parameter
-sender public key comes from sender private key
-signature comes from calling sign contract
-signature length comes from signature
-recipient pk hash comes from sha-256 hash of rpk
-value is value parameter
-returns contract struct
-*/
+//Creates an unsigned contract
 func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint64, nextStateNonce uint64) (*Contract, error) {
 
 	if version == 0 {
@@ -75,18 +67,19 @@ func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint6
 	return &c, nil
 }
 
-// // Serialize all fields of the contract
-func (c *Contract) Serialize() ([]byte, error) {
-	/*
+/*
+	Serialize will serialize the contract into an slice of bytes
+
+	Byte breakdown
 		0-2 version
-		2-180 spubkey
-		180-181 siglen
-		181 - 181+c.siglen signature
-		181+c.siglen - (181+c.siglen + 32) rpkh
-		(181+c.siglen + 32) - (181+c.siglen + 32+ 8) value
-
-	*/
-
+		3: The first byte of the encoded public key will indicate the length of the encoded public key.
+			If this byte is 0, then there is no sender public key (usefully for mining contracts)
+		After the encoded public key, the next byte will be the signature length
+		The next bytes are the signatures
+		The next 32 bytes are the recipient public key hash
+		The next 8 bytes indicates the value of the contract
+*/
+func (c *Contract) Serialize() ([]byte, error) {
 	// if contract's sender pubkey is nil, make 178 zeros in its place instead
 	var spubkey []byte
 	var err error

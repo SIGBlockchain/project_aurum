@@ -1,12 +1,11 @@
 package publickey
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/hex"
-	"encoding/pem"
 	"reflect"
 	"testing"
 
@@ -54,21 +53,22 @@ func TestNew(t *testing.T) {
 func TestEncoding(t *testing.T) {
 	private, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	public := private.PublicKey
-	x509EncodedPub, err := x509.MarshalPKIXPublicKey(nil)
-	// test that Encoding returns an error for bad input
-	if err == nil {
-		t.Errorf("Expected err to not be nil, but it was...")
-	}
-	encoded, err := Encode(&public)
-	// test that Encoding does not receive an error for valid input
+	encodedPublic, err := Encode(&public)
+
 	if err != nil {
-		t.Errorf("Received an error for valid input")
+		t.Errorf("Got error: %s\n", err.Error())
 	}
-	x509EncodedPub, _ = x509.MarshalPKIXPublicKey(&public)
-	x509EncodedPub = pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
-	// test that Encoding results match
-	if !reflect.DeepEqual(x509EncodedPub, encoded) {
-		t.Errorf("Encoding does not match")
+	if encodedPublic[0] != byte(1) {
+		t.Errorf("Encoding is missing a byte prefix of 1, instead got: %v\n", encodedPublic[0])
+	}
+	if bytes.Compare(encodedPublic[1:33], public.X.Bytes()) != 0 {
+		t.Errorf("Encoding of X from public key is mssing")
+	}
+	if bytes.Compare(encodedPublic[33:65], public.Y.Bytes()) != 0 {
+		t.Errorf("Encoding of Y from public key is mssing")
+	}
+	if len(encodedPublic) != 65 {
+		t.Errorf("Expected legnth of 65, instead got: %d\n", len(encodedPublic))
 	}
 }
 
@@ -87,12 +87,10 @@ func TestDecoding(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected err to not be nil, but it was...")
 	}
-	localDecoded, _ := pem.Decode(encoded)
-	x509EncodedPub := localDecoded.Bytes
-	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
+
 	// test that decodings match
-	if !reflect.DeepEqual(genericPublicKey, decoded) {
-		t.Errorf("Keys do not match after decode")
+	if !reflect.DeepEqual(public, *decoded) {
+		t.Errorf("Keys do not match after decode\n. %v != %v\n", public, decoded)
 	}
 }
 

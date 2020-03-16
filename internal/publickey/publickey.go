@@ -2,10 +2,11 @@ package publickey
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
+	"crypto/elliptic"
 	"encoding/hex"
-	"encoding/pem"
 	"errors"
+	"math/big"
+ 
 
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 )
@@ -42,11 +43,12 @@ func Encode(key *ecdsa.PublicKey) ([]byte, error) {
 	if key == nil {
 		return nil, errors.New("Could not return the encoded public key - the key value is nil")
 	}
-	x509EncodedPub, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return nil, err
-	}
-	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub}), nil
+	b := make([]byte, 1+len(key.X.Bytes())+len(key.Y.Bytes()))
+	b[0] = byte(1)
+	copy(b[1:33], key.X.Bytes())
+	copy(b[33:65], key.Y.Bytes())
+
+	return b, nil
 }
 
 // Decode returns the public key from a given PEM-Encoded byte slice representation of the public key or a non-nil error if fail
@@ -54,18 +56,27 @@ func Decode(key []byte) (*ecdsa.PublicKey, error) {
 	if key == nil {
 		return nil, errors.New("Could not return the decoded public key - the key value is nil")
 	}
-	blockPub, _ := pem.Decode(key)
-	// pem.Decode will return nil for the first value if no PEM data is found. This would be bad
-	if blockPub == nil {
-		return nil, errors.New("Could not return the public key - failed to PEM decode in preparation x509 encode")
+    if(key[0]!=1){
+		return nil, errors.New("Could not return the decoded public key - the key is not uncompressed public key")
 	}
 
-	x509EncodedPub := blockPub.Bytes
-	genericPublicKey, err := x509.ParsePKIXPublicKey(x509EncodedPub)
-	if err != nil {
-		return nil, err
+	n := new(big.Int)
+	m := new(big.Int)
+
+
+	xByte, err := n.SetString(hex.EncodeToString(key[1:33]), 16)
+
+	if !err {
+		return nil, errors.New("Could not convert string to int")
 	}
-	return genericPublicKey.(*ecdsa.PublicKey), nil
+
+	yByte, ok := m.SetString(hex.EncodeToString(key[33:65]), 16)
+	if !ok {
+		return nil, errors.New("Could not convert string to int")
+	}
+	
+	priv := ecdsa.PublicKey{Curve: elliptic.P256(), X: xByte, Y: yByte}
+	return &priv, nil
 }
 
 // Equals returns true if the given two *ecdsa.PublicKey are equal
