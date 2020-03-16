@@ -3,26 +3,26 @@ package contractstable
 import (
 	"crypto/ecdsa"
 	"database/sql"
+	"encoding/hex"
 	"errors"
+	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 	"github.com/SIGBlockchain/project_aurum/internal/sqlstatements"
-
-	"github.com/SIGBlockchain/project_aurum/internal/contracts"
 )
 
 func InsertContractIntoContractsTable(dbConnection *sql.DB, c *contracts.Contract) error {
 	// create prepared statement to insert into contracts table
-	statement,err := dbConnection.Prepare(sqlstatements.INSERT_VALUES_INTO_CONTRACTS)
+	statement, err := dbConnection.Prepare(sqlstatements.INSERT_VALUES_INTO_CONTRACTS)
+	serializedContract, _ := c.Serialize()
+	encodedSenderPubKey, _ := publickey.Encode(c.SenderPubKey)
 	if err != nil {
 		return errors.New("Unable to prepare sql statement to insert into contracts table")
 	}
 	defer statement.Close()
 
-	// get senders pub key hash-------------------------------------------------------------------------- work on this....
-	encodedSenderPubKey,_ := publickey.Encode(c.SenderPubKey)
-	_,err = statement.Exec(hashing.New(encodedSenderPubKey),c.RecipPubKeyHash,c.StateNonce)
-	if err != nil{
+	_, err = statement.Exec(serializedContract, hex.EncodeToString(hashing.New(encodedSenderPubKey)), c.StateNonce)
+	if err != nil {
 		errors.New("Failed to execute statement to insert into contracts")
 	}
 
