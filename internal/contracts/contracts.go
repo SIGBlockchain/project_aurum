@@ -80,12 +80,6 @@ func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint6
 		The next 8 bytes indicates the value of the contract
 */
 func (c *Contract) Serialize() ([]byte, error) {
-
-	spubkeyLen := 0
-	if c.SenderPubKey != nil {
-		spubkeyLen = publickey.Info
-		[]
-	}
 	// if contract's sender pubkey is nil, make 178 zeros in its place instead
 	var spubkey []byte
 	var err error
