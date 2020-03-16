@@ -89,7 +89,6 @@ func TestDecoding(t *testing.T) {
 	}
 
 	// test that decodings match
-
 	if !reflect.DeepEqual(public, *decoded) {
 		t.Errorf("Keys do not match after decode\n. %v != %v\n", public, decoded)
 	}

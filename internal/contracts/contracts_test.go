@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -100,6 +101,50 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestMiningContractSerialize(t *testing.T) {
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	recipientPubKeyHash := hashing.New(encodedPublicKey)
+
+	expectedVersion := uint16(1)
+	expectedValue := uint64(10004)
+	expectedStateNonce := uint64(43)
+
+	nullSenderContract, _ := New(expectedVersion, nil, recipientPubKeyHash, expectedValue, expectedStateNonce)
+	serializedContract, _ := nullSenderContract.Serialize()
+
+	actualVersion := binary.LittleEndian.Uint16(serializedContract[0:2])
+	sigLen := uint8(serializedContract[3])
+	actualRecipPubKeyHash := serializedContract[4:36]
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Versions do not match. Expected: %d, actual: %d\n", expectedVersion, actualVersion)
+	}
+	if serializedContract[2] != byte(0x3) {
+		t.Errorf("Encoded sender public key is not 0")
+	}
+	if sigLen != 0 {
+		t.Errorf("Mining contract should be unsigned. Got signature length of %d, when it should be 0", sigLen)
+	}
+	if !bytes.Equal(recipientPubKeyHash, actualRecipPubKeyHash) {
+		t.Errorf("Recipient Public Key hashes do not match.\nExpected: %v\nActual:%v\n", recipientPubKeyHash, actualRecipPubKeyHash)
+	}
+}
+
+func TestUnsignedContractSerialize(t *testing.T) {
+	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	encodedRecipientPublicKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
+	encodedSenderPublicKey, _ := publickey.Encode(&senderPrivateKey.PublicKey)
+	recipientPubKeyHash := hashing.New(encodedRecipientPublicKey)
+
+	expectedVersion := uint16(3)
+	expectedValue := uint64(12004)
+	expectedStateNonce := uint64(873)
+	contract, _ := New(expectedVersion, recipientPrivateKey, recipientPubKeyHash, expectedValue, expectedStateNonce)
+	serializedContract, _ := contract.Serialize()
+}
+
 func TestContract_Serialize(t *testing.T) {
 	senderPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	recipientPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -109,6 +154,7 @@ func TestContract_Serialize(t *testing.T) {
 	unsignedContract, _ := New(1, senderPrivateKey, hashing.New(encodedRecipientKey), 1000, 0)
 	signedContract, _ := New(1, senderPrivateKey, hashing.New(encodedRecipientKey), 1000, 0)
 	signedContract.Sign(senderPrivateKey)
+
 	tests := []struct {
 		name string
 		c    *Contract
