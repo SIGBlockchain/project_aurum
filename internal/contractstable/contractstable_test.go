@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
@@ -49,20 +48,17 @@ func TestInsertContractIntoContractsTable(t *testing.T) {
 	recipientPubKeyHash := hashing.New(encodedRecipientKey)
 
 	contract, _ := contracts.New(1, senderPrivateKey, recipientPubKeyHash, 1, 1)
-	stmt, err := dbConn.Prepare(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE)
-	if err != nil {
-		t.Errorf("Unable to prepare sql statement to get contract by sender public key and nonce from contracts table")
-	}
 
 	// Act
-	err = InsertContractIntoContractsTable(dbConn, contract)
+	err := InsertContractIntoContractsTable(dbConn, contract)
 
 	// Assert
 	if err != nil {
 		t.Errorf("Failed to insert contract into contracts table: %s", err)
 	}
 
-	row, err := stmt.Query(hex.EncodeToString(hashing.New(encodedSenderPubkey)), contract.StateNonce)
+	row, err := dbConn.Query(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE,
+		hex.EncodeToString(hashing.New(encodedSenderPubkey)), contract.StateNonce)
 	if err != nil {
 		t.Errorf("Failed to acquire rows from contracts table")
 	}
@@ -94,7 +90,7 @@ func TestInsertContractsIntoContractsTable(t *testing.T) {
 	encodedRecipientKey, _ := publickey.Encode(&recipientPrivateKey.PublicKey)
 	recipientPubKeyHash := hashing.New(encodedRecipientKey)
 
-	var testContracts [](*contracts.Contract)
+	var testContracts []*contracts.Contract
 	contract1, _ := contracts.New(1, senderPrivateKey, recipientPubKeyHash, 1, 1)
 	contract2, _ := contracts.New(1, senderPrivateKey, recipientPubKeyHash, 10, 2)
 	testContracts = append(testContracts, contract1, contract2)
@@ -108,8 +104,9 @@ func TestInsertContractsIntoContractsTable(t *testing.T) {
 	}
 
 	for _, contract := range testContracts {
-		dbConn.Prepare(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE)
-		row, err := dbConn.Query(hex.EncodeToString(hashing.New(encodedSenderPubkey)), strconv.FormatUint(contract.StateNonce, 10))
+		//dbConn.Prepare(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE)
+		row, err := dbConn.Query(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE,
+			hex.EncodeToString(hashing.New(encodedSenderPubkey)), contract.StateNonce)
 		if err != nil {
 			t.Errorf("Failed to acquire rows from contracts table")
 		}
@@ -119,28 +116,7 @@ func TestInsertContractsIntoContractsTable(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to scan rows: %s", err)
 		}
-		var cResult *contracts.Contract
-		err = cResult.Deserialize(result)
-		if err != nil {
-			t.Errorf("Failed to deserialize contract")
-		}
-		if !cResult.Equals(*contract) {
-			t.Error("Result contract does not equal to contract.\nWant: " + cResult.ToString() + "\nGot: " + contract.ToString())
-		}
-	}
-	for _, contract := range testContracts {
-		dbConn.Prepare(sqlstatements.GET_CONTRACT_BY_SENDER_PUBLIC_KEY_AND_NONCE)
-		row, err := dbConn.Query(hex.EncodeToString(hashing.New(encodedSenderPubkey)), strconv.FormatUint(contract.StateNonce, 10))
-		if err != nil {
-			t.Errorf("Failed to acquire rows from contracts table")
-		}
-		row.Next()
-		var result []byte
-		err = row.Scan(&result)
-		if err != nil {
-			t.Errorf("Failed to scan rows: %s", err)
-		}
-		var cResult *contracts.Contract
+		var cResult = contracts.Contract{}
 		err = cResult.Deserialize(result)
 		if err != nil {
 			t.Errorf("Failed to deserialize contract")

@@ -29,9 +29,15 @@ func InsertContractIntoContractsTable(dbConnection *sql.DB, c *contracts.Contrac
 	return nil
 }
 
-func InsertContractsIntoContractsTable(dbConnection *sql.DB, c []*contracts.Contract) error {
-	// Not yet implemented
-	return errors.New("Not yet implemented")
+func InsertContractsIntoContractsTable(dbConnection *sql.DB, contracts []*contracts.Contract) error {
+	for _, c := range contracts {
+		err := InsertContractIntoContractsTable(dbConnection, c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func GetContractsFromContractsTable(dbConn *sql.DB, senderPubKey *ecdsa.PublicKey, nonce uint64) ([]*contracts.Contract, error) {
