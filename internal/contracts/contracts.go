@@ -3,13 +3,17 @@ package contracts
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/rand"
+	crand "crypto/rand"
+	mrand "math/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
-
+	"time"
+	"crypto/elliptic"
+	
+ 
 	"github.com/SIGBlockchain/project_aurum/internal/hashing"
 	"github.com/SIGBlockchain/project_aurum/internal/publickey"
 )
@@ -55,7 +59,7 @@ func New(version uint16, sender *ecdsa.PrivateKey, recipient []byte, value uint6
 
 	if version == 0 {
 		return nil, errors.New("Invalid version; must be >= 1")
-	}
+	}               
 
 	c := Contract{
 		Version:         version,
@@ -174,7 +178,7 @@ func (c *Contract) Sign(sender *ecdsa.PrivateKey) error {
 		return errors.New("Failed to serialize contract")
 	}
 	hashedContract := hashing.New(serializedTestContract)
-	c.Signature, _ = sender.Sign(rand.Reader, hashedContract, nil)
+	c.Signature, _ = sender.Sign(crand.Reader, hashedContract, nil)
 	c.SigLen = uint8(len(c.Signature))
 	return nil
 }
@@ -273,5 +277,39 @@ func (mc *JSONContract) Unmarshal() (Contract, error) {
 		mc.Value,
 		mc.StateNonce,
 	}
-	return c, nil
+	return c, nil 
+	
 }
+
+
+
+func GenerateRandomContract() (*Contract){
+	min := 1
+	maxVer := 65535
+	
+	
+	s1 := mrand.NewSource(time.Now().UnixNano())
+    r1 := mrand.New(s1)
+	
+	b := make([]byte, 8)
+	randNum:= r1.Uint64()
+	binary.LittleEndian.PutUint64(b, randNum)
+	public,_ := ecdsa.GenerateKey(elliptic.P256(), crand.Reader)
+	genSenderPubKey:= public.PublicKey
+	genRecipPubKeyHash := hashing.New(b)
+	genVersion := mrand.Intn(maxVer - min) + min
+	genValue := mrand.Uint64()+uint64(min)
+	genStateNonce := mrand.Uint64()+uint64(min)
+	
+	c:= &Contract{
+		RecipPubKeyHash: genRecipPubKeyHash,
+		SenderPubKey:&genSenderPubKey,
+		Version: uint16(genVersion),
+		Value: genValue,
+		StateNonce: genStateNonce,
+	}
+	return c
+}
+	
+
+
